@@ -1,0 +1,12 @@
+{
+ "lam": 0.95,
+  "lam_short": 0.99,
+ "lam_ll": 0.995,
+ "prior": 0.35,
+ "beta": 2.5,
+ "ep_weight": 0.5,
+ "lam_size": 0.9,
+ "size_prior": 0.0,
+ "clip": 0.03,
+ "base_lam": 0.99
+}
