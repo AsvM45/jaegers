@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wacky Wheels control tower</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f3f4f6;
+    --panel: #ffffff;
+    --ink: #1a1f26;
+    --muted: #5c6775;
+    --line: #d5dbe3;
+    --select: #e6eef6;
+    --accent: #1e4d78;
+    --chip: #eef2f6;
+    --ok: #17663a;
+    --ok-bg: #e5f3eb;
+    --fail: #8d2a2a;
+    --fail-bg: #f8e8e8;
+    --notice: #6a5420;
+    --notice-bg: #f6f1e4;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    --sans: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #12161c;
+      --panel: #1b212a;
+      --ink: #e7edf4;
+      --muted: #9aa6b4;
+      --line: #313a46;
+      --select: #243140;
+      --accent: #9ec0de;
+      --chip: #242c36;
+      --ok: #8dcea8;
+      --ok-bg: #173024;
+      --fail: #f0b4b4;
+      --fail-bg: #3a2222;
+      --notice: #e2d2a2;
+      --notice-bg: #2c291f;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+  }
+
+  body {
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--ink);
+    background: var(--bg);
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    padding: 12px 16px 10px;
+  }
+
+  .title-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 650;
+    letter-spacing: 0;
+  }
+
+  .subtitle {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  button.refresh {
+    font: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+
+  button.refresh:hover,
+  button.refresh:focus-visible {
+    border-color: var(--accent);
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  .ontology {
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .ontology p { margin: 0; }
+  .ontology .chains { margin-top: 2px; }
+
+  .workspace {
+    display: grid;
+    grid-template-columns: 340px minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .feed, .detail {
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .feed {
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+  }
+
+  .feed-head, .detail-head {
+    position: sticky;
+    top: 0;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--muted);
+    z-index: 1;
+  }
+
+  .event {
+    display: block;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+
+  .event:hover { background: var(--select); }
+
+  .event[aria-pressed="true"] {
+    background: var(--select);
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+
+  .event:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  .event { overflow: hidden; }
+
+  .event-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .event-id {
+    font-weight: 650;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  .event-time {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+  }
+
+  .event-source {
+    display: block;
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 1px;
+  }
+
+  .excerpt {
+    display: block;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .detail { padding: 0 0 32px; }
+
+  .detail-body { padding: 14px 18px 0; }
+
+  .detail h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 650;
+  }
+
+  .meta {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  section { margin-top: 16px; }
+
+  h3 {
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  h4 {
+    margin: 10px 0 4px;
+    font-size: 13px;
+    font-weight: 650;
+  }
+
+  .message {
+    margin: 0;
+    white-space: pre-wrap;
+    max-width: 78ch;
+  }
+
+  .notice {
+    margin: 12px 0 0;
+    padding: 8px 10px;
+    background: var(--notice-bg);
+    color: var(--notice);
+    max-width: 78ch;
+  }
+
+  .stack { max-width: 78ch; }
+  .stack p { margin: 0 0 6px; }
+
+  .label {
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .chip {
+    display: inline-block;
+    border: 1px solid var(--line);
+    background: var(--chip);
+    padding: 1px 6px;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  .status {
+    display: inline-block;
+    padding: 1px 6px;
+    font-size: 12px;
+    font-family: var(--mono);
+    border: 1px solid var(--line);
+  }
+
+  .status.ok { color: var(--ok); background: var(--ok-bg); border-color: transparent; }
+  .status.fail { color: var(--fail); background: var(--fail-bg); border-color: transparent; }
+
+  .chain {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+    margin: 0 0 8px;
+  }
+
+  .agent-tag {
+    color: var(--muted);
+    font-size: 12px;
+    font-family: var(--mono);
+    min-width: 8ch;
+  }
+
+  .node {
+    border: 1px solid var(--line);
+    background: var(--chip);
+    padding: 1px 6px;
+    font-size: 12px;
+  }
+
+  .arrow { color: var(--muted); }
+
+  .ids {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-height: 9.5rem;
+    overflow: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .ids li {
+    font-family: var(--mono);
+    font-size: 12px;
+    border: 1px solid var(--line);
+    background: var(--chip);
+    padding: 1px 5px;
+  }
+
+  .action, .audit-line, .incident {
+    border-top: 1px solid var(--line);
+    padding: 8px 0;
+  }
+
+  .action-head, .audit-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: baseline;
+  }
+
+  .tool {
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .args, .plain {
+    margin: 4px 0 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    white-space: pre-wrap;
+    color: var(--ink);
+  }
+
+  .reason { margin: 4px 0 0; max-width: 78ch; }
+
+  .empty { margin: 0; color: var(--muted); }
+
+  .error {
+    margin: 8px 12px;
+    color: var(--fail);
+  }
+
+  @media (max-width: 880px) {
+    body { height: auto; overflow: auto; }
+    .workspace { grid-template-columns: 1fr; }
+    .feed { max-height: 40vh; border-right: 0; border-bottom: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="title-row">
+    <div>
+      <h1>Wacky Wheels control tower</h1>
+      <p class="subtitle">Today in the simulation is Monday 2027-03-08.</p>
+    </div>
+    <button type="button" class="refresh" id="refresh">Refresh</button>
+  </div>
+  <div class="ontology" id="ontology" hidden></div>
+</header>
+<div class="workspace">
+  <aside class="feed" aria-label="Events">
+    <div class="feed-head" id="feed-head">Events</div>
+    <div id="feed"></div>
+  </aside>
+  <main class="detail" id="detail" aria-live="polite">
+    <div class="detail-body"><p class="empty">Loading the feed.</p></div>
+  </main>
+</div>
+<script>
+(function () {
+  var state = {
+    events: [],
+    traces: new Map(),
+    log: [],
+    ontology: null,
+    selected: null,
+    feedError: ""
+  };
+  var loadGeneration = 0;
+
+  var feedEl = document.getElementById("feed");
+  var feedHead = document.getElementById("feed-head");
+  var detailEl = document.getElementById("detail");
+  var ontologyEl = document.getElementById("ontology");
+
+  document.getElementById("refresh").addEventListener("click", function () {
+    load(state.selected);
+  });
+
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (key) {
+        var value = attrs[key];
+        if (value == null || value === false) return;
+        if (key === "class") node.className = value;
+        else node.setAttribute(key, value);
+      });
+    }
+    (children || []).forEach(function (child) {
+      if (child == null || child === false) return;
+      node.append(child.nodeType ? child : document.createTextNode(String(child)));
+    });
+    return node;
+  }
+
+  function getJson(url) {
+    return fetch(url).then(function (response) {
+      if (!response.ok) throw new Error(url + " returned " + response.status);
+      return response.json();
+    });
+  }
+
+  function asList(payload) {
+    if (Array.isArray(payload)) return payload;
+    if (payload && typeof payload === "object") return Object.values(payload);
+    return [];
+  }
+
+  function clock(iso) {
+    var match = String(iso || "").match(/T(\d{2}:\d{2})/);
+    return match ? match[1] : String(iso || "");
+  }
+
+  function excerpt(text) {
+    return String(text || "").replace(/\s+/g, " ").trim();
+  }
+
+  function fieldText(value) {
+    if (value == null || value === "") return "None recorded.";
+    return String(value);
+  }
+
+  function formatValue(value) {
+    if (value == null) return "";
+    if (typeof value === "object") return JSON.stringify(value);
+    return String(value);
+  }
+
+  function formatArgs(args) {
+    if (args == null) return "None recorded.";
+    if (typeof args !== "object") return String(args);
+    var keys = Object.keys(args);
+    if (!keys.length) return "None recorded.";
+    return keys.map(function (key) {
+      return key + ": " + formatValue(args[key]);
+    }).join("\n");
+  }
+
+  function statusOf(line) {
+    if (!line || !Object.prototype.hasOwnProperty.call(line, "ok")) return "";
+    var ok = line.ok;
+    if (ok === true || ok === "ok" || ok === "true") return "ok";
+    if (ok === false || ok === "fail" || ok === "false") return "fail";
+    return "";
+  }
+
+  function traceFor(eventId) {
+    return state.traces.get(eventId) || null;
+  }
+
+  function logFor(eventId) {
+    return state.log.filter(function (line) {
+      return line && line.event_id === eventId;
+    });
+  }
+
+  function callsFor(trace) {
+    if (Array.isArray(trace.calls) && trace.calls.length) return trace.calls;
+    var calls = [];
+    (trace.results || []).forEach(function (result) {
+      (result.calls || []).forEach(function (call) { calls.push(call); });
+    });
+    return calls;
+  }
+
+  function pathsFor(trace) {
+    var paths = [];
+    (trace.results || []).forEach(function (result) {
+      (result.graph_paths || []).forEach(function (path) {
+        var nodes;
+        if (Array.isArray(path)) {
+          nodes = path.map(formatValue);
+        } else if (typeof path === "string") {
+          nodes = [path];
+        } else {
+          nodes = [formatValue(path)];
+        }
+        paths.push({ agent: result.agent || "", nodes: nodes });
+      });
+    });
+    return paths;
+  }
+
+  function load(keepId) {
+    var generation = ++loadGeneration;
+    feedHead.textContent = "Events";
+    getJson("/api/events").then(function (events) {
+      if (generation !== loadGeneration) return null;
+      state.events = Array.isArray(events) ? events : [];
+      state.feedError = "";
+      if (!state.events.length) state.selected = null;
+      else if (keepId && state.events.some(function (event) { return event.event_id === keepId; })) {
+        state.selected = keepId;
+      } else if (!state.selected) {
+        state.selected = state.events[0].event_id;
+      }
+      return Promise.all([
+        getJson("/api/traces").catch(function () { return []; }),
+        getJson("/api/log").catch(function () { return []; })
+      ]);
+    }).then(function (pair) {
+      if (generation !== loadGeneration || !pair) return;
+      state.traces = new Map();
+      asList(pair[0]).forEach(function (trace) {
+        if (trace && trace.event_id) state.traces.set(trace.event_id, trace);
+      });
+      state.log = Array.isArray(pair[1]) ? pair[1] : asList(pair[1]);
+      render();
+    }).catch(function (error) {
+      if (generation !== loadGeneration) return;
+      state.feedError = error.message || "The feed could not be loaded.";
+      render();
+    });
+
+    getJson("/api/ontology").then(function (ontology) {
+      if (generation !== loadGeneration) return;
+      state.ontology = ontology;
+      renderOntology();
+    }).catch(function () {
+      if (generation !== loadGeneration) return;
+      ontologyEl.hidden = true;
+    });
+  }
+
+  function renderOntology() {
+    var ontology = state.ontology;
+    ontologyEl.textContent = "";
+    if (!ontology) {
+      ontologyEl.hidden = true;
+      return;
+    }
+    var counts = ontology.counts || {};
+    var countLine = Object.keys(counts).map(function (key) {
+      var label = key.replace(/_/g, " ");
+      return Number(counts[key]).toLocaleString("en-US") + " " + label;
+    }).join(" · ");
+    var chains = (ontology.relationships || []).map(function (item) {
+      return typeof item === "string" ? item : formatValue(item);
+    });
+    ontologyEl.hidden = false;
+    ontologyEl.append(el("p", null, [countLine]));
+    chains.forEach(function (chain) {
+      ontologyEl.append(el("p", { class: "chains" }, [chain]));
+    });
+  }
+
+  function render() {
+    renderFeed();
+    renderDetail();
+  }
+
+  function renderFeed() {
+    feedEl.textContent = "";
+    var traced = state.events.filter(function (event) {
+      return state.traces.has(event.event_id);
+    }).length;
+    feedHead.textContent = state.events.length
+      ? "Events · " + traced + " of " + state.events.length + " traced"
+      : "Events";
+    if (state.feedError) {
+      feedEl.append(el("p", { class: "error" }, [state.feedError]));
+      return;
+    }
+    if (!state.events.length) {
+      feedEl.append(el("p", { class: "empty" }, ["No events in the feed."]));
+      return;
+    }
+    state.events.forEach(function (event) {
+      var button = el("button", {
+        type: "button",
+        class: "event",
+        "aria-pressed": event.event_id === state.selected ? "true" : "false"
+      });
+      button.append(
+        el("span", { class: "event-top" }, [
+          el("span", { class: "event-id" }, [event.event_id || ""]),
+          el("span", { class: "event-time" }, [clock(event.received_at)])
+        ]),
+        el("span", { class: "event-source" }, [event.source || ""]),
+        el("span", { class: "excerpt" }, [excerpt(event.text)])
+      );
+      button.addEventListener("click", function () {
+        state.selected = event.event_id;
+        render();
+      });
+      feedEl.append(button);
+    });
+  }
+
+  function renderDetail() {
+    detailEl.textContent = "";
+    var body = el("div", { class: "detail-body" });
+    detailEl.append(body);
+    if (state.feedError) {
+      body.append(el("p", { class: "error" }, [state.feedError]));
+      return;
+    }
+    var event = state.events.find(function (item) { return item.event_id === state.selected; });
+    if (!event) {
+      body.append(el("p", { class: "empty" }, ["Select an event."]));
+      return;
+    }
+    var trace = traceFor(event.event_id);
+    var lines = logFor(event.event_id);
+    body.append(
+      el("h2", null, [event.event_id || "Event"]),
+      el("p", { class: "meta" }, [
+        [event.received_at || "", event.source || ""].filter(Boolean).join(" · ")
+      ])
+    );
+    body.append(sectionMessage(trace && trace.text ? trace.text : event.text));
+    if (!trace) {
+      body.append(el("p", { class: "notice" }, ["The tower has not run this event yet."]));
+      body.append(sectionAudit(lines));
+      return;
+    }
+    body.append(sectionDecision(trace));
+    body.append(sectionGraph(trace));
+    body.append(sectionAffected(trace));
+    body.append(sectionActions(callsFor(trace), lines));
+    body.append(sectionAudit(lines));
+  }
+
+  function sectionMessage(text) {
+    return el("section", null, [
+      el("h3", null, ["Message"]),
+      el("p", { class: "message" }, [text || ""])
+    ]);
+  }
+
+  function sectionDecision(trace) {
+    var block = el("div", { class: "stack" }, [
+      el("p", null, [
+        el("span", { class: "label" }, ["Classification "]),
+        el("span", { class: "chip" }, [fieldText(trace.classification)])
+      ]),
+      el("p", null, [
+        el("span", { class: "label" }, ["Summary "]),
+        fieldText(trace.summary)
+      ]),
+      el("p", null, [
+        el("span", { class: "label" }, ["Guardrail "]),
+        fieldText(trace.guardrail)
+      ])
+    ]);
+    var incidents = Array.isArray(trace.incidents) ? trace.incidents : [];
+    if (incidents.length) {
+      block.append(el("p", { class: "label" }, [incidents.length + (incidents.length === 1 ? " incident" : " incidents")]));
+      incidents.forEach(function (incident) {
+        block.append(renderIncident(incident || {}));
+      });
+    }
+    return el("section", null, [el("h3", null, ["Decision"]), block]);
+  }
+
+  function renderIncident(incident) {
+    var skip = { kind: true, summary: true, evidence: true };
+    var facts = Object.keys(incident).filter(function (key) {
+      if (skip[key]) return false;
+      var value = incident[key];
+      if (value == null || value === "") return false;
+      if (Array.isArray(value) && !value.length) return false;
+      return true;
+    }).map(function (key) {
+      return key.replace(/_/g, " ") + ": " + formatValue(incident[key]);
+    });
+    var children = [
+      el("div", null, [
+        el("span", { class: "chip" }, [incident.kind || "incident"]),
+        " ",
+        incident.summary || ""
+      ])
+    ];
+    if (facts.length) children.push(el("p", { class: "args" }, [facts.join("\n")]));
+    var evidence = Array.isArray(incident.evidence) ? incident.evidence.filter(Boolean) : [];
+    if (evidence.length) {
+      children.push(el("p", { class: "reason" }, [evidence.join(" ")]));
+    }
+    return el("div", { class: "incident" }, children);
+  }
+
+  function sectionGraph(trace) {
+    var paths = pathsFor(trace);
+    var children = [el("h3", null, ["Graph evidence"])];
+    if (!paths.length) {
+      children.push(el("p", { class: "empty" }, ["No graph paths recorded."]));
+      return el("section", null, children);
+    }
+    var shown = paths.slice(0, 6);
+    if (paths.length > 6) {
+      children.push(el("p", { class: "meta" }, [
+        "Showing the first 6 of " + paths.length + " paths."
+      ]));
+    }
+    shown.forEach(function (path) {
+      var chain = el("div", { class: "chain" });
+      if (path.agent) chain.append(el("span", { class: "agent-tag" }, [path.agent]));
+      if (!path.nodes.length) {
+        chain.append(el("span", { class: "node" }, ["Empty path"]));
+      }
+      path.nodes.forEach(function (node, index) {
+        if (index) chain.append(el("span", { class: "arrow", "aria-hidden": "true" }, ["→"]));
+        chain.append(el("span", { class: "node" }, [node]));
+      });
+      children.push(chain);
+    });
+    return el("section", null, children);
+  }
+
+  function sectionAffected(trace) {
+    var results = Array.isArray(trace.results) ? trace.results : [];
+    var children = [el("h3", null, ["Affected records"])];
+    if (!results.length) {
+      children.push(el("p", { class: "empty" }, ["No specialist results recorded."]));
+      return el("section", null, children);
+    }
+    results.forEach(function (result) {
+      var ids = Array.isArray(result.affected_ids) ? result.affected_ids : [];
+      var heading = (result.agent || "specialist") + " · " + ids.length;
+      var block = [el("h4", null, [heading])];
+      if (!ids.length) {
+        block.push(el("p", { class: "empty" }, ["None."]));
+      } else {
+        block.push(el("ul", { class: "ids" }, ids.map(function (id) {
+          return el("li", null, [id]);
+        })));
+      }
+      var notes = Array.isArray(result.notes) ? result.notes.filter(Boolean) : [];
+      if (notes.length) block.push(el("p", { class: "reason" }, [notes.join(" ")]));
+      children.push(el("div", null, block));
+    });
+    return el("section", null, children);
+  }
+
+  function sectionActions(calls, lines) {
+    var children = [el("h3", null, ["Actions"])];
+    if (!calls.length) {
+      children.push(el("p", { class: "empty" }, ["No actions recorded."]));
+      return el("section", null, children);
+    }
+    calls.forEach(function (call, index) {
+      var line = lines[index];
+      var status = statusOf(line);
+      var statusNode;
+      if (status === "ok" || status === "fail") {
+        statusNode = el("span", { class: "status " + status }, [status]);
+      } else if (line) {
+        statusNode = el("span", { class: "status" }, ["no status"]);
+      } else {
+        statusNode = el("span", { class: "status" }, ["not in the log"]);
+      }
+      children.push(el("div", { class: "action" }, [
+        el("div", { class: "action-head" }, [
+          el("span", { class: "tool" }, [(call && call.tool) || "unknown tool"]),
+          statusNode
+        ]),
+        el("p", { class: "args" }, [formatArgs(call && call.args)]),
+        el("p", { class: "reason" }, [
+          el("span", { class: "label" }, ["Reason "]),
+          (call && call.reason) || "None recorded."
+        ])
+      ]));
+    });
+    return el("section", null, children);
+  }
+
+  function sectionAudit(lines) {
+    var children = [el("h3", null, ["Audit"])];
+    if (!lines.length) {
+      children.push(el("p", { class: "empty" }, ["No audit lines for this event."]));
+      return el("section", null, children);
+    }
+    lines.forEach(function (line, index) {
+      var text = Object.keys(line).map(function (key) {
+        return key + ": " + formatValue(line[key]);
+      }).join("\n");
+      children.push(el("div", { class: "audit-line" }, [
+        el("div", { class: "audit-head" }, [
+          el("span", { class: "label" }, ["Line " + (index + 1)])
+        ]),
+        el("p", { class: "plain" }, [text])
+      ]));
+    });
+    return el("section", null, children);
+  }
+
+  load(null);
+})();
+</script>
+</body>
+</html>
