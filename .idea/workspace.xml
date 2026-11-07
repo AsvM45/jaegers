@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="da57abbd-8b89-46cf-8385-320aa2e14099" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/Jaegers.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/HackTheHighway_Datathon_Challenge.docx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/Usecase.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/data/aliases.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/data/bom.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/data/calendar.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/data/customer_orders.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/data/customers.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/data/dealers.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/data/events.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/data/finished_vehicles.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/data/inbound_shipments.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/data/loaners.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/data/models.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/data/part_lots.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/data/parts.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/data/plant_models.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/data/plants.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/data/policy_handbook.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/data/production_orders.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/Data/hack_the_highway_package/data/suppliers.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/enterprise.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/Hitachi/enterprise_server.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/build_entry.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/check_submission.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/public/metadata.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/public/test/history.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/public/test/queries.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/public/test/sample_submission.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/public/train/conditions.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/public/train/history.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/public/train/labels.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/public/train/queries.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/public/train/sample_submission.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/public/validation/conditions.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/public/validation/history.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/public/validation/labels.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/public/validation/queries.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/public/validation/reference.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/public/validation/sample_submission.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/public/validation/targets.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/run_experiments.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/run_starter.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/slot_forecasting/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/slot_forecasting/baseline.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/slot_forecasting/contest.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/slot_forecasting/experiments.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/slot_forecasting/io.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/slot_forecasting/rounds.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/slot_forecasting/schema.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/slot_forecasting/scoring.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/slot_forecasting/starter.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/slot_forecasting/submission_contract.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/slot_forecasting/transition.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Jaeger_Main/House_Edge/starter.ipynb" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/AsvM45/jaegers.git",
+    "accountId": "94a6785e-013e-4239-9c82-7eb714a766a1"
+  }
+}]]></component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 3
+}]]></component>
+  <component name="ProjectId" id="3LnBLfthMiOPLD5DpS5CMTac7RB" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "main",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_opened_file_path": "C:/Users/inthe/PycharmProjects/Jaegers/House_Edge",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\inthe\PycharmProjects\Jaegers\House_Edge" />
+      <recent name="C:\Users\inthe\PycharmProjects\Jaegers\Hitachi" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\inthe\PycharmProjects\Jaegers\Jaeger_Main" />
+      <recent name="C:\Users\inthe\PycharmProjects\Jaegers\Hitachi" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-9c94529fcfe0-JavaScript-PY-252.26199.168" />
+        <option value="bundled-python-sdk-b3d66beaba9a-c6efb3732140-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-252.26199.168" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="da57abbd-8b89-46cf-8385-320aa2e14099" name="Changes" comment="" />
+      <created>1794079896850</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1794079896850</updated>
+      <workItem from="1794079897886" duration="731000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>
