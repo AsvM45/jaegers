@@ -78,7 +78,7 @@ def read_split(folder):
     return queries, hist
 
 
-def predict(queries, hist, params=None, expert_logprior=None, return_ll=False):
+def predict(queries, hist, params=None, expert_logprior=None, return_ll=False, collect=False, stack_w=None):
     p = dict(DEFAULTS, **(params or {}))
     M = len(queries)
     T = max(int(q["cutoff"]) for q in queries)
@@ -106,6 +106,13 @@ def predict(queries, hist, params=None, expert_logprior=None, return_ll=False):
     nobs = (pay >= 0).sum(axis=1)                      # how many spins each machine has before its cutoff
     lam_m = np.where(nobs < 100, p["lam_short"], p["lam"])   # short histories remember longer
     W = np.zeros((M, E, V)); N = np.zeros((M, E, V))
+    # size experts: per (machine, expert, context) forgotten evidence (log-likelihood ratio mode1 vs mode0)
+    SE = p.get("size_experts", False)
+    if SE:
+        SL = np.zeros((M, E, V))      # summed log-ratio of observed win sizes in each context
+        SLL = np.zeros((M, E))        # forgotten log-likelihood of each size expert
+        R0 = np.array([SIZE_REGIMES[q["machine_type"]][0] for q in queries])
+        R1 = np.array([SIZE_REGIMES[q["machine_type"]][1] for q in queries])
     LL = np.zeros((M, E))
     base_w = np.zeros(M); base_n = np.zeros(M)
     # size regime evidence (log-likelihood ratio), and forgotten size counts
@@ -143,6 +150,38 @@ def predict(queries, hist, params=None, expert_logprior=None, return_ll=False):
         pe = np.where(valid, pe, p0[:, None])
         return np.clip(pe, p["clip"], 1 - p["clip"]), p0
 
+    types_arr = np.array([q["machine_type"] for q in queries])
+    tbal = (types_arr == "balanced").astype(float); tjac = (types_arr == "jackpot").astype(float)
+    sig = np.array([float(q["signal"]) for q in queries])
+    seen = np.zeros(M)
+
+    def lg(x):
+        x = np.clip(x, 1e-4, 1 - 1e-4); return np.log(x / (1 - x))
+
+    def stack_features(pe, idx):
+        """Features describing the expert blend for each machine (used by the stacking layer)."""
+        ep_ll = np.zeros((n_ep, E)); np.add.at(ep_ll, ep, LL)
+        cnt = np.bincount(ep, minlength=n_ep)[:, None]
+        sib = (ep_ll[ep] - LL) / np.maximum(cnt[ep] - 1, 1)
+        sc = p["beta"] * (LL + p["ep_weight"] * sib)
+        if expert_logprior is not None:
+            sc = sc + p.get("gamma", 0.0) * expert_logprior[None, :]
+        sc = sc - sc.max(axis=1, keepdims=True)
+        w = np.exp(sc); w /= w.sum(axis=1, keepdims=True)
+        pmix = (w * pe).sum(axis=1)
+        order = np.argsort(-w, axis=1)
+        top, sec = order[:, 0], order[:, 1]
+        r = np.arange(M)
+        ptop, psec, wtop = pe[r, top], pe[r, sec], w[r, top]
+        dis = np.sqrt((w * (pe - pmix[:, None]) ** 2).sum(axis=1))
+        ntop = N[r, top, idx[r, top]]
+        p0 = (base_w + p["prior"] * 0.5) / (base_n + p["prior"])
+        lm = lg(pmix)
+        F = np.column_stack([np.ones(M), lm, lg(ptop), lg(psec), lg(p0), wtop, dis, np.log1p(ntop),
+                             lm * wtop, lm * dis, lm * np.log1p(ntop), tbal, tjac, sig, np.log1p(seen)])
+        return F, pmix
+
+    XS, YS = [], []
     for t in range(T):
         obs = pay[:, t] >= 0
         if not obs.any():
@@ -150,6 +189,12 @@ def predict(queries, hist, params=None, expert_logprior=None, return_ll=False):
         win = (pay[:, t] > 0).astype(np.float64)
         idx, valid = context(t)
         pe, _ = expert_probs(idx, valid)
+        if collect:
+            # training rows for the stacking layer: features from BEFORE this spin, label = this spin
+            Fk, _ = stack_features(pe, idx)
+            keep = obs & (seen >= 20)
+            if keep.any():
+                XS.append(Fk[keep]); YS.append(win[keep])
         o = obs[:, None]
         # log-likelihood of the realized outcome under each expert
         ll = np.where(win[:, None] > 0, np.log(pe), np.log(1 - pe))
@@ -161,12 +206,25 @@ def predict(queries, hist, params=None, expert_logprior=None, return_ll=False):
         upd = (o & valid)[:, :, None] * onehot
         W += upd * win[:, None, None]
         N += upd
+        seen = seen + obs
         base_w = np.where(obs, base_w * p["base_lam"] + win, base_w)
         base_n = np.where(obs, base_n * p["base_lam"] + 1, base_n)
         # size evidence from winning spins
         wonm = obs & (pay[:, t] > 0)
         if wonm.any():
             s = np.clip(pay[:, t] - 1, 0, 3)
+            if SE:
+                lr = logratio[np.arange(M), s]                               # evidence carried by this win
+                sl = np.take_along_axis(SL, idx[:, :, None], 2)[:, :, 0]     # each expert's evidence for current context
+                sl = np.where(valid, sl, llr[:, None])                       # abstain -> machine-level evidence (before this win)
+                p1e = 1 / (1 + np.exp(-(sl + p["size_prior"])))
+                pr_s0 = R0[np.arange(M), s][:, None]; pr_s1 = R1[np.arange(M), s][:, None]
+                lik = (1 - p1e) * pr_s0 + p1e * pr_s1
+                wm = wonm[:, None]
+                SLL = np.where(wm, SLL * p.get("lam_sll", 0.99) + np.log(lik), SLL)
+                SL = np.where(wm[:, :, None], SL * p.get("lam_s", 0.95), SL)
+                add = (wm & valid)[:, :, None] * onehot * lr[:, None, None]
+                SL += add
             llr = np.where(wonm, llr * p["lam_size"] + logratio[np.arange(M), s], llr)
             size_cnt = np.where(wonm[:, None], size_cnt * p["lam_size"], size_cnt)
             size_cnt[np.arange(M)[wonm], s[wonm]] += 1
@@ -190,8 +248,29 @@ def predict(queries, hist, params=None, expert_logprior=None, return_ll=False):
         score -= score.max(axis=1, keepdims=True)
         wts = np.exp(score); wts /= wts.sum(axis=1, keepdims=True)
         pw = (wts * pe).sum(axis=1)
+        if stack_w is not None:
+            # stacking layer: corrects the blended win chance using the blend's features
+            Fc, _ = stack_features(pe, idx)
+            z = stack_w(Fc) if callable(stack_w) else Fc @ stack_w
+            pw = np.clip(1 / (1 + np.exp(-z)), p["clip"], 1 - p["clip"])
         pw_all[sel] = pw[sel]
     post1 = 1 / (1 + np.exp(-(llr + p["size_prior"])))
+    if SE:
+        post_e = np.zeros(M)
+        for tcut in np.unique(cut):
+            sel = cut == tcut
+            idx_c, valid_c = context(tcut)[:2]
+            sl = np.take_along_axis(SL, idx_c[:, :, None], 2)[:, :, 0]
+            sl = np.where(valid_c, sl, llr[:, None])
+            p1e = 1 / (1 + np.exp(-(sl + p["size_prior"])))
+            ep_s = np.zeros((n_ep, E)); np.add.at(ep_s, ep, SLL)
+            cnt = np.bincount(ep, minlength=n_ep)[:, None]
+            sib = (ep_s[ep] - SLL) / np.maximum(cnt[ep] - 1, 1)
+            sc = p.get("beta_s", 1.0) * (SLL + p.get("ep_weight_s", 0.5) * sib)
+            sc -= sc.max(axis=1, keepdims=True)
+            w = np.exp(sc); w /= w.sum(axis=1, keepdims=True)
+            post_e[sel] = (w * p1e).sum(axis=1)[sel]
+        post1 = p.get("size_mix", 1.0) * post_e + (1 - p.get("size_mix", 1.0)) * post1
     for m, q in enumerate(queries):
         reg = SIZE_REGIMES[types[m]]
         size = (1 - post1[m]) * reg[0] + post1[m] * reg[1]
@@ -199,6 +278,8 @@ def predict(queries, hist, params=None, expert_logprior=None, return_ll=False):
         probs = [1 - pw] + list(pw * size)
         s = sum(probs)
         out[q["query_id"]] = tuple(x / s for x in probs)
+    if collect:
+        return out, np.vstack(XS), np.concatenate(YS)
     if return_ll:
         return out, LL
     return out
@@ -213,6 +294,28 @@ def learn_expert_prior(folder, params, smooth=1.0):
     wins = np.bincount(LL.argmax(axis=1), minlength=len(EXPERTS)).astype(float)
     freq = (wins + smooth) / (wins.sum() + smooth * len(EXPERTS))
     return np.log(freq)
+
+
+def fit_stacker(folder, params, expert_logprior=None):
+    """Train the gradient-boosting stacking layer on the round's TRAIN machines.
+
+    Every past tick (after 20 observed spins) becomes one row: features describe the
+    expert blend using only earlier spins; the label is whether that spin won.
+    Deterministic: fixed settings, no early stopping, random_state=0.
+    Returns a function mapping feature rows -> log-odds of winning.
+    """
+    from sklearn.ensemble import HistGradientBoostingClassifier
+    q, h = read_split(folder)
+    _, X, y = predict(q, h, params, expert_logprior=expert_logprior, collect=True)
+    model = HistGradientBoostingClassifier(
+        learning_rate=params.get("stack_lr", 0.05), max_leaf_nodes=params.get("stack_leaves", 15),
+        max_iter=params.get("stack_iters", 300), l2_regularization=params.get("stack_l2", 1.0),
+        early_stopping=False, random_state=0).fit(X[:, 1:], y)
+
+    def log_odds(F):
+        pr = np.clip(model.predict_proba(F[:, 1:])[:, 1], 1e-6, 1 - 1e-6)
+        return np.log(pr / (1 - pr))
+    return log_odds
 
 
 def score_validation(pred, folder="public/validation"):

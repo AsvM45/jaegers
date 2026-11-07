@@ -8,7 +8,7 @@ import csv
 import json
 from pathlib import Path
 
-from jaeger_model import learn_expert_prior, predict, read_split
+from jaeger_model import fit_stacker, learn_expert_prior, predict, read_split
 
 HERE = Path(__file__).resolve().parent
 
@@ -23,7 +23,9 @@ def main():
     # Learn which lag patterns are common from this round's training machines (no labels needed).
     prior = learn_expert_prior(str(Path(a.data) / "train"), params)
     queries, hist = read_split(str(Path(a.data) / a.split))
-    preds = predict(queries, hist, params, expert_logprior=prior)
+    # Gradient-boosting stacking layer, trained on this round's train machines (~20 s).
+    stack = fit_stacker(str(Path(a.data) / "train"), params, prior) if params.get("stack") else None
+    preds = predict(queries, hist, params, expert_logprior=prior, stack_w=stack)
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", newline="", encoding="utf-8") as f:
