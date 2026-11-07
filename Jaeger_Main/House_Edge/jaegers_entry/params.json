@@ -1,6 +1,7 @@
 {
  "lam": 0.95,
   "lam_short": 0.99,
+  "prior_short": 0.85,
  "lam_ll": 0.995,
  "prior": 0.35,
  "beta": 2.5,

@@ -105,6 +105,7 @@ def predict(queries, hist, params=None, expert_logprior=None, return_ll=False, c
 
     nobs = (pay >= 0).sum(axis=1)                      # how many spins each machine has before its cutoff
     lam_m = np.where(nobs < 100, p["lam_short"], p["lam"])   # short histories remember longer
+    prior_m = np.where(nobs < 100, p.get("prior_short", p["prior"]), p["prior"])   # short histories smooth more
     W = np.zeros((M, E, V)); N = np.zeros((M, E, V))
     # size experts: per (machine, expert, context) forgotten evidence (log-likelihood ratio mode1 vs mode0)
     SE = p.get("size_experts", False)
@@ -146,7 +147,7 @@ def predict(queries, hist, params=None, expert_logprior=None, return_ll=False, c
         p0 = (base_w + p["prior"] * 0.5) / (base_n + p["prior"])  # machine's recent win rate
         w = np.take_along_axis(W, idx[:, :, None], 2)[:, :, 0]
         n = np.take_along_axis(N, idx[:, :, None], 2)[:, :, 0]
-        pe = (w + p["prior"] * p0[:, None]) / (n + p["prior"])
+        pe = (w + prior_m[:, None] * p0[:, None]) / (n + prior_m[:, None])
         pe = np.where(valid, pe, p0[:, None])
         return np.clip(pe, p["clip"], 1 - p["clip"]), p0
 
