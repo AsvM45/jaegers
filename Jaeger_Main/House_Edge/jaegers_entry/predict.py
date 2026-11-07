@@ -8,7 +8,7 @@ import csv
 import json
 from pathlib import Path
 
-from jaeger_model import predict, read_split
+from jaeger_model import learn_expert_prior, predict, read_split
 
 HERE = Path(__file__).resolve().parent
 
@@ -20,8 +20,10 @@ def main():
     ap.add_argument("--split", default="test")
     a = ap.parse_args()
     params = json.loads((HERE / "params.json").read_text())
+    # Learn which lag patterns are common from this round's training machines (no labels needed).
+    prior = learn_expert_prior(str(Path(a.data) / "train"), params)
     queries, hist = read_split(str(Path(a.data) / a.split))
-    preds = predict(queries, hist, params)
+    preds = predict(queries, hist, params, expert_logprior=prior)
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", newline="", encoding="utf-8") as f:

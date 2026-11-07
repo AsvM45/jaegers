@@ -21,6 +21,7 @@ machine's recent winning payouts, mixed with a forgotten empirical estimate.
 Only observations strictly before each prediction tick are used. Missing ticks
 are unknown (an expert whose context is missing abstains and falls back).
 """
+
 from __future__ import annotations
 
 import csv
@@ -77,7 +78,7 @@ def read_split(folder):
     return queries, hist
 
 
-def predict(queries, hist, params=None):
+def predict(queries, hist, params=None, expert_logprior=None, return_ll=False):
     p = dict(DEFAULTS, **(params or {}))
     M = len(queries)
     T = max(int(q["cutoff"]) for q in queries)
@@ -183,6 +184,9 @@ def predict(queries, hist, params=None):
         cnt = np.bincount(ep, minlength=n_ep)[:, None]
         sib = (ep_ll[ep] - LL) / np.maximum(cnt[ep] - 1, 1)
         score = p["beta"] * (LL + p["ep_weight"] * sib)
+        if expert_logprior is not None:
+            # head start for lag patterns that were common on the training machines
+            score = score + p.get("gamma", 0.0) * expert_logprior[None, :]
         score -= score.max(axis=1, keepdims=True)
         wts = np.exp(score); wts /= wts.sum(axis=1, keepdims=True)
         pw = (wts * pe).sum(axis=1)
@@ -195,7 +199,20 @@ def predict(queries, hist, params=None):
         probs = [1 - pw] + list(pw * size)
         s = sum(probs)
         out[q["query_id"]] = tuple(x / s for x in probs)
+    if return_ll:
+        return out, LL
     return out
+
+
+def learn_expert_prior(folder, params, smooth=1.0):
+    """Count how often each expert ends up the most trusted one across the machines
+    in `folder` (the round's train split) and return log-frequencies as a prior.
+    Relearned from whatever data is mounted, so round two picks up its own patterns."""
+    q, h = read_split(folder)
+    _, LL = predict(q, h, params, return_ll=True)
+    wins = np.bincount(LL.argmax(axis=1), minlength=len(EXPERTS)).astype(float)
+    freq = (wins + smooth) / (wins.sum() + smooth * len(EXPERTS))
+    return np.log(freq)
 
 
 def score_validation(pred, folder="public/validation"):
