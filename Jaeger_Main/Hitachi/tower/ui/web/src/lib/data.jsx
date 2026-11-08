@@ -12,7 +12,7 @@ export async function getJSON(url, fallback) {
   }
 }
 
-const EMPTY = { events: [], traces: [], log: [], outbox: [], onto: null, reports: null, agents: [], loadedAt: null };
+const EMPTY = { events: [], traces: [], log: [], outbox: [], onto: null, reports: null, agents: [], loadedAt: null, failed: false };
 
 // Newest saved run of each suite. A later run of one small set must not replace the score for the rest.
 export function newestBySuite(reports) {
@@ -59,12 +59,17 @@ export function DataProvider({ children }) {
 
   const reload = useCallback(async () => {
     setBusy(true);
+    // The two core feeds: if either cannot be reached, the pages show a "couldn't load" banner with a retry.
+    let failed = false;
+    const core = (url, fallback) => fetch(url, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .catch(() => { failed = true; return fallback; });
     const [events, traces, log, onto, reports, outbox, agents] = await Promise.all([
-      getJSON("/api/events", []), getJSON("/api/traces", []), getJSON("/api/log", []),
-      getJSON("/api/ontology_export", null), getJSON("/api/test_reports", null), getJSON("/api/outbox", []),
+      getJSON("/api/events", []), core("/api/traces", []), getJSON("/api/log", []),
+      getJSON("/api/ontology_export", null), core("/api/test_reports", null), getJSON("/api/outbox", []),
       getJSON("/api/agents", []),
     ]);
-    setRaw({ events, traces, log, onto, reports, outbox, agents, loadedAt: Date.now() });
+    setRaw({ events, traces, log, onto, reports, outbox, agents, loadedAt: Date.now(), failed });
     setBusy(false);
     return { events: traces.length, calls: log.length };
   }, []);

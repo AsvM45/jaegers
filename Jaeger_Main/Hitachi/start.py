@@ -9,13 +9,15 @@
 
 Works from any directory. Steps, in order:
 
-    1. Check for Ollama and the reader model (TOWER_LLM_MODEL, default qwen2.5:0.5b). If it is not
+    1. Check for Ollama and the reader model (TOWER_LLM_MODEL, default qwen3:1.7b). If it is not
        running or the model is not pulled, every step uses the rule reader instead, so the reports
        never show rule-reader results under an LLM name.
     2. python -m tower.run --notify dry-run --overwrite  -> runs/run1/  (Overview, Event feed)
-    3. python tests/run_given.py                -> runs/given/       (the 15 given events, TC1–TC6)
-    4. python -m tower.ontology                 -> runs/ontology/    (Knowledge graph tables)
-    5. Serve tower/ui/dashboard.html and open it.
+    3. python tests/run_given.py                -> runs/given/       (Test reports, given suite)
+       python tests/test_failures.py            (failed calls, missing information, model down)
+    4. python tests/run_model.py                -> runs/model/       (run by hand: the model alone, no rule reader)
+    5. python -m tower.ontology                 -> runs/ontology/    (Knowledge graph tables)
+    6. Serve tower/ui/dashboard.html and open it.
 
 A failed step is reported and the rest still run, so the dashboard always opens.
 """
@@ -36,7 +38,7 @@ HITACHI = os.path.dirname(os.path.abspath(__file__))
 if HITACHI not in sys.path:
     sys.path.insert(0, HITACHI)
 
-MODEL = os.environ.get("TOWER_LLM_MODEL", "qwen2.5:0.5b")
+MODEL = os.environ.get("TOWER_LLM_MODEL", "qwen3:1.7b")
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434").rstrip("/")
 
 
@@ -124,6 +126,7 @@ def main() -> None:
             ("Control tower on the 15 events", ["-m", "tower.run", "--reader", tower_reader, "--notify", "dry-run",
                                                 "--overwrite"]),
             ("Given tests (docx TC1–TC6)", ["tests/run_given.py", "--reader", test_reader]),
+            ("Failure tests (failed calls, no information, model down)", ["tests/test_failures.py"]),
             ("Ontology export", ["-m", "tower.ontology"]),
         ]
         for label, args in steps:

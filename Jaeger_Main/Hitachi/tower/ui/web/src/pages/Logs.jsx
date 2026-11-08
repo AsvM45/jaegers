@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Icon } from "../lib/icons.jsx";
-import { CAT_NAME, TOOL_WORD, argText, fmt, readerName } from "../lib/constants.js";
+import { CAT_NAME, TOOL_WORD, argText, fmt } from "../lib/constants.js";
 import { getJSON, useData } from "../lib/data.jsx";
 import { useUi } from "../lib/ui.jsx";
-import { CardHead, Mono, Status, Toggle } from "../components/common.jsx";
+import { CardHead, Status, Toggle } from "../components/common.jsx";
 import { Page } from "./Page.jsx";
 
 function OutputLogs() {
@@ -21,18 +21,19 @@ function OutputLogs() {
   }, [name, d.loadedAt]);
 
   if (!files) return <div className="card empty">Loading…</div>;
-  if (!files.length) return <div className="card empty">No saved output yet. Every <Mono>python start.py</Mono> run saves its output to <Mono>runs/logs/</Mono>.</div>;
+  if (!files.length) return <div className="card empty">No run output yet.</div>;
+  const when = files.find((f) => f.name === name)?.updated || "";
   return (
     <div className="wr-layout">
       <div className="wr-list">
         {files.map((f) => (
           <div key={f.name} className={`wr-item ${f.name === name ? "on" : ""}`} onClick={() => set({ logFile: f.name })}>
-            <b>{f.updated}</b><span className="mono note">{f.name}</span>
+            <b>{f.updated}</b>
           </div>
         ))}
       </div>
       <div className="card">
-        <CardHead title={name} sub={<>Everything <Mono>python start.py</Mono> printed in that run.</>}>
+        <CardHead title={`Run of ${when}`} sub="Everything the tower printed during that run.">
           <a className="btn" href={`data:text/plain;charset=utf-8,${encodeURIComponent(text)}`} download={name}><Icon name="doc" />Download</a>
         </CardHead>
         <pre className="console">{text}</pre>
@@ -49,7 +50,7 @@ function CallLog() {
   const events = [...new Set(d.log.map((r) => r.event_id))];
   return (
     <div className="card">
-      <CardHead title="Tool-call log · runs/run1/action_log.jsonl"
+      <CardHead title="Tool-call log"
         sub={`Every call the tower made to the enterprise tools, in order: ${fmt(d.log.length)} calls, ${d.log.filter((r) => !r.ok).length} failed.`}>
         <div className="controls">
           <select className="chip-btn" value={ui.callEvent} onChange={(e) => set({ callEvent: e.target.value })}>
@@ -83,12 +84,12 @@ function History() {
   const log = d.reports?.log || [];
   return (
     <div className="card">
-      <CardHead title="Test run history · runs/test_log.jsonl" sub="One line per test set per run, newest first." />
+      <CardHead title="Test run history" sub="One line per test set per run, newest first." />
       <div className="scroll-x"><table>
-        <thead><tr><th>When</th><th>Test set</th><th>Reader</th><th className="num">Passed</th><th>By category</th></tr></thead>
+        <thead><tr><th>When</th><th>Test set</th><th className="num">Passed</th><th>By category</th></tr></thead>
         <tbody>{log.map((e, k) => (
           <tr key={k}>
-            <td className="mono">{e.time}</td><td>{d.suiteById(e.suite)?.title || e.suite}</td><td>{readerName(e.reader)}</td>
+            <td className="mono">{e.time}</td><td>{d.suiteById(e.suite)?.title || e.suite}</td>
             <td className="num"><b>{e.passed}/{e.total}</b></td>
             <td className="note">{Object.entries(e.by_category || {}).map(([c, v]) => `${CAT_NAME[c] || c} ${v[0]}/${v[1]}`).join(" · ")}</td>
           </tr>

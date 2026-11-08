@@ -1,12 +1,8 @@
-"""Run tests/cases.json through the control tower and grade the result.
+"""The independent grader behind tests/run_given.py (run that; this file has no suite of its own).
 
-    python tests/run_cases.py                  # both readers
-    python tests/run_cases.py --reader rules   # deterministic reader only
-
-The grader computes expected effects straight from the CSVs and the handbook
-rules, from hand-written ground truth in cases.json. It does not use
-tower/graph.py, so it is an independent check of the tower's own queries.
-Output goes to runs/tests/<reader>/ plus runs/tests/REPORT.md.
+It computes expected effects straight from the CSVs and the handbook rules, from hand-written
+ground truth (tests/given_cases.json). It does not use tower/graph.py, so it is an independent
+check of the tower's own queries.
 """
 
 from __future__ import annotations
@@ -29,7 +25,6 @@ from tower.graph import WorldGraph  # noqa: E402
 
 DATA = os.path.join(HITACHI, "Data", "hack_the_highway_package", "data")
 OUT = os.path.join(HITACHI, "runs", "tests")
-CASES_NAME = "cases.json"
 WRITE_TOOLS = {"mes.reschedule", "mes.transfer", "dealer.notify", "dealer.stop_sale",
                "crm.assign_loaner", "crm.notify_customer", "quality.hold_lot"}
 SUPPLY_TOOLS = {"mes.reschedule", "mes.transfer", "dealer.notify", "crm.assign_loaner"}
@@ -359,62 +354,5 @@ def log_run(folder, reader, results):
         handle.write(json.dumps(entry) + "\n")
 
 
-def report(all_results, cases):
-    """Write runs/tests/REPORT.md: a pass/fail table per reader, then details per case."""
-    title = {"cases.json": "generated tests", "holdout_cases.json": "held-out tests, set 1",
-             "holdout2_cases.json": "held-out tests, set 2",
-             "stress_cases.json": "stress tests",
-             "accuracy_cases.json": "accuracy paraphrases"}.get(CASES_NAME, CASES_NAME)
-    lines = [f"# Hitachi control tower — {title}", "",
-             f"{len(cases)} cases from `tests/{CASES_NAME}`, graded by `tests/run_cases.py` against "
-             "expected effects computed from the CSVs (not from tower/graph.py).", ""]
-    names = list(all_results)
-    lines.append("| Case | Category | " + " | ".join(names) + " | Edge case? |")
-    lines.append("|---|---|" + "---|" * len(names) + "---|")
-    for i, case in enumerate(cases):
-        cells = []
-        for n in names:
-            r = all_results[n][i]
-            cells.append(r["verdict"] + (" ⚠" if r["warnings"] else ""))
-        lines.append(f"| {case['id']} | {case['category']} | " + " | ".join(cells) + f" | {'yes' if case.get('edge') else ''} |")
-    lines.append("")
-    for n in names:
-        p = sum(r["verdict"] == "PASS" for r in all_results[n])
-        lines.append(f"**{n}**: {p}/{len(cases)} pass")
-    lines.append("")
-    for n in names:
-        lines += [f"## Details — {n} reader", ""]
-        for r, case in zip(all_results[n], cases):
-            lines.append(f"### {r['id']} — {r['category']} — {r['verdict']}")
-            lines.append(f"> {case['text']}".replace("\n", " "))
-            if r["edge"]:
-                lines.append(f"- Edge: {r['edge']}")
-            lines.append(f"- Read as: `{r['classification']}` (reader: {', '.join(map(str, r['readers']))})")
-            lines.append(f"- Stats: {json.dumps(r['stats'])}")
-            for x in r["fails"]:
-                lines.append(f"- FAIL: {x}")
-            for x in r["warnings"]:
-                lines.append(f"- warn: {x}")
-            lines.append("")
-    path = os.path.join(OUT, "REPORT.md")
-    open(path, "w", encoding="utf-8").write("\n".join(lines) + "\n")
-    return path
-
-
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--reader", choices=("rules", "llm", "both"), default="both")
-    ap.add_argument("--cases", default=os.path.join(HITACHI, "tests", "cases.json"),
-                    help="cases file (default tests/cases.json; tests/holdout_cases.json for the held-out set)")
-    ap.add_argument("--out", help="output folder (default runs/tests)")
-    args = ap.parse_args()
-    if args.out:
-        OUT = os.path.abspath(args.out)
-    CASES_NAME = os.path.basename(args.cases)
-    data = json.load(open(args.cases))
-    cases = data["cases"] if isinstance(data, dict) else data
-    truth, graph = Truth(), WorldGraph()
-    readers = ["rules", "llm"] if args.reader == "both" else [args.reader]
-    from tower.agents.llm_reader import MODEL
-    all_results = {(n if n == "rules" else MODEL): run(n, cases, truth, graph) for n in readers}
-    print("report:", report(all_results, cases))
+    raise SystemExit("The only suite is the 15 given events: python tests/run_given.py")

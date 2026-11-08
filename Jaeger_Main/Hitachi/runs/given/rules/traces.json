@@ -27,7 +27,8 @@
           "plant: 'San Antonio' -> P_TX"
         ],
         "reader": "rules",
-        "model_reason": ""
+        "model_reason": "",
+        "question": ""
       },
       {
         "kind": "supplier_delay",
@@ -52,7 +53,8 @@
           "find_shipments(SUP-12, CHIP-IVI, P_IN, eta=2027-03-15) returned SH-0190"
         ],
         "reader": "rules",
-        "model_reason": ""
+        "model_reason": "",
+        "question": ""
       }
     ],
     "results": [
@@ -2908,7 +2910,8 @@
           "rumor language: nothing confirmed, rumor, may be off, no dates"
         ],
         "reader": "rules",
-        "model_reason": ""
+        "model_reason": "",
+        "question": ""
       }
     ],
     "results": [],
@@ -2969,7 +2972,8 @@
           "supplier: 'Kestrel' -> SUP-06"
         ],
         "reader": "rules",
-        "model_reason": ""
+        "model_reason": "",
+        "question": ""
       }
     ],
     "results": [
@@ -7547,7 +7551,8 @@
           "plant: 'The Kentucky plant' -> P_KY"
         ],
         "reader": "rules",
-        "model_reason": ""
+        "model_reason": "",
+        "question": ""
       }
     ],
     "results": [
@@ -9516,7 +9521,8 @@
           "no confirmed supplier delay, plant outage, or quality hold"
         ],
         "reader": "rules",
-        "model_reason": ""
+        "model_reason": "",
+        "question": ""
       }
     ],
     "results": [],
@@ -9563,7 +9569,8 @@
           "no confirmed supplier delay, plant outage, or quality hold"
         ],
         "reader": "rules",
-        "model_reason": ""
+        "model_reason": "",
+        "question": ""
       }
     ],
     "results": [],
@@ -9610,7 +9617,8 @@
           "no confirmed supplier delay, plant outage, or quality hold"
         ],
         "reader": "rules",
-        "model_reason": ""
+        "model_reason": "",
+        "question": ""
       }
     ],
     "results": [],
@@ -9659,7 +9667,8 @@
           "plant: 'Wacky Wheels Lexington', 'P_KY' -> P_KY"
         ],
         "reader": "rules",
-        "model_reason": ""
+        "model_reason": "",
+        "question": ""
       }
     ],
     "results": [
@@ -11276,7 +11285,8 @@
           "find_shipments(SUP-11, CAM-360, P_AL, eta=2027-03-29) returned SH-0256"
         ],
         "reader": "rules",
-        "model_reason": ""
+        "model_reason": "",
+        "question": ""
       }
     ],
     "results": [
@@ -12921,7 +12931,8 @@
           "find_shipments(SUP-18, BATT-60, P_AL, eta=2027-03-29) returned SH-0248"
         ],
         "reader": "rules",
-        "model_reason": ""
+        "model_reason": "",
+        "question": ""
       }
     ],
     "results": [
@@ -14129,7 +14140,8 @@
           "plant: 'Jackson' -> P_MS"
         ],
         "reader": "rules",
-        "model_reason": ""
+        "model_reason": "",
+        "question": ""
       }
     ],
     "results": [
@@ -16188,7 +16200,8 @@
           "text dates 2027-03-15 until 2027-03-18 win over stored ETA 2027-03-15 on SH-0182"
         ],
         "reader": "rules",
-        "model_reason": ""
+        "model_reason": "",
+        "question": ""
       }
     ],
     "results": [
@@ -17300,7 +17313,8 @@
           "rumor language: not confirmed, someone on the floor mentioned, someone on the floor"
         ],
         "reader": "rules",
-        "model_reason": ""
+        "model_reason": "",
+        "question": ""
       }
     ],
     "results": [],
@@ -17361,7 +17375,8 @@
           "supplier: 'Atlas' -> SUP-07"
         ],
         "reader": "rules",
-        "model_reason": ""
+        "model_reason": "",
+        "question": ""
       }
     ],
     "results": [
@@ -20671,7 +20686,8 @@
           "supplier: 'SUP-12' -> SUP-12"
         ],
         "reader": "rules",
-        "model_reason": ""
+        "model_reason": "",
+        "question": ""
       }
     ],
     "results": [

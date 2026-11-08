@@ -3,7 +3,7 @@ import { Icon } from "../lib/icons.jsx";
 import { KIND_LABEL, TOOL_WORD, argText, fmt, kindWords, kindsOf, when } from "../lib/constants.js";
 import { useData } from "../lib/data.jsx";
 import { useUi } from "../lib/ui.jsx";
-import { KindTag, Mono, Status, Toggle } from "../components/common.jsx";
+import { KindTag, Status, Toggle } from "../components/common.jsx";
 import { Page } from "./Page.jsx";
 import { useFilteredTraces } from "./Overview.jsx";
 import { EventDesk } from "../components/EventDesk.jsx";
@@ -50,7 +50,7 @@ function IncidentCard({ i }) {
 function Handoffs({ t }) {
   const d = useData();
   const hs = t.handoffs || [];
-  if (!hs.length) return <p className="note">This run predates agent handoffs. Re-run with <Mono>python start.py</Mono>.</p>;
+  if (!hs.length) return <p className="note">No handoffs recorded for this event.</p>;
   return (
     <div>
       {hs.map((h, k) => (
@@ -134,10 +134,10 @@ function EventDetail({ t }) {
             </tr>
           ))}</tbody>
         </table></div>
-        {notes.length > 40 && <p className="note">{notes.length - 40} more in outbox.jsonl.</p>}
+        {notes.length > 40 && <p className="note">{notes.length - 40} more not shown.</p>}
       </> : <p className="note">{d.outbox.length
         ? "No channel messages for this event."
-        : <>No channel messages. Run the tower with <Mono>--notify dry-run</Mono> to see what Slack, Teams and email would get.</>}</p>}
+        : "No channel messages for this event."}</p>}
 
     </>
   );

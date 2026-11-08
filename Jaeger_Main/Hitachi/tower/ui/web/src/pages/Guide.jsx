@@ -47,6 +47,7 @@ const RUN = {
     { c: "ollama pull qwen2.5:0.5b && ollama serve", d: "Optional: the local LLM reader, the smallest that passes the 15 events. Pick another with TOWER_LLM_MODEL." },
     { c: "python -m tower.run --notify dry-run", d: "Run the tower on the 15 events (writes runs/run1/)." },
     { c: "python tests/run_given.py", d: "Grade the 15 given events." },
+    { c: "python tests/run_model.py", d: "Score the model on its own against the 15 given events." },
     { c: "python -m tower.ontology", d: "Export the ontology for the Knowledge graph page." },
     { c: "python -m tower.ui.server", d: "Serve this dashboard at http://127.0.0.1:8080." },
   ],
@@ -59,7 +60,7 @@ const RUN = {
 const SOURCES = [
   ["Overview, Event feed", "runs/run1/"],
   ["Tests", "runs/given/"],
-  ["Answer keys", "tests/*.json"],
+  ["Answer keys", "tests/given_cases.json"],
   ["Knowledge graph", "Data/…/data/*.csv, runs/ontology/"],
   ["Logs", "runs/logs/, runs/test_log.jsonl"],
   ["Notifications", "runs/run1/outbox.jsonl"],

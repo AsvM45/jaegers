@@ -22,7 +22,6 @@ from tower.contracts import EventTrace, ToolCall
 from tower.gateway import Gateway, _arg_ok, _execute, _schema_ok, _write_key
 from tower.schedule import LoanerPools, PlantSchedule
 
-# tower/tests/test_edges.py imports _execute and the gateway checks from here.
 __all__ = [
     "handle_event",
     "_execute",

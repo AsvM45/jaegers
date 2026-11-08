@@ -86,6 +86,11 @@ class _ServerTools:
             except ValueError:
                 message = None
             raise ToolError(message or f"HTTP {exc.code} from {self.url}/act") from exc
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
+            # The server is down, the connection dropped, or the call timed out. Treat it like any
+            # other failed call (recorded, not retried, the rest still run) instead of ending the run.
+            reason = getattr(exc, "reason", exc)
+            raise ToolError(f"no answer from {self.url}/act ({reason})") from exc
 
 
 # Stop before the run if Ollama or the model is missing, rather than silently running rules-only.
@@ -117,6 +122,9 @@ def run_all(reader: str = "llm", out_dir: str | None = None, events_path: str | 
             notify: str = "off", server: str | None = None, overwrite: bool = False) -> str:
     out_dir = os.path.abspath(out_dir or os.path.join(_HITACHI, "runs", "run1"))
     log_path = os.path.join(out_dir, "action_log.jsonl")
+    # runs/submission is the frozen, verified run we hand in. Nothing writes there, --overwrite or not.
+    if os.path.realpath(out_dir) == os.path.realpath(os.path.join(_HITACHI, "runs", "submission")):
+        raise SystemExit("runs/submission is the frozen submission and is never overwritten. Use another --out.")
     if not server and os.path.exists(log_path) and os.path.getsize(log_path) and not overwrite:
         raise SystemExit(f"{log_path} already has calls. Use --overwrite or another --out.")
     llm = None

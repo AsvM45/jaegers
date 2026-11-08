@@ -3,7 +3,8 @@
 Event run walks the 15 given events, then any event added from the chat, and reports each one
 as it finishes. It does not replace runs/run1.
 
-Event add takes one chat message, reads it with the rule reader, and keeps the event beside
+Event add takes one chat message, reads it with the model (rule reader as the backup when
+Ollama is not running), and keeps the event beside
 the official feed. The official events.json is never written.
 """
 
@@ -114,6 +115,19 @@ def _outcome(records: list[dict]) -> str:
     return "no action"
 
 
+_LLM = None
+
+
+def _reader():
+    """The same model-first reader the tower uses. If Ollama is down, each read falls back to the
+    rule reader inside tower.agents.understand, so the desk still works offline."""
+    global _LLM
+    if _LLM is None:
+        from tower.agents.llm_reader import LLMReader
+        _LLM = LLMReader()
+    return _LLM
+
+
 def _handle(event: dict) -> tuple[dict, list[dict]]:
     from enterprise import Enterprise
     from tower.agents.coordinator import handle_event
@@ -123,7 +137,7 @@ def _handle(event: dict) -> tuple[dict, list[dict]]:
     records: list[dict] = []
     logged = _CallLog(enterprise, records)
     try:
-        trace = handle_event(_graph_once(), logged, event, None)
+        trace = handle_event(_graph_once(), logged, event, _reader())
     finally:
         _release_event_state(enterprise, event["event_id"])
     return trace.to_dict(), records

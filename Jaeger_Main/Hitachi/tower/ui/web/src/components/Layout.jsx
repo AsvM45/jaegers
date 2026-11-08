@@ -26,22 +26,14 @@ export function Sidebar({ page }) {
   );
 }
 
-function agoText(ms) {
-  const secs = Math.round(ms / 1000);
-  return secs < 10 ? "just now" : secs < 60 ? `${secs}s ago` : secs < 3600 ? `${Math.floor(secs / 60)}m ago` : `${Math.floor(secs / 3600)}h ago`;
-}
-
-function LiveChip() {
+// Shown only when the data can't be reached; otherwise the dashboard says nothing about loading.
+export function LoadBanner() {
   const d = useData();
-  const [, tick] = useState(0);
-  useEffect(() => { const t = setInterval(() => tick((n) => n + 1), 15000); return () => clearInterval(t); }, []);
-  if (!d.loadedAt) return <div className="live"><span className="pulse" /><span>Loading…</span></div>;
-  const age = Date.now() - d.loadedAt;
-  const cls = !d.traces.length ? "down" : age > 600000 ? "stale" : "";
+  if (!d.failed) return null;
   return (
-    <div className={`live ${cls}`} title="Reader model and when the data was last loaded">
-      <span className="pulse" />
-      <span>{d.traces.length ? <><b>{d.model || "rule reader"}</b> · loaded {agoText(age)}</> : "No run loaded"}</span>
+    <div className="load-banner" role="status">
+      <span>Couldn't load the latest data. Some pages may be empty.</span>
+      <button className="btn" onClick={d.reload} disabled={d.busy}>{d.busy ? "Retrying…" : "Retry"}</button>
     </div>
   );
 }
@@ -82,7 +74,6 @@ export function Topbar({ title, trail, subtitle }) {
         {!trail && <div className="tb-sub">{subtitle}</div>}
       </div>
       <div className="tb-right">
-        <LiveChip />
         <Search ref={q} />
       </div>
     </header>

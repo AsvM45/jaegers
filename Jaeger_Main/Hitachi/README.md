@@ -12,7 +12,7 @@ From this folder (`Jaeger_Main/Hitachi`):
 python start.py
 ```
 
-That runs the tower on the 15 given events, grades them, exports the ontology, then opens the dashboard. If Ollama is running with `qwen2.5:0.5b` pulled, that reader is used and every reading is checked against the rule reader. Otherwise the rule reader runs alone.
+That runs the tower on the 15 given events, grades them, runs the failure checks, and exports the ontology, then opens the dashboard. If Ollama is running with `qwen3:1.7b` pulled, the model reads every message and code checks each reading against the tables; gaps are looked up, and anything still missing is escalated with a question. Otherwise the rule reader runs as the backup.
 
 ```bash
 python start.py --rules          # rule reader only, about 5 seconds
@@ -26,14 +26,15 @@ Python 3.10 or newer. No pip packages.
 ## Run it in pieces
 
 ```bash
-ollama pull qwen2.5:0.5b && ollama serve        # optional, smallest model that passes the 15
+ollama pull qwen3:1.7b && ollama serve          # optional: the reader and lookup model
 python -m tower.run --notify dry-run            # runs/run1/  (Overview, Event feed)
 python tests/run_given.py                       # runs/given/  (the 15 given events)
+python tests/test_failures.py                   # failed calls, missing info, model down (19 checks, no network)
 python -m tower.ontology                        # runs/ontology/
 python -m tower.ui.server                       # http://127.0.0.1:8080
 ```
 
-`--reader` on `tests/run_given.py` is `rules`, `llm`, or `both`. Another model: `TOWER_LLM_MODEL=qwen3:1.7b`.
+`--reader` on `tests/run_given.py` is `rules`, `llm`, or `both`. Another model: `TOWER_LLM_MODEL=qwen3:8b`.
 
 A live channel feed (Gmail, Outlook, Slack, Teams, and outbound notices) is documented in [tower/channels/README.md](tower/channels/README.md).
 
@@ -77,7 +78,7 @@ tower/agents/          coordinator, reader, three specialists
 tower/graph.py         knowledge graph over the company CSVs
 tower/channels/        inbound mail and chat, outbound notices
 tower/ui/              dashboard (React source in web/, served from dist/)
-tests/                 the 15 given events and the grader
+tests/                 the 15 given events graded against TC1–TC6 (run_given.py)
 Data/                  events, handbook, and company tables
 runs/                  traces, action logs, and reports
 ```

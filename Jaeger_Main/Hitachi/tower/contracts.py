@@ -70,6 +70,9 @@ class Incident:
     reader: str = "rules"
     # The model's own explanation of this section, whether or not its reading was used.
     model_reason: str = ""
+    # Set when the tower needs more information from a person before it can act: the question
+    # that names exactly what is missing. The event is escalated with it, and a reply re-reads it.
+    question: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         """Plain dict for traces.json; every field is already JSON-safe."""

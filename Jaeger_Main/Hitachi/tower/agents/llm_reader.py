@@ -19,8 +19,18 @@ import urllib.request
 # Qwen2.5 0.5B (494M parameters, 397 MB on disk): the smallest model that still passes the 15
 # given events. On its own it fills few fields, so a checked reading is used only when it matches
 # the rule reader; otherwise the rules decide. Override with TOWER_LLM_MODEL.
-MODEL = os.environ.get("TOWER_LLM_MODEL", "qwen2.5:0.5b")
+MODEL = os.environ.get("TOWER_LLM_MODEL", "qwen3:1.7b")
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+# The model that investigates with lookup tools when a reading has gaps. Tool calling is harder
+# than reading, so it is a step up from the reader; it only runs on the few sections that need it.
+TOOL_MODEL = os.environ.get("TOWER_TOOL_MODEL", "qwen3:1.7b")
+MAX_LOOKUPS = 6
+
+_INVESTIGATE_SYSTEM = """You help read an operations message for Wacky Wheels Co., a carmaker.
+The message was read as a {kind}, but something it needs is missing or unclear: {problem}.
+Use the tools to find the missing records or dates in the company tables. Search names with search_records
+when a name is unfamiliar or misspelled, then use lookup with the ids it returns. Use as few calls as you can.
+When you have what is needed, or the tables cannot settle it, stop calling tools and say in one sentence what you found."""
 
 KINDS = ("supplier_delay", "plant_outage", "quality_hold", "unconfirmed", "noise")
 FIELDS = ("plant", "part", "supplier", "lot_id", "shipment_id", "start_date", "end_date")
@@ -137,7 +147,8 @@ ROLES = {
     "plant_outage": {
         "plant": ("plant", "the plant that cannot build"),
         "first_day": ("date", "the first day the plant cannot build"),
-        "last_day": ("date", "the last day down, or the day work resumes (say which in end_meaning)"),
+        "last_day_down": ("date", "the last day the plant cannot build, if the message gives it"),
+        "restart_day": ("date", "the day the plant builds again, only if the message gives a date for it"),
     },
     "quality_hold": {
         "lot": ("lot", "the defective part lot, if one is named"),
@@ -150,8 +161,8 @@ ROLES = {
 }
 
 _FILL_SYSTEM = """You read operations messages for Wacky Wheels Co. You are told what kind of event the message reports.
-For each field, pick the option that the message means, using the descriptions. The options were found in the message and the company records.
-Pick "" when the message does not say it. Never pick an option just because it is listed.
+For each field, pick the option id that the message means, using the descriptions. The options were found in the message and the company records.
+Answer none when the message does not say it. Never pick an option just because it is listed.
 Answer with JSON only."""
 
 
@@ -209,24 +220,69 @@ class LLMReader:
         }
         return self._post(payload, check_kind=True, keys=("kind", "reason"))
 
-    def fill(self, section: str, kind: str, options: dict[str, list[str]],
-             previous: dict | None = None, problem: str | None = None) -> dict:
+    def investigate(self, section: str, kind: str, problem: str, lookups, max_calls: int = MAX_LOOKUPS) -> str:
+        """Let the model call the lookup tools (tower.agents.lookup_tools) to fill a gap. Runs at most
+        max_calls tool calls; returns the model's one-line finding. Records and dates the tools
+        returned are kept on `lookups` for the next fill."""
+        from tower.agents.lookup_tools import SCHEMAS
+
+        messages = [
+            {"role": "system", "content": _INVESTIGATE_SYSTEM.format(kind=kind.replace("_", " "), problem=problem)},
+            {"role": "user", "content": section},
+        ]
+        used = 0
+        while True:
+            payload = {"model": self.model, "stream": False, "messages": messages,
+                       "options": {"temperature": 0, "seed": 7}}
+            if used < max_calls:
+                payload["tools"] = SCHEMAS
+            reply = self._chat(payload)
+            calls = reply.get("tool_calls") or []
+            if not calls or used >= max_calls:
+                return (reply.get("content") or "").strip()
+            messages.append(reply)
+            for call in calls[: max_calls - used]:
+                fn = call.get("function", {})
+                args = fn.get("arguments") or {}
+                if isinstance(args, str):
+                    try:
+                        args = json.loads(args)
+                    except json.JSONDecodeError:
+                        args = {}
+                messages.append({"role": "tool", "content": lookups.call(fn.get("name", ""), args)})
+                used += 1
+
+    def _chat(self, payload: dict) -> dict:
+        """One raw /api/chat call; returns the reply message."""
+        if self.model.startswith("qwen3"):
+            payload["think"] = False
+        request = urllib.request.Request(f"{self.url}/api/chat", data=json.dumps(payload).encode("utf-8"),
+                                         headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                body = json.loads(response.read().decode("utf-8"))
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
+            raise LLMUnavailable(f"Ollama at {self.url} with {self.model}: {exc}") from exc
+        self.calls += 1
+        return body.get("message", {})
+
+    def fill(self, section: str, kind: str, options: dict[str, list[tuple[str, str]]],
+             previous: dict | None = None, problem: str | None = None, findings: str = "") -> dict:
         """Step 2: pick the records and dates a `kind` needs. options maps a role type ("plant",
         "part", "supplier", "lot", "shipment", "date") to the labels code found. The answer
         format only allows those labels or "". With previous/problem, this is the one retry."""
         roles = ROLES[kind]
-        props = {name: {"type": "string", "enum": ["", *options.get(rtype, [])]} for name, (rtype, _) in roles.items()}
+        props = {name: {"type": "string", "enum": [*(v for v, _ in options.get(rtype, [])), "none"]}
+                 for name, (rtype, _) in roles.items()}
         required = list(roles)
-        if kind == "plant_outage":
-            props["end_meaning"] = {"type": "string", "enum": ["last day down", "day work resumes"]}
-            required.append("end_meaning")
         schema = {"type": "object", "properties": props, "required": required}
-        lines = [f"Kind of event: {kind}.", "", "Fields:"]
+        lines = [f"Kind of event: {kind}.", "",
+                 "Fields (answer each with an option id, or none when the message does not say it):"]
         for name, (rtype, meaning) in roles.items():
-            shown = options.get(rtype, [])
-            lines.append(f"- {name}: {meaning}. Options: " + (", ".join(shown) if shown else "none found, answer \"\""))
-        if kind == "plant_outage":
-            lines.append('- end_meaning: whether last_day is the "last day down" or the "day work resumes".')
+            shown = [label for _, label in options.get(rtype, [])]
+            lines.append(f"- {name}: {meaning}. Options: " + ("; ".join(shown) if shown else "none"))
+        if findings:
+            lines += ["", "What a lookup in the company tables found: " + findings]
         lines += ["", "Message:", section]
         messages = [{"role": "system", "content": _FILL_SYSTEM}, {"role": "user", "content": "\n".join(lines)}]
         if previous is not None:
@@ -236,7 +292,8 @@ class LLMReader:
             ]
         payload = {"model": self.model, "stream": False, "format": schema,
                    "options": {"temperature": 0, "seed": 7}, "messages": messages}
-        return self._post(payload, check_kind=False, keys=tuple(required))
+        out = self._post(payload, check_kind=False, keys=tuple(required))
+        return {k: ("" if v == "none" else v) for k, v in out.items()}
 
     def _post(self, payload: dict, check_kind: bool, keys: tuple[str, ...]) -> dict:
         """One call to Ollama; returns the answer's keys as stripped strings ("" if absent)."""

@@ -1,0 +1,715 @@
+[
+ {
+  "suite": "given",
+  "id": "E-01",
+  "category": "compound",
+  "text": "Morning digest, two items. (1) San Antonio update: a software outage on the line. We're dark from next Friday through Monday Mar 22; the line restarts the following working day. (2) Quick heads up from Quanta: the infotainment chip run for Princeton can't make it next Monday. Carrier says next Friday now (severe weather on the route).",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_TX",
+     "outage_start": "2027-03-19",
+     "outage_end": "2027-03-22"
+    },
+    {
+     "kind": "supplier_delay",
+     "supplier_id": "SUP-12",
+     "part_id": "CHIP-IVI",
+     "plant_id": "P_IN",
+     "blocked_from": "2027-03-15",
+     "blocked_until": "2027-03-19"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_TX",
+     "outage_start": "2027-03-19",
+     "outage_end": "2027-03-22"
+    },
+    {
+     "kind": "supplier_delay",
+     "supplier_id": "SUP-12",
+     "part_id": "CHIP-IVI",
+     "plant_id": "P_IN",
+     "blocked_from": "2027-03-15",
+     "blocked_until": "2027-03-19"
+    }
+   ],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "kind": "plant_outage",
+    "reader": "qwen3:1.7b",
+    "summary": "San Antonio (P_TX) cannot build from 2027-03-19 through 2027-03-22 inclusive.",
+    "evidence": [
+     "qwen3:1.7b read 'plant_outage': This is a plant_outage because a manufacturing line is temporarily shut down and will restart the following working day, affecting production.",
+     "qwen3:1.7b picked plant=P_TX, first_day=2027-03-19, last_day_down=2027-03-22, restart_day=2027-03-22",
+     "every pick checks out against the tables and the message",
+     "outage language: plant_outage (model)",
+     "dates: 'next Friday' = 2027-03-19, 'Monday Mar 22' = 2027-03-22",
+     "plant: 'San Antonio' -> P_TX"
+    ],
+    "question": ""
+   },
+   {
+    "kind": "supplier_delay",
+    "reader": "qwen3:1.7b",
+    "summary": "Quanta (SUP-12) will deliver infotainment chip (CHIP-IVI) to Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-19. Shipment SH-0190 matches the original ETA.",
+    "evidence": [
+     "qwen3:1.7b read 'supplier_delay': supplier_delay: The infotainment chip delivery is postponed to next Friday due to severe weather on the route, affecting the production schedule at Princeton.",
+     "qwen3:1.7b picked shipment=-, supplier=SUP-12, part=CHIP-IVI, plant=P_IN, original_date=2027-03-15, new_date=2027-03-19",
+     "every pick checks out against the tables and the message",
+     "delay language: supplier_delay (model)",
+     "dates: 'next Monday' = 2027-03-15, 'next Friday' = 2027-03-19",
+     "shipment: 'SH-0190' -> SH-0190",
+     "supplier: 'Quanta' -> SUP-12",
+     "part: 'infotainment chip' -> CHIP-IVI",
+     "plant: 'Princeton' -> P_IN",
+     "text dates 2027-03-15 until 2027-03-19 win over stored ETA 2027-03-15 on SH-0190",
+     "looked up shipment SH-0190: the only shipment matching SUP-12, CHIP-IVI, P_IN due 2027-03-15"
+    ],
+    "question": ""
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 41.5
+ },
+ {
+  "suite": "given",
+  "id": "E-02",
+  "category": "unconfirmed",
+  "text": "Rumor from a supplier rep: something may be off with a seat material coming up. No dates, no details, nothing confirmed.",
+  "expected": {
+   "incidents": [],
+   "escalate": true
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": true
+  },
+  "model_said": [
+   {
+    "kind": "unconfirmed",
+    "reader": "qwen3:1.7b",
+    "summary": "The report is not safe to act on: The message reports a possible problem with a seat material from a supplier, but no specific details or dates are provided, making it unconfirmed. It is escalated for a human to confirm.",
+    "evidence": [
+     "qwen3:1.7b read 'unconfirmed': The message reports a possible problem with a seat material from a supplier, but no specific details or dates are provided, making it unconfirmed."
+    ],
+    "question": ""
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 3.8
+ },
+ {
+  "suite": "given",
+  "id": "E-03",
+  "category": "quality_hold",
+  "text": "Quality alert: Kestrel says the infotainment chip sent to Jackson had a faulty weld. Anything built Thursday Feb 25 through last Monday is suspect.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "quality_hold",
+     "lots": [
+      "LOT-0130"
+     ]
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [
+    {
+     "kind": "quality_hold",
+     "lots": [
+      "LOT-0130"
+     ]
+    }
+   ],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "kind": "quality_hold",
+    "reader": "qwen3:1.7b",
+    "summary": "Quality hold on lot LOT-0130, infotainment chip (CHIP-IVI) at Jackson (P_MS), covering builds from 2027-02-25 through 2027-03-01 inclusive.",
+    "evidence": [
+     "qwen3:1.7b read 'quality_hold': The message reports a quality issue with infotainment chips, indicating that any vehicles built from Thursday, February 25 through last Monday are suspect. This is a quality_hold situation as the defect is confirmed and action is required to hold those vehicles.",
+     "qwen3:1.7b picked lot=-, part=CHIP-IVI, supplier=SUP-06, plant=P_MS, first_build_date=2027-02-25, last_build_date=2027-03-01",
+     "every pick checks out against the tables and the message",
+     "quality language: quality_hold (model)",
+     "dates: 'Thursday Feb 25' = 2027-02-25, 'last Monday' = 2027-03-01",
+     "plant: 'Jackson' -> P_MS",
+     "part: 'infotainment chip' -> CHIP-IVI",
+     "lot: 'LOT-0130' -> LOT-0130",
+     "supplier: 'Kestrel' -> SUP-06",
+     "looked up lot LOT-0130: the only lot of SUP-06, CHIP-IVI, P_MS built between 2027-02-25 and 2027-03-01"
+    ],
+    "question": ""
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 12.5
+ },
+ {
+  "suite": "given",
+  "id": "E-04",
+  "category": "plant_outage",
+  "text": "The Kentucky plant update: a software outage on the line. We're dark from next Tuesday through next Thursday; the line restarts the following working day.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_KY",
+     "outage_start": "2027-03-16",
+     "outage_end": "2027-03-18"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_KY",
+     "outage_start": "2027-03-16",
+     "outage_end": "2027-03-18"
+    }
+   ],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "kind": "plant_outage",
+    "reader": "qwen3:1.7b",
+    "summary": "The Kentucky plant (P_KY) cannot build from 2027-03-16 through 2027-03-18 inclusive.",
+    "evidence": [
+     "qwen3:1.7b read 'plant_outage': plant_outage: The Kentucky plant is experiencing a software outage, causing it to be dark from next Tuesday through next Thursday. The line is expected to restart the following working day.",
+     "qwen3:1.7b picked plant=P_KY, first_day=2027-03-16, last_day_down=2027-03-18, restart_day=2027-03-16",
+     "every pick checks out against the tables and the message",
+     "outage language: plant_outage (model)",
+     "dates: 'next Tuesday' = 2027-03-16, 'next Thursday' = 2027-03-18",
+     "plant: 'The Kentucky plant' -> P_KY"
+    ],
+    "question": ""
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 29.7
+ },
+ {
+  "suite": "given",
+  "id": "E-05",
+  "category": "noise",
+  "text": "Dealer Amarillo, TX asks where to find the new brochure PDF.",
+  "expected": {
+   "incidents": [],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "kind": "noise",
+    "reader": "qwen3:1.7b",
+    "summary": "\"Dealer Amarillo, TX asks where to find the new brochure PDF\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold.",
+    "evidence": [
+     "qwen3:1.7b read 'noise': This message is about a request for information regarding a new brochure PDF, which is not related to the company's deliveries, plants, part quality, or any potential issues. It is a general inquiry about a document, not involving any of the specified categories."
+    ],
+    "question": ""
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 4.3
+ },
+ {
+  "suite": "given",
+  "id": "E-06",
+  "category": "noise",
+  "text": "Dealer Little Rock, AR asks where to find the new brochure PDF.",
+  "expected": {
+   "incidents": [],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "kind": "noise",
+    "reader": "qwen3:1.7b",
+    "summary": "\"Dealer Little Rock, AR asks where to find the new brochure PDF\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold.",
+    "evidence": [
+     "qwen3:1.7b read 'noise': This message is about a request for information regarding a new brochure PDF, which is not related to the company's deliveries, plants, part quality, or any potential issues. It is a general inquiry about where to find a document, not related to the specific operations or events mentioned in the company's messages."
+    ],
+    "question": ""
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 4.5
+ },
+ {
+  "suite": "given",
+  "id": "E-07",
+  "category": "noise",
+  "text": "Dealer Pensacola, FL asks where to find the new brochure PDF.",
+  "expected": {
+   "incidents": [],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "kind": "noise",
+    "reader": "qwen3:1.7b",
+    "summary": "\"Dealer Pensacola, FL asks where to find the new brochure PDF\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold.",
+    "evidence": [
+     "qwen3:1.7b read 'noise': This message is about a request for information regarding a brochure PDF, which is not related to the company's deliveries, plants, part quality, or any potential issues. It is a general inquiry about where to find a document, not related to the specific operations or events mentioned in the company's messages."
+    ],
+    "question": ""
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 5.9
+ },
+ {
+  "suite": "given",
+  "id": "E-08",
+  "category": "plant_outage",
+  "text": "Plant operations alert: Wacky Wheels Lexington (P_KY) lost production to a power failure. Production is stopped from 2027-03-24 through 2027-03-25 inclusive.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_KY",
+     "outage_start": "2027-03-24",
+     "outage_end": "2027-03-25"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_KY",
+     "outage_start": "2027-03-24",
+     "outage_end": "2027-03-25"
+    }
+   ],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "kind": "plant_outage",
+    "reader": "qwen3:1.7b",
+    "summary": "Wacky Wheels Lexington (P_KY) cannot build from 2027-03-24 through 2027-03-25 inclusive.",
+    "evidence": [
+     "qwen3:1.7b read 'plant_outage': plant_outage: A power failure caused the production at Wacky Wheels Lexington to stop from March 24 to March 25, 2027.",
+     "qwen3:1.7b picked plant=P_KY, first_day=2027-03-24, last_day_down=2027-03-25, restart_day=-",
+     "every pick checks out against the tables and the message",
+     "outage language: plant_outage (model)",
+     "dates: '2027-03-24' = 2027-03-24, '2027-03-25' = 2027-03-25",
+     "plant: 'Wacky Wheels Lexington' -> P_KY"
+    ],
+    "question": ""
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 9.0
+ },
+ {
+  "suite": "given",
+  "id": "E-09",
+  "category": "supplier_delay",
+  "text": "Quick heads up from Orbit: the surround-view cameras run for Huntsville can't make it Monday Mar 29. Carrier says Thursday Apr 1 now (a customs inspection).",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "supplier_delay",
+     "supplier_id": "SUP-11",
+     "part_id": "CAM-360",
+     "plant_id": "P_AL",
+     "blocked_from": "2027-03-29",
+     "blocked_until": "2027-04-01"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [
+    {
+     "kind": "supplier_delay",
+     "supplier_id": "SUP-11",
+     "part_id": "CAM-360",
+     "plant_id": "P_AL",
+     "blocked_from": "2027-03-29",
+     "blocked_until": "2027-04-01"
+    }
+   ],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "kind": "supplier_delay",
+    "reader": "qwen3:1.7b",
+    "summary": "Orbit (SUP-11) will deliver surround-view cameras (CAM-360) to Huntsville (P_AL) late, blocking builds from 2027-03-29 until 2027-04-01. Shipment SH-0256 matches the original ETA.",
+    "evidence": [
+     "qwen3:1.7b read 'supplier_delay': This is a supplier_delay message. The surround-view cameras from Huntsville are delayed due to a customs inspection, which is a reason for the delay in delivery. The carrier has updated the arrival date to Thursday, April 1, indicating a postponement of the delivery schedule.",
+     "qwen3:1.7b picked shipment=-, supplier=SUP-11, part=CAM-360, plant=P_AL, original_date=2027-03-29, new_date=2027-04-01",
+     "every pick checks out against the tables and the message",
+     "delay language: supplier_delay (model)",
+     "dates: 'Monday Mar 29' = 2027-03-29, 'Thursday Apr 1' = 2027-04-01",
+     "shipment: 'SH-0256' -> SH-0256",
+     "supplier: 'Orbit' -> SUP-11",
+     "part: 'surround-view cameras' -> CAM-360",
+     "plant: 'Huntsville' -> P_AL",
+     "text dates 2027-03-29 until 2027-04-01 win over stored ETA 2027-03-29 on SH-0256",
+     "looked up shipment SH-0256: the only shipment matching SUP-11, CAM-360, P_AL due 2027-03-29"
+    ],
+    "question": ""
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 8.8
+ },
+ {
+  "suite": "given",
+  "id": "E-10",
+  "category": "supplier_delay",
+  "text": "Huntsville line is waiting on 60 kWh battery packs from Lumen. Original drop was Monday Mar 29, new ETA is Thursday Apr 1 because of a truck breakdown.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "supplier_delay",
+     "supplier_id": "SUP-18",
+     "part_id": "BATT-60",
+     "plant_id": "P_AL",
+     "blocked_from": "2027-03-29",
+     "blocked_until": "2027-04-01"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [
+    {
+     "kind": "supplier_delay",
+     "supplier_id": "SUP-18",
+     "part_id": "BATT-60",
+     "plant_id": "P_AL",
+     "blocked_from": "2027-03-29",
+     "blocked_until": "2027-04-01"
+    }
+   ],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "kind": "supplier_delay",
+    "reader": "qwen3:1.7b",
+    "summary": "Lumen (SUP-18) will deliver 60 kWh battery packs (BATT-60) to Huntsville (P_AL) late, blocking builds from 2027-03-29 until 2027-04-01. Shipment SH-0248 matches the original ETA.",
+    "evidence": [
+     "qwen3:1.7b read 'supplier_delay': supplier_delay: The Huntsville line is waiting on 60 kWh battery packs from Lumen, with the original delivery date replaced by a new ETA of Thursday April 1 due to a truck breakdown.",
+     "qwen3:1.7b picked shipment=-, supplier=SUP-18, part=BATT-60, plant=P_AL, original_date=2027-03-29, new_date=2027-04-01",
+     "every pick checks out against the tables and the message",
+     "delay language: supplier_delay (model)",
+     "dates: 'Monday Mar 29' = 2027-03-29, 'Thursday Apr 1' = 2027-04-01",
+     "shipment: 'SH-0248' -> SH-0248",
+     "supplier: 'Lumen' -> SUP-18",
+     "part: '60 kWh battery packs' -> BATT-60",
+     "plant: 'Huntsville' -> P_AL",
+     "text dates 2027-03-29 until 2027-04-01 win over stored ETA 2027-03-29 on SH-0248",
+     "looked up shipment SH-0248: the only shipment matching SUP-18, BATT-60, P_AL due 2027-03-29"
+    ],
+    "question": ""
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 7.7
+ },
+ {
+  "suite": "given",
+  "id": "E-11",
+  "category": "plant_outage",
+  "text": "Jackson update: a power failure. We're dark from Friday Mar 26 through Tuesday Mar 30; the line restarts the following working day.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_MS",
+     "outage_start": "2027-03-26",
+     "outage_end": "2027-03-30"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_MS",
+     "outage_start": "2027-03-26",
+     "outage_end": "2027-03-30"
+    }
+   ],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "kind": "plant_outage",
+    "reader": "qwen3:1.7b",
+    "summary": "Jackson (P_MS) cannot build from 2027-03-26 through 2027-03-30 inclusive.",
+    "evidence": [
+     "qwen3:1.7b read 'plant_outage': A power failure caused the plant to be dark from Friday, March 26, through Tuesday, March 30, and the line will restart the following working day.",
+     "qwen3:1.7b picked plant=P_MS, first_day=2027-03-26, last_day_down=2027-03-30, restart_day=2027-03-30",
+     "every pick checks out against the tables and the message",
+     "outage language: plant_outage (model)",
+     "dates: 'Friday Mar 26' = 2027-03-26, 'Tuesday Mar 30' = 2027-03-30",
+     "plant: 'Jackson' -> P_MS"
+    ],
+    "question": ""
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 20.5
+ },
+ {
+  "suite": "given",
+  "id": "E-12",
+  "category": "supplier_delay",
+  "text": "Subject: Shipment SH-0182 delayed\nFrom: dispatch@orbit.example\n\nOur shipment SH-0182 of CAM-360 (surround-view camera kit) for Wacky Wheels Princeton (P_IN) was due 2027-03-15 and will now arrive 2027-03-18. Reason: port congestion.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "supplier_delay",
+     "supplier_id": "SUP-11",
+     "part_id": "CAM-360",
+     "plant_id": "P_IN",
+     "shipment_id": "SH-0182",
+     "blocked_from": "2027-03-15",
+     "blocked_until": "2027-03-18"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [
+    {
+     "kind": "supplier_delay",
+     "supplier_id": "SUP-11",
+     "part_id": "CAM-360",
+     "plant_id": "P_IN",
+     "blocked_from": "2027-03-15",
+     "blocked_until": "2027-03-18"
+    }
+   ],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "kind": "supplier_delay",
+    "reader": "qwen3:1.7b",
+    "summary": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA.",
+    "evidence": [
+     "qwen3:1.7b read 'supplier_delay': A shipment of CAM-360 for Wacky Wheels Princeton (P_IN) was delayed from the 2027-03-15 original date to 2027-03-18 due to port congestion, which is a cause of the delay.",
+     "qwen3:1.7b picked shipment=SH-0182, supplier=SUP-11, part=CAM-360, plant=P_IN, original_date=2027-03-15, new_date=2027-03-18",
+     "every pick checks out against the tables and the message",
+     "delay language: supplier_delay (model)",
+     "dates: '2027-03-15' = 2027-03-15, '2027-03-18' = 2027-03-18",
+     "shipment: 'SH-0182' -> SH-0182",
+     "supplier: 'orbit' -> SUP-11",
+     "part: 'CAM-360' -> CAM-360",
+     "plant: 'Wacky Wheels Princeton' -> P_IN",
+     "text dates 2027-03-15 until 2027-03-18 win over stored ETA 2027-03-15 on SH-0182"
+    ],
+    "question": ""
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 8.5
+ },
+ {
+  "suite": "given",
+  "id": "E-13",
+  "category": "unconfirmed",
+  "text": "Someone on the floor mentioned a possible shortage of something electronic sometime soon. Not confirmed by anyone.",
+  "expected": {
+   "incidents": [],
+   "escalate": true
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": true
+  },
+  "model_said": [
+   {
+    "kind": "unconfirmed",
+    "reader": "qwen3:1.7b",
+    "summary": "The report is not safe to act on: The message reports a possible shortage of something electronic that has not been confirmed by anyone, indicating uncertainty about the actual situation. It is escalated for a human to confirm.",
+    "evidence": [
+     "qwen3:1.7b read 'unconfirmed': The message reports a possible shortage of something electronic that has not been confirmed by anyone, indicating uncertainty about the actual situation."
+    ],
+    "question": ""
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 2.0
+ },
+ {
+  "suite": "given",
+  "id": "E-14",
+  "category": "quality_hold",
+  "text": "Quality alert: Atlas says the heavy-duty wiring harness sent to the Texas plant had a moisture contamination. Anything built Monday Feb 22 through Wednesday Feb 24 is suspect.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "quality_hold",
+     "lots": [
+      "LOT-0017"
+     ]
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [
+    {
+     "kind": "quality_hold",
+     "lots": [
+      "LOT-0017"
+     ]
+    }
+   ],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "kind": "quality_hold",
+    "reader": "qwen3:1.7b",
+    "summary": "Quality hold on lot LOT-0017, heavy-duty wiring harness (HARN-B) at the Texas plant (P_TX), covering builds from 2027-02-22 through 2027-02-24 inclusive.",
+    "evidence": [
+     "qwen3:1.7b read 'quality_hold': The message reports that parts (heavy-duty wiring harness) are contaminated with moisture and will be held due to defects, affecting vehicles built from Monday Feb 22 through Wednesday Feb 24.",
+     "qwen3:1.7b picked lot=-, part=HARN-B, supplier=SUP-07, plant=P_TX, first_build_date=2027-02-22, last_build_date=2027-02-24",
+     "every pick checks out against the tables and the message",
+     "quality language: quality_hold (model)",
+     "dates: 'Monday Feb 22' = 2027-02-22, 'Wednesday Feb 24' = 2027-02-24",
+     "plant: 'the Texas plant' -> P_TX",
+     "part: 'heavy-duty wiring harness' -> HARN-B",
+     "lot: 'LOT-0017' -> LOT-0017",
+     "supplier: 'Atlas' -> SUP-07",
+     "looked up lot LOT-0017: the only lot of SUP-07, HARN-B, P_TX built between 2027-02-22 and 2027-02-24"
+    ],
+    "question": ""
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 7.4
+ },
+ {
+  "suite": "given",
+  "id": "E-15",
+  "category": "quality_hold",
+  "text": "QUALITY BULLETIN QB-368: Lot LOT-0191 (CHIP-IVI, supplier SUP-12) installed at P_IN on vehicles built 2027-03-02 to 2027-03-03 has a faulty weld. Place the lot on hold, stop sale of unsold vehicles and contact owners.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "quality_hold",
+     "lots": [
+      "LOT-0191"
+     ]
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [
+    {
+     "kind": "quality_hold",
+     "lots": [
+      "LOT-0191"
+     ]
+    }
+   ],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "kind": "quality_hold",
+    "reader": "qwen3:1.7b",
+    "summary": "Quality hold on lot LOT-0191, infotainment chip (CHIP-IVI) at Wacky Wheels Princeton (P_IN), covering builds from 2027-03-02 through 2027-03-03 inclusive.",
+    "evidence": [
+     "qwen3:1.7b read 'quality_hold': The message reports a quality issue with a lot of chips installed in vehicles, causing the lot to be placed on hold, vehicles to be stopped from being sold, and contact with owners. This is a quality_hold situation as the defect is identified in the parts used in the vehicles.",
+     "qwen3:1.7b picked lot=LOT-0191, part=CHIP-IVI, supplier=SUP-12, plant=P_IN, first_build_date=2027-03-02, last_build_date=2027-03-03",
+     "every pick checks out against the tables and the message",
+     "quality language: quality_hold (model)",
+     "dates: '2027-03-02' = 2027-03-02, '2027-03-03' = 2027-03-03",
+     "plant: 'P_IN' -> P_IN",
+     "part: 'CHIP-IVI' -> CHIP-IVI",
+     "lot: 'LOT-0191' -> LOT-0191",
+     "supplier: 'SUP-12' -> SUP-12"
+    ],
+    "question": ""
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 9.3
+ }
+]

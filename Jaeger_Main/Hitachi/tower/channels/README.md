@@ -13,7 +13,7 @@ Standard library only, like the rest of the tower.
 ```
 
 Dispatch reads the finished run and never calls Enterprise, so **`action_log.jsonl` is byte-identical
-with channels on or off** (checked by `tests/test_channels.py`).
+with channels on or off**.
 
 ## Quick start
 
@@ -75,9 +75,3 @@ TOWER_RUN_DIR=runs/live python -m tower.ui.server              # control tower o
 ## Live events and the simulation calendar
 
 Live messages go through the same reader, which resolves relative dates ("next Friday") against the simulation's today, 2027-03-08 (`tower/calendar_util.py`). Live events get ids like `SLACK-…`, `GMAIL-…` or `OUTLOOK-…` and are kept in `runs/live/`, apart from the scored `runs/run1`.
-
-## Tests
-
-```bash
-python tests/test_channels.py     # 23 tests, no network
-```

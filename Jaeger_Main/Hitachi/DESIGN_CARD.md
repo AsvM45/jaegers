@@ -34,7 +34,7 @@ The LLM proposes and code verifies. If the model's output fails a check, or it d
 - **Rumor inside a real event:** also escalated.
 - **Model alarm:** if Qwen reads a real incident, and every phrase it quotes checks out, but the word lists find nothing, the message is escalated rather than ignored. Wording we have never seen ("line halted", "behind schedule", "bad batch") reaches a human, and no records change on the model's word alone.
 - **Only affected records change.** Affected orders come from the bill of materials, the receiving plant and the exact disruption window. Rule 1 treats the delay window as half-open; rule 2 treats an outage as inclusive.
-- **Failed call:** logged, not retried, and the remaining calls still run. A confirmed incident that ends with no successful write is escalated. This is tested in `tests/test_failures.py`.
+- **Failed call:** logged, not retried, and the remaining calls still run. A confirmed incident that ends with no successful write is escalated. `tests/test_failures.py` checks this, an unreachable server, a rejected call, and Ollama going down.
 - **Batching:** list-taking tools are batched, with one notice and one stop-sale per dealer. No read calls are made and no calls are wasted.
 
 ## Evaluation

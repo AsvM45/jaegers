@@ -2,7 +2,6 @@
 // underneath, from any page. "/" focuses it, arrows move, Enter opens, Esc clears.
 import { forwardRef, useMemo, useState } from "react";
 import { Icon } from "../lib/icons.jsx";
-import { readerName } from "../lib/constants.js";
 import { useData } from "../lib/data.jsx";
 import { go, useUi } from "../lib/ui.jsx";
 import { KindTag, Status } from "./common.jsx";
@@ -17,13 +16,13 @@ function useResults(q) {
     const events = d.traces.filter((t) => hit(`${t.event_id} ${t.text} ${t.source || ""}`)).map((t) => ({
       key: `e:${t.event_id}`, kind: "event", id: t.event_id, text: t.text, tag: t.incidents?.[0]?.kind, status: d.outcome(t.event_id),
     }));
-    // One row per case per test set, from the set's first reader (the case text is the same for every reader).
+    // One row per case per test set, from the set's newest run (the case text is the same in every run).
     const cases = [];
     for (const s of d.reports?.suites || []) {
       const r = [...s.readers].sort((a, b) => (b.updated || "").localeCompare(a.updated || ""))[0];
       for (const c of r?.cases || []) if (hit(`${c.id} ${c.text}`)) cases.push({
         key: `c:${s.id}:${c.id}`, kind: "case", id: c.id, text: c.text, tag: c.category, set: s.title,
-        href: `#/tests/${s.id}/${r.id}/${encodeURIComponent(c.id)}`, reader: readerName(r.id), pass: c.verdict === "PASS",
+        href: `#/tests/${s.id}/${r.id}/${encodeURIComponent(c.id)}`, pass: c.verdict === "PASS",
       });
     }
     return {
@@ -67,7 +66,7 @@ export const Search = forwardRef(function Search(_, ref) {
         <b>{r.id}</b>{r.tag && <KindTag kind={r.tag} />}
         <span className="sr-right">{r.kind === "event" ? <Status kind={r.status} /> : <Status kind={r.pass ? "pass" : "fail"} />}</span>
       </div>
-      {r.set && <div className="note">{r.set} · {r.reader}</div>}
+      {r.set && <div className="note">{r.set}</div>}
       <div className="sr-text"><Mark text={r.text} q={q} /></div>
     </button>
   );

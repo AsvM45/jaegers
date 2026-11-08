@@ -7,7 +7,6 @@ import { CAT_NAME, CAT_ORDER, KIND_LABEL, TOOL_WORD, fmt, passColor, pctOf, read
 import { newestBySuite, useData } from "../lib/data.jsx";
 import { go, useUi } from "../lib/ui.jsx";
 import { CardHead, KindTag, Mono, Status, Toggle } from "../components/common.jsx";
-import { RunTests } from "../components/RunTests.jsx";
 import { FailurePie, PassBars, PassFailPie, catRows } from "../components/charts.jsx";
 import { Page } from "./Page.jsx";
 
@@ -100,7 +99,6 @@ function AllSets() {
   const copy = scoreCopy(score.sets);
   return (
     <Page title="Tests" subtitle={subtitle}>
-      <RunTests />
       <div className="card">
         <CardHead title={copy.title} sub={copy.sub}>
           <div className="controls">

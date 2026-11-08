@@ -149,7 +149,7 @@
   .icon-btn.busy svg { animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .search {
-    display: flex; align-items: center; gap: 8px; padding: 9px 14px; min-width: 240px;
+    display: flex; align-items: center; gap: 8px; padding: 9px 14px; width: min(420px, 100%);
     border-radius: 14px; border: 1px solid var(--line-2); background: rgba(15, 23, 57, 0.8); color: var(--text-2);
   }
   .search input { background: none; border: 0; outline: 0; color: var(--text); font: inherit; width: 100%; }
@@ -495,9 +495,6 @@
         <div class="tb-sub" id="subtitle"></div>
       </div>
       <div class="tb-right">
-        <div class="live" id="live" title="Reader model and when the data was last loaded">
-          <span class="pulse"></span><span id="live-text">Loading…</span>
-        </div>
         <label class="search"><span data-icon="search"></span><input id="q" placeholder="Search events or tests" autocomplete="off"><kbd>/</kbd></label>
       </div>
     </header>
@@ -603,22 +600,10 @@ async function load() {
   S.traceById = Object.fromEntries(traces.map((t) => [t.event_id, t]));
   if (!S.sel && traces.length) S.sel = traces[0].event_id;
   S.loadedAt = Date.now();
-  updateLive();
   route();
 }
 
 /* ---------------- top bar ---------------- */
-function updateLive() {
-  const el = $("#live"), text = $("#live-text");
-  if (!S.loadedAt) return;
-  const secs = Math.round((Date.now() - S.loadedAt) / 1000);
-  const ago = secs < 10 ? "just now" : secs < 60 ? `${secs}s ago` : secs < 3600 ? `${Math.floor(secs / 60)}m ago` : `${Math.floor(secs / 3600)}h ago`;
-  const reader = modelName() || "rule reader";
-  el.classList.toggle("down", !S.traces.length);
-  el.classList.toggle("stale", !!S.traces.length && secs > 600);
-  text.innerHTML = S.traces.length ? `<b>${esc(reader)}</b> · updated ${ago}` : "No run loaded";
-}
-setInterval(updateLive, 15000);
 // One line under the title that says what is on the page, from the loaded data.
 function pageSubtitle(p) {
   const n = (v) => `<b>${fmt(v)}</b>`;
@@ -1087,7 +1072,7 @@ function argText(args) {
 }
 
 /* ================= REPORTS ================= */
-function suiteRuns(id) { return ({ given: "given", generated: "tests", holdout: "holdout", holdout2: "holdout2" })[id] || id; }
+function suiteRuns(id) { return ({ given: "given" })[id] || id; }
 // How well a reader predicts: its output compared with the answer key traced through the graph.
 function predictionScores(j) {
   const row = (label, n) => {
@@ -1491,12 +1476,10 @@ const GUIDE = [
     c: ["ollama pull qwen2.5:0.5b", "ollama serve"] },
   { t: "Run the control tower on the 15 events", p: "Writes runs/run1/traces.json and action_log.jsonl, which feed the Overview and Event feed pages. Add --notify dry-run to fill the Notifications section.",
     c: ["python -m tower.run", "python -m tower.run --reader rules --notify dry-run"] },
-  { t: "Run the tests", p: "Each run writes one report per reader under runs/given/ or runs/tests/, which shows on the Tests page. --reader takes rules, llm or both (the default).",
-    c: ["python tests/run_given.py", "python tests/run_cases.py", "TOWER_LLM_MODEL=qwen3:1.7b python tests/run_cases.py --reader llm"] },
-  { t: "How good is the model itself", p: "Scores the LLM reader on its own (no rule check) on the 100 held-out cases and the 15 given events, against the expected graphs in tests/expected_graphs.json. Set TOWER_LLM_MODEL to test another model.",
-    c: ["python tests/run_model.py", "TOWER_LLM_MODEL=qwen3:1.7b python tests/run_model.py", "python tests/run_cases.py --cases tests/holdout_cases.json --out runs/holdout"] },
-  { t: "Test cases", p: "100 generated cases: 25 hand-made edge cases and 75 written once from real records by tests/make_cases.py, each with its answer key. Each answer key is traced through the company graph to the expected output, and every run compares the reader's predictions with it: incident type, records and dates, full output.",
-    c: ["python tests/make_cases.py"] },
+  { t: "Run the tests", p: "Grades the 15 given events against TC1–TC6 and writes one report per reader under runs/given/, which shows on the Tests page. --reader takes rules, llm or both (the default).",
+    c: ["python tests/run_given.py", "python tests/run_given.py --reader rules"] },
+  { t: "How good is the model itself", p: "Scores the LLM reader on its own (no rule check) on the 15 given events, against the expected graphs in tests/expected_graphs.json. Set TOWER_LLM_MODEL to test another model.",
+    c: ["python tests/run_model.py", "TOWER_LLM_MODEL=qwen3:1.7b python tests/run_model.py"] },
   { t: "Export the ontology", p: "Writes runs/ontology/ontology.json for the edge tables on the Knowledge graph page. The orb graph itself reads the CSVs directly.",
     c: ["python -m tower.ontology"] },
   { t: "Start this dashboard", p: "Then open http://127.0.0.1:8080. The orb graph also runs on its own with node orb-graph/server.js.",
@@ -1512,8 +1495,8 @@ function renderGuide(view) {
     <div class="card"><div class="card-head"><div><h3>What each page reads</h3><p class="sub">Files on disk from the latest run</p></div></div>
       <div class="scroll-x"><table><thead><tr><th>Page</th><th>Source</th></tr></thead><tbody>
         <tr><td><b>Overview, Event feed</b></td><td class="mono">runs/run1/</td></tr>
-        <tr><td><b>Tests</b></td><td class="mono">runs/given, tests, holdout, holdout2 (+ tests/*.json)</td></tr><tr><td><b>Logs</b></td><td class="mono">runs/logs/*.log, runs/run1/action_log.jsonl, runs/test_log.jsonl</td></tr>
-        <tr><td><b>Prediction scores</b></td><td class="mono">tests/*.json (answer keys) + the graph</td></tr>
+        <tr><td><b>Tests</b></td><td class="mono">runs/given (+ tests/given_cases.json)</td></tr><tr><td><b>Logs</b></td><td class="mono">runs/logs/*.log, runs/run1/action_log.jsonl, runs/test_log.jsonl</td></tr>
+        <tr><td><b>Prediction scores</b></td><td class="mono">tests/given_cases.json (answer keys) + the graph</td></tr>
         <tr><td><b>Knowledge graph</b></td><td class="mono">Data/…/data/*.csv runs/ontology/</td></tr>
         <tr><td><b>Notifications</b></td><td class="mono">runs/run1/outbox.jsonl</td></tr>
       </tbody></table></div>

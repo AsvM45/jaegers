@@ -1,0 +1,640 @@
+[
+ {
+  "suite": "given",
+  "id": "E-01",
+  "category": "compound",
+  "text": "Morning digest, two items. (1) San Antonio update: a software outage on the line. We're dark from next Friday through Monday Mar 22; the line restarts the following working day. (2) Quick heads up from Quanta: the infotainment chip run for Princeton can't make it next Monday. Carrier says next Friday now (severe weather on the route).",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_TX",
+     "outage_start": "2027-03-19",
+     "outage_end": "2027-03-22"
+    },
+    {
+     "kind": "supplier_delay",
+     "supplier_id": "SUP-12",
+     "part_id": "CHIP-IVI",
+     "plant_id": "P_IN",
+     "blocked_from": "2027-03-15",
+     "blocked_until": "2027-03-19"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": true
+  },
+  "model_said": [
+   {
+    "kind": "unconfirmed",
+    "reader": "qwen3:1.7b",
+    "summary": "The model read this as a plant outage (This is a plant_outage because a manufacturing line is temporarily shut down and will restart the following working day, affecting production), but the reading does not check out against the tables: an outage needs a plant. It is escalated for a human to confirm.",
+    "evidence": [
+     "qwen3:1.7b read 'plant_outage': This is a plant_outage because a manufacturing line is temporarily shut down and will restart the following working day, affecting production.",
+     "qwen3:1.7b picked plant=-, first_day=-, last_day=-, end_meaning=last day down",
+     "does not check out: an outage needs a plant",
+     "retry: qwen3:1.7b picked plant=-, first_day=-, last_day=-, end_meaning=last day down",
+     "does not check out: an outage needs a plant",
+     "for comparison only, the rule reader would read 'plant_outage' (it does not decide)"
+    ]
+   },
+   {
+    "kind": "unconfirmed",
+    "reader": "qwen3:1.7b",
+    "summary": "The model read this as a supplier delay (supplier_delay: The infotainment chip delivery is postponed to next Friday due to severe weather on the route, affecting the production schedule at Princeton), but the reading does not check out against the tables: a delay needs a shipment, or a part and a plant. It is escalated for a human to confirm.",
+    "evidence": [
+     "qwen3:1.7b read 'supplier_delay': supplier_delay: The infotainment chip delivery is postponed to next Friday due to severe weather on the route, affecting the production schedule at Princeton.",
+     "qwen3:1.7b picked shipment=-, supplier=-, part=-, plant=-, original_date=-, new_date=-",
+     "does not check out: a delay needs a shipment, or a part and a plant",
+     "retry: qwen3:1.7b picked shipment=-, supplier=-, part=-, plant=-, original_date=-, new_date=-",
+     "does not check out: a delay needs a shipment, or a part and a plant",
+     "for comparison only, the rule reader would read 'supplier_delay' (it does not decide)"
+    ]
+   }
+  ],
+  "kinds_ok": false,
+  "fields_ok": false,
+  "output_ok": false,
+  "mismatches": [
+   "Type: expected plant_outage, supplier_delay; model read none + escalate.",
+   "Production orders moved: expected 14, model's reading gives 0 (14 missing, 0 extra).",
+   "Dealers notified: expected 41, model's reading gives 0 (41 missing, 0 extra).",
+   "Loaners: expected 26, model's reading gives 0 (26 missing, 0 extra)."
+  ],
+  "seconds": 32.2
+ },
+ {
+  "suite": "given",
+  "id": "E-02",
+  "category": "unconfirmed",
+  "text": "Rumor from a supplier rep: something may be off with a seat material coming up. No dates, no details, nothing confirmed.",
+  "expected": {
+   "incidents": [],
+   "escalate": true
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": true
+  },
+  "model_said": [
+   {
+    "kind": "unconfirmed",
+    "reader": "qwen3:1.7b",
+    "summary": "The report is not safe to act on: The message reports a possible problem with a seat material from a supplier, but no specific details or dates are provided, making it unconfirmed. It is escalated for a human to confirm.",
+    "evidence": [
+     "qwen3:1.7b read 'unconfirmed': The message reports a possible problem with a seat material from a supplier, but no specific details or dates are provided, making it unconfirmed.",
+     "for comparison only, the rule reader agrees (it does not decide)"
+    ]
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 2.5
+ },
+ {
+  "suite": "given",
+  "id": "E-03",
+  "category": "quality_hold",
+  "text": "Quality alert: Kestrel says the infotainment chip sent to Jackson had a faulty weld. Anything built Thursday Feb 25 through last Monday is suspect.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "quality_hold",
+     "lots": [
+      "LOT-0130"
+     ]
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": true
+  },
+  "model_said": [
+   {
+    "kind": "unconfirmed",
+    "reader": "qwen3:1.7b",
+    "summary": "The model read this as a quality hold (The message reports a quality issue with infotainment chips, indicating that any vehicles built from Thursday, February 25 through last Monday are suspect. This is a quality_hold situation as the defect is confirmed and action is required to hold those vehicles), but the reading does not check out against the tables: a quality hold needs a known lot, or a plant and a part. It is escalated for a human to confirm.",
+    "evidence": [
+     "qwen3:1.7b read 'quality_hold': The message reports a quality issue with infotainment chips, indicating that any vehicles built from Thursday, February 25 through last Monday are suspect. This is a quality_hold situation as the defect is confirmed and action is required to hold those vehicles.",
+     "qwen3:1.7b picked lot=-, part=-, supplier=-, plant=-, first_build_date=-, last_build_date=-",
+     "does not check out: a quality hold needs a known lot, or a plant and a part",
+     "retry: qwen3:1.7b picked lot=-, part=-, supplier=-, plant=-, first_build_date=-, last_build_date=-",
+     "does not check out: a quality hold needs a known lot, or a plant and a part",
+     "for comparison only, the rule reader would read 'quality_hold' (it does not decide)"
+    ]
+   }
+  ],
+  "kinds_ok": false,
+  "fields_ok": false,
+  "output_ok": false,
+  "mismatches": [
+   "Type: expected quality_hold; model read none + escalate.",
+   "Lots held: expected 1, model's reading gives 0 (1 missing, 0 extra).",
+   "Stop-sale vehicles: expected 110, model's reading gives 0 (110 missing, 0 extra).",
+   "Owners notified: expected 150, model's reading gives 0 (150 missing, 0 extra)."
+  ],
+  "seconds": 10.6
+ },
+ {
+  "suite": "given",
+  "id": "E-04",
+  "category": "plant_outage",
+  "text": "The Kentucky plant update: a software outage on the line. We're dark from next Tuesday through next Thursday; the line restarts the following working day.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_KY",
+     "outage_start": "2027-03-16",
+     "outage_end": "2027-03-18"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": true
+  },
+  "model_said": [
+   {
+    "kind": "unconfirmed",
+    "reader": "qwen3:1.7b",
+    "summary": "The model read this as a plant outage (plant_outage: The Kentucky plant is experiencing a software outage, causing it to be dark from next Tuesday through next Thursday. The line is expected to restart the following working day), but the reading does not check out against the tables: an outage needs a plant. It is escalated for a human to confirm.",
+    "evidence": [
+     "qwen3:1.7b read 'plant_outage': plant_outage: The Kentucky plant is experiencing a software outage, causing it to be dark from next Tuesday through next Thursday. The line is expected to restart the following working day.",
+     "qwen3:1.7b picked plant=-, first_day=-, last_day=-, end_meaning=last day down",
+     "does not check out: an outage needs a plant",
+     "retry: qwen3:1.7b picked plant=-, first_day=-, last_day=-, end_meaning=last day down",
+     "does not check out: an outage needs a plant",
+     "for comparison only, the rule reader would read 'plant_outage' (it does not decide)"
+    ]
+   }
+  ],
+  "kinds_ok": false,
+  "fields_ok": false,
+  "output_ok": false,
+  "mismatches": [
+   "Type: expected plant_outage; model read none + escalate.",
+   "Production orders moved: expected 9, model's reading gives 0 (9 missing, 0 extra).",
+   "Dealers notified: expected 32, model's reading gives 0 (32 missing, 0 extra).",
+   "Loaners: expected 18, model's reading gives 0 (18 missing, 0 extra)."
+  ],
+  "seconds": 20.3
+ },
+ {
+  "suite": "given",
+  "id": "E-05",
+  "category": "noise",
+  "text": "Dealer Amarillo, TX asks where to find the new brochure PDF.",
+  "expected": {
+   "incidents": [],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "kind": "noise",
+    "reader": "qwen3:1.7b",
+    "summary": "\"Dealer Amarillo, TX asks where to find the new brochure PDF\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold.",
+    "evidence": [
+     "qwen3:1.7b read 'noise': This message is about a request for information regarding a new brochure PDF, which is not related to the company's deliveries, plants, part quality, or any potential issues. It is a general inquiry about a document, not involving any of the specified categories.",
+     "for comparison only, the rule reader agrees (it does not decide)"
+    ]
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 4.0
+ },
+ {
+  "suite": "given",
+  "id": "E-06",
+  "category": "noise",
+  "text": "Dealer Little Rock, AR asks where to find the new brochure PDF.",
+  "expected": {
+   "incidents": [],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "kind": "noise",
+    "reader": "qwen3:1.7b",
+    "summary": "\"Dealer Little Rock, AR asks where to find the new brochure PDF\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold.",
+    "evidence": [
+     "qwen3:1.7b read 'noise': This message is about a request for information regarding a new brochure PDF, which is not related to the company's deliveries, plants, part quality, or any potential issues. It is a general inquiry about where to find a document, not related to the specific operations or events mentioned in the company's messages.",
+     "for comparison only, the rule reader agrees (it does not decide)"
+    ]
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 4.6
+ },
+ {
+  "suite": "given",
+  "id": "E-07",
+  "category": "noise",
+  "text": "Dealer Pensacola, FL asks where to find the new brochure PDF.",
+  "expected": {
+   "incidents": [],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "kind": "noise",
+    "reader": "qwen3:1.7b",
+    "summary": "\"Dealer Pensacola, FL asks where to find the new brochure PDF\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold.",
+    "evidence": [
+     "qwen3:1.7b read 'noise': This message is about a request for information regarding a brochure PDF, which is not related to the company's deliveries, plants, part quality, or any potential issues. It is a general inquiry about where to find a document, not related to the specific operations or events mentioned in the company's messages.",
+     "for comparison only, the rule reader agrees (it does not decide)"
+    ]
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 4.4
+ },
+ {
+  "suite": "given",
+  "id": "E-08",
+  "category": "plant_outage",
+  "text": "Plant operations alert: Wacky Wheels Lexington (P_KY) lost production to a power failure. Production is stopped from 2027-03-24 through 2027-03-25 inclusive.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_KY",
+     "outage_start": "2027-03-24",
+     "outage_end": "2027-03-25"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": true
+  },
+  "model_said": [
+   {
+    "kind": "unconfirmed",
+    "reader": "qwen3:1.7b",
+    "summary": "The model read this as a plant outage (plant_outage: A power failure caused the production at Wacky Wheels Lexington to stop from March 24 to March 25, 2027), but the reading does not check out against the tables: an outage needs a plant. It is escalated for a human to confirm.",
+    "evidence": [
+     "qwen3:1.7b read 'plant_outage': plant_outage: A power failure caused the production at Wacky Wheels Lexington to stop from March 24 to March 25, 2027.",
+     "qwen3:1.7b picked plant=-, first_day=-, last_day=-, end_meaning=last day down",
+     "does not check out: an outage needs a plant",
+     "retry: qwen3:1.7b picked plant=-, first_day=-, last_day=-, end_meaning=last day down",
+     "does not check out: an outage needs a plant",
+     "for comparison only, the rule reader would read 'plant_outage' (it does not decide)"
+    ]
+   }
+  ],
+  "kinds_ok": false,
+  "fields_ok": false,
+  "output_ok": false,
+  "mismatches": [
+   "Type: expected plant_outage; model read none + escalate.",
+   "Production orders moved: expected 6, model's reading gives 0 (6 missing, 0 extra).",
+   "Dealers notified: expected 25, model's reading gives 0 (25 missing, 0 extra).",
+   "Loaners: expected 15, model's reading gives 0 (15 missing, 0 extra)."
+  ],
+  "seconds": 6.9
+ },
+ {
+  "suite": "given",
+  "id": "E-09",
+  "category": "supplier_delay",
+  "text": "Quick heads up from Orbit: the surround-view cameras run for Huntsville can't make it Monday Mar 29. Carrier says Thursday Apr 1 now (a customs inspection).",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "supplier_delay",
+     "supplier_id": "SUP-11",
+     "part_id": "CAM-360",
+     "plant_id": "P_AL",
+     "blocked_from": "2027-03-29",
+     "blocked_until": "2027-04-01"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": true
+  },
+  "model_said": [
+   {
+    "kind": "unconfirmed",
+    "reader": "qwen3:1.7b",
+    "summary": "The model read this as a supplier delay (This is a supplier_delay message. The surround-view cameras from Huntsville are delayed due to a customs inspection, which is a reason for the delay in delivery. The carrier has updated the arrival date to Thursday, April 1, indicating a postponement of the delivery schedule), but the reading does not check out against the tables: a delay needs a shipment, or a part and a plant. It is escalated for a human to confirm.",
+    "evidence": [
+     "qwen3:1.7b read 'supplier_delay': This is a supplier_delay message. The surround-view cameras from Huntsville are delayed due to a customs inspection, which is a reason for the delay in delivery. The carrier has updated the arrival date to Thursday, April 1, indicating a postponement of the delivery schedule.",
+     "qwen3:1.7b picked shipment=-, supplier=-, part=-, plant=-, original_date=-, new_date=-",
+     "does not check out: a delay needs a shipment, or a part and a plant",
+     "retry: qwen3:1.7b picked shipment=-, supplier=-, part=-, plant=-, original_date=-, new_date=-",
+     "does not check out: a delay needs a shipment, or a part and a plant",
+     "for comparison only, the rule reader would read 'supplier_delay' (it does not decide)"
+    ]
+   }
+  ],
+  "kinds_ok": false,
+  "fields_ok": false,
+  "output_ok": false,
+  "mismatches": [
+   "Type: expected supplier_delay; model read none + escalate.",
+   "Production orders moved: expected 6, model's reading gives 0 (6 missing, 0 extra).",
+   "Dealers notified: expected 26, model's reading gives 0 (26 missing, 0 extra).",
+   "Loaners: expected 10, model's reading gives 0 (10 missing, 0 extra)."
+  ],
+  "seconds": 8.8
+ },
+ {
+  "suite": "given",
+  "id": "E-10",
+  "category": "supplier_delay",
+  "text": "Huntsville line is waiting on 60 kWh battery packs from Lumen. Original drop was Monday Mar 29, new ETA is Thursday Apr 1 because of a truck breakdown.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "supplier_delay",
+     "supplier_id": "SUP-18",
+     "part_id": "BATT-60",
+     "plant_id": "P_AL",
+     "blocked_from": "2027-03-29",
+     "blocked_until": "2027-04-01"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": true
+  },
+  "model_said": [
+   {
+    "kind": "unconfirmed",
+    "reader": "qwen3:1.7b",
+    "summary": "The model read this as a supplier delay (supplier_delay: The Huntsville line is waiting on 60 kWh battery packs from Lumen, with the original delivery date replaced by a new ETA of Thursday April 1 due to a truck breakdown), but the reading does not check out against the tables: a delay needs a shipment, or a part and a plant. It is escalated for a human to confirm.",
+    "evidence": [
+     "qwen3:1.7b read 'supplier_delay': supplier_delay: The Huntsville line is waiting on 60 kWh battery packs from Lumen, with the original delivery date replaced by a new ETA of Thursday April 1 due to a truck breakdown.",
+     "qwen3:1.7b picked shipment=-, supplier=-, part=-, plant=-, original_date=-, new_date=-",
+     "does not check out: a delay needs a shipment, or a part and a plant",
+     "retry: qwen3:1.7b picked shipment=-, supplier=-, part=-, plant=-, original_date=-, new_date=-",
+     "does not check out: a delay needs a shipment, or a part and a plant",
+     "for comparison only, the rule reader would read 'supplier_delay' (it does not decide)"
+    ]
+   }
+  ],
+  "kinds_ok": false,
+  "fields_ok": false,
+  "output_ok": false,
+  "mismatches": [
+   "Type: expected supplier_delay; model read none + escalate.",
+   "Production orders moved: expected 3, model's reading gives 0 (3 missing, 0 extra).",
+   "Dealers notified: expected 18, model's reading gives 0 (18 missing, 0 extra).",
+   "Loaners: expected 7, model's reading gives 0 (7 missing, 0 extra)."
+  ],
+  "seconds": 7.8
+ },
+ {
+  "suite": "given",
+  "id": "E-11",
+  "category": "plant_outage",
+  "text": "Jackson update: a power failure. We're dark from Friday Mar 26 through Tuesday Mar 30; the line restarts the following working day.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_MS",
+     "outage_start": "2027-03-26",
+     "outage_end": "2027-03-30"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": true
+  },
+  "model_said": [
+   {
+    "kind": "unconfirmed",
+    "reader": "qwen3:1.7b",
+    "summary": "The model read this as a plant outage (A power failure caused the plant to be dark from Friday, March 26, through Tuesday, March 30, and the line will restart the following working day), but the reading does not check out against the tables: an outage needs a plant. It is escalated for a human to confirm.",
+    "evidence": [
+     "qwen3:1.7b read 'plant_outage': A power failure caused the plant to be dark from Friday, March 26, through Tuesday, March 30, and the line will restart the following working day.",
+     "qwen3:1.7b picked plant=-, first_day=-, last_day=-, end_meaning=last day down",
+     "does not check out: an outage needs a plant",
+     "retry: qwen3:1.7b picked plant=-, first_day=-, last_day=-, end_meaning=last day down",
+     "does not check out: an outage needs a plant",
+     "for comparison only, the rule reader would read 'plant_outage' (it does not decide)"
+    ]
+   }
+  ],
+  "kinds_ok": false,
+  "fields_ok": false,
+  "output_ok": false,
+  "mismatches": [
+   "Type: expected plant_outage; model read none + escalate.",
+   "Production orders moved: expected 9, model's reading gives 0 (9 missing, 0 extra).",
+   "Dealers notified: expected 36, model's reading gives 0 (36 missing, 0 extra).",
+   "Loaners: expected 17, model's reading gives 0 (17 missing, 0 extra)."
+  ],
+  "seconds": 23.9
+ },
+ {
+  "suite": "given",
+  "id": "E-12",
+  "category": "supplier_delay",
+  "text": "Subject: Shipment SH-0182 delayed\nFrom: dispatch@orbit.example\n\nOur shipment SH-0182 of CAM-360 (surround-view camera kit) for Wacky Wheels Princeton (P_IN) was due 2027-03-15 and will now arrive 2027-03-18. Reason: port congestion.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "supplier_delay",
+     "supplier_id": "SUP-11",
+     "part_id": "CAM-360",
+     "plant_id": "P_IN",
+     "shipment_id": "SH-0182",
+     "blocked_from": "2027-03-15",
+     "blocked_until": "2027-03-18"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": true
+  },
+  "model_said": [
+   {
+    "kind": "unconfirmed",
+    "reader": "qwen3:1.7b",
+    "summary": "The model read this as a supplier delay (A shipment of CAM-360 for Wacky Wheels Princeton (P_IN) was delayed from the 2027-03-15 original date to 2027-03-18 due to port congestion, which is a cause of the delay), but the reading does not check out against the tables: a delay needs a shipment, or a part and a plant. It is escalated for a human to confirm.",
+    "evidence": [
+     "qwen3:1.7b read 'supplier_delay': A shipment of CAM-360 for Wacky Wheels Princeton (P_IN) was delayed from the 2027-03-15 original date to 2027-03-18 due to port congestion, which is a cause of the delay.",
+     "qwen3:1.7b picked shipment=-, supplier=-, part=-, plant=-, original_date=-, new_date=-",
+     "does not check out: a delay needs a shipment, or a part and a plant",
+     "retry: qwen3:1.7b picked shipment=-, supplier=-, part=-, plant=-, original_date=-, new_date=-",
+     "does not check out: a delay needs a shipment, or a part and a plant",
+     "for comparison only, the rule reader would read 'supplier_delay' (it does not decide)"
+    ]
+   }
+  ],
+  "kinds_ok": false,
+  "fields_ok": false,
+  "output_ok": false,
+  "mismatches": [
+   "Type: expected supplier_delay; model read none + escalate.",
+   "Production orders moved: expected 3, model's reading gives 0 (3 missing, 0 extra).",
+   "Dealers notified: expected 14, model's reading gives 0 (14 missing, 0 extra).",
+   "Loaners: expected 10, model's reading gives 0 (10 missing, 0 extra)."
+  ],
+  "seconds": 11.0
+ },
+ {
+  "suite": "given",
+  "id": "E-13",
+  "category": "unconfirmed",
+  "text": "Someone on the floor mentioned a possible shortage of something electronic sometime soon. Not confirmed by anyone.",
+  "expected": {
+   "incidents": [],
+   "escalate": true
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": true
+  },
+  "model_said": [
+   {
+    "kind": "unconfirmed",
+    "reader": "qwen3:1.7b",
+    "summary": "The report is not safe to act on: The message reports a possible shortage of something electronic that has not been confirmed by anyone, indicating uncertainty about the actual situation. It is escalated for a human to confirm.",
+    "evidence": [
+     "qwen3:1.7b read 'unconfirmed': The message reports a possible shortage of something electronic that has not been confirmed by anyone, indicating uncertainty about the actual situation.",
+     "for comparison only, the rule reader agrees (it does not decide)"
+    ]
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 3.0
+ },
+ {
+  "suite": "given",
+  "id": "E-14",
+  "category": "quality_hold",
+  "text": "Quality alert: Atlas says the heavy-duty wiring harness sent to the Texas plant had a moisture contamination. Anything built Monday Feb 22 through Wednesday Feb 24 is suspect.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "quality_hold",
+     "lots": [
+      "LOT-0017"
+     ]
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": true
+  },
+  "model_said": [
+   {
+    "kind": "unconfirmed",
+    "reader": "qwen3:1.7b",
+    "summary": "The model read this as a quality hold (The message reports that parts (heavy-duty wiring harness) are contaminated with moisture and will be held due to defects, affecting vehicles built from Monday Feb 22 through Wednesday Feb 24), but the reading does not check out against the tables: a quality hold needs a known lot, or a plant and a part. It is escalated for a human to confirm.",
+    "evidence": [
+     "qwen3:1.7b read 'quality_hold': The message reports that parts (heavy-duty wiring harness) are contaminated with moisture and will be held due to defects, affecting vehicles built from Monday Feb 22 through Wednesday Feb 24.",
+     "qwen3:1.7b picked lot=-, part=-, supplier=-, plant=-, first_build_date=-, last_build_date=-",
+     "does not check out: a quality hold needs a known lot, or a plant and a part",
+     "retry: qwen3:1.7b picked lot=-, part=-, supplier=-, plant=-, first_build_date=-, last_build_date=-",
+     "does not check out: a quality hold needs a known lot, or a plant and a part",
+     "for comparison only, the rule reader would read 'quality_hold' (it does not decide)"
+    ]
+   }
+  ],
+  "kinds_ok": false,
+  "fields_ok": false,
+  "output_ok": false,
+  "mismatches": [
+   "Type: expected quality_hold; model read none + escalate.",
+   "Lots held: expected 1, model's reading gives 0 (1 missing, 0 extra).",
+   "Stop-sale vehicles: expected 86, model's reading gives 0 (86 missing, 0 extra).",
+   "Owners notified: expected 94, model's reading gives 0 (94 missing, 0 extra)."
+  ],
+  "seconds": 10.1
+ },
+ {
+  "suite": "given",
+  "id": "E-15",
+  "category": "quality_hold",
+  "text": "QUALITY BULLETIN QB-368: Lot LOT-0191 (CHIP-IVI, supplier SUP-12) installed at P_IN on vehicles built 2027-03-02 to 2027-03-03 has a faulty weld. Place the lot on hold, stop sale of unsold vehicles and contact owners.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "quality_hold",
+     "lots": [
+      "LOT-0191"
+     ]
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": true
+  },
+  "model_said": [
+   {
+    "kind": "unconfirmed",
+    "reader": "qwen3:1.7b",
+    "summary": "The model read this as a quality hold (The message reports a quality issue with a lot of chips installed in vehicles, causing the lot to be placed on hold, vehicles to be stopped from being sold, and contact with owners. This is a quality_hold situation as the defect is identified in the parts used in the vehicles), but the reading does not check out against the tables: a quality hold needs a known lot, or a plant and a part. It is escalated for a human to confirm.",
+    "evidence": [
+     "qwen3:1.7b read 'quality_hold': The message reports a quality issue with a lot of chips installed in vehicles, causing the lot to be placed on hold, vehicles to be stopped from being sold, and contact with owners. This is a quality_hold situation as the defect is identified in the parts used in the vehicles.",
+     "qwen3:1.7b picked lot=-, part=-, supplier=-, plant=-, first_build_date=-, last_build_date=-",
+     "does not check out: a quality hold needs a known lot, or a plant and a part",
+     "retry: qwen3:1.7b picked lot=-, part=-, supplier=-, plant=-, first_build_date=-, last_build_date=-",
+     "does not check out: a quality hold needs a known lot, or a plant and a part",
+     "for comparison only, the rule reader would read 'quality_hold' (it does not decide)"
+    ]
+   }
+  ],
+  "kinds_ok": false,
+  "fields_ok": false,
+  "output_ok": false,
+  "mismatches": [
+   "Type: expected quality_hold; model read none + escalate.",
+   "Lots held: expected 1, model's reading gives 0 (1 missing, 0 extra).",
+   "Stop-sale vehicles: expected 40, model's reading gives 0 (40 missing, 0 extra).",
+   "Owners notified: expected 76, model's reading gives 0 (76 missing, 0 extra)."
+  ],
+  "seconds": 13.3
+ }
+]
