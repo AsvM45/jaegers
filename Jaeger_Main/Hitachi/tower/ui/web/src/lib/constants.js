@@ -31,7 +31,7 @@ export const CAT_COLOR = {
 export const CAT_NAME = { ...KIND_LABEL, compound: "Compound" };
 
 export const PAGES = {
-  overview: "Overview", events: "Event feed", tests: "Tests", ontology: "Knowledge graph", logs: "Logs", guide: "How to run",
+  overview: "Overview", events: "Event feed", tests: "Tests", ontology: "Knowledge graph", logs: "Logs", guide: "Guide",
 };
 
 export const AGENT_ICON = { coordinator: "cpu", supply_chain: "wrench", quality: "shield", dealer_customer: "mail" };

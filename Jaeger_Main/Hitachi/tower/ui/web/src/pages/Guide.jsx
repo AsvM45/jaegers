@@ -1,68 +1,147 @@
+// The platform guide: what the tower does, what each page is for, the words it uses, and how to run it.
+import { useState } from "react";
 import { Icon } from "../lib/icons.jsx";
+import { useData } from "../lib/data.jsx";
 import { useUi } from "../lib/ui.jsx";
-import { CardHead, Mono } from "../components/common.jsx";
+import { CardHead, KindTag, Mono, Toggle } from "../components/common.jsx";
 import { Page } from "./Page.jsx";
 
-const GUIDE = [
-  { t: "The one command", p: "Runs the tower, the test suites and the ontology export, then opens this dashboard. It uses the LLM reader when Ollama is running with the model pulled, and the rule reader otherwise. --rules skips the LLM reader; --serve-only just opens the dashboard on the results already on disk.",
-    c: ["python start.py", "python start.py --rules", "python start.py --serve-only"] },
-  { t: "Or step by step: open a terminal in the Hitachi folder", p: "Every command below runs from here. Python 3.10+ and the standard library are all the tower needs.",
-    c: ["cd Jaeger_Main/Hitachi"] },
-  { t: "Optional: start the local LLM reader", p: "The tower reads messages with Qwen3 through Ollama and checks every reading with the rule reader. Skip this step to use the rule reader alone (--reader rules). Pick another model with TOWER_LLM_MODEL.",
-    c: ["ollama pull qwen3:0.6b", "ollama serve"] },
-  { t: "Run the control tower on the 15 events", p: "Writes runs/run1/traces.json and action_log.jsonl, which feed the Overview and Event feed pages. Add --notify dry-run to fill the Notifications section.",
-    c: ["python -m tower.run", "python -m tower.run --reader rules --notify dry-run"] },
-  { t: "Run the tests", p: "Each run writes one report per reader under runs/given/ or runs/tests/, which shows on the Tests page. --reader takes rules, llm or both (the default).",
-    c: ["python tests/run_given.py", "python tests/run_cases.py", "TOWER_LLM_MODEL=qwen3:1.7b python tests/run_cases.py --reader llm"] },
-  { t: "How good is the model itself", p: "Scores the LLM reader on its own (no rule check) on the 100 held-out cases and the 15 given events, against the expected graphs in tests/expected_graphs.json. About 3 seconds per message with qwen3:0.6b. Set TOWER_LLM_MODEL to test another model.",
-    c: ["python tests/run_model.py", "TOWER_LLM_MODEL=qwen3:1.7b python tests/run_model.py", "python tests/run_cases.py --cases tests/holdout_cases.json --out runs/holdout"] },
-  { t: "Test cases", p: "100 generated cases: 25 hand-made edge cases and 75 written once from real records by tests/make_cases.py, each with its answer key. Each answer key is traced through the company graph to the expected output, and every run compares the reader's predictions with it: incident type, records and dates, full output.",
-    c: ["python tests/make_cases.py"] },
-  { t: "Export the ontology", p: "Writes runs/ontology/ontology.json for the edge tables on the Knowledge graph page. The orb graph itself reads the CSVs directly.",
-    c: ["python -m tower.ontology"] },
-  { t: "Start this dashboard", p: "Then open http://127.0.0.1:8080 and press Refresh after any run. The page is a React app in tower/ui/web; after changing it, rebuild with npm run build (or use npm run dev for hot reload on :5173).",
-    c: ["python -m tower.ui.server", "cd tower/ui/web && npm install && npm run build", "cd tower/ui/web && npm run dev"] },
+const FLOW = [
+  { icon: "mail", t: "Message arrives", p: "A supplier email, plant alert, dealer note or rumor lands in the event feed." },
+  { icon: "cpu", t: "Read", p: "The LLM reads it and explains its reasoning; the rule reader checks the reading against the company tables." },
+  { icon: "graph", t: "Trace", p: "Agents follow the knowledge graph from the part, plant or lot to every order, dealer and vehicle affected." },
+  { icon: "wrench", t: "Act", p: "Specialist agents plan tool calls; the coordinator checks each one against the handbook, then runs it." },
+  { icon: "alert", t: "Escalate", p: "Rumors and anything that can't be confirmed go to a human. Nothing is changed for them." },
 ];
+
+const TOUR = [
+  { id: "overview", icon: "home", t: "Overview", p: "The state of the run at a glance.",
+    points: ["Headline counts: events, tool calls, escalations, test pass rate", "Agent team and what each agent may do", "Tool calls per event; click a bar to open that event"] },
+  { id: "events", icon: "feed", t: "Event feed", p: "Every message and exactly what the tower did about it.",
+    points: ["How it was read, with the model's reasoning", "Agent handoffs and graph paths", "Every tool call with its reason and result"] },
+  { id: "tests", icon: "check", t: "Tests", p: "How well the tower predicts, scored against answer keys.",
+    points: ["Pass rate by test set and by kind of message", "Drill in: all sets → one set → one case", "Each case: input, expected output, actual output"] },
+  { id: "ontology", icon: "graph", t: "Knowledge graph", p: "The company's records and how they connect.",
+    points: ["Network, schema, or one event's traced records", "Drag, click to focus, scroll to zoom", "Edge types and the traversals agents use"] },
+  { id: "logs", icon: "doc", t: "Logs", p: "The raw record behind every page.",
+    points: ["Console output of each start.py run", "Every tool call, filterable by event or failure", "History of every test run"] },
+];
+
+const TERMS = [
+  { term: <KindTag kind="supplier_delay" />, d: "A part or shipment will arrive late. Production orders that need it are moved." },
+  { term: <KindTag kind="plant_outage" />, d: "A plant can't build for some days. Its orders move to the earliest feasible slot." },
+  { term: <KindTag kind="quality_hold" />, d: "A lot is defective. The lot is held, unsold vehicles stop sale, owners are told." },
+  { term: <KindTag kind="unconfirmed" />, d: "Hearsay or a report that can't be checked. Escalated to a human; nothing changes." },
+  { term: <KindTag kind="noise" />, d: "Not operational (a brochure question, a thank-you). No action." },
+  { term: <b>Reader</b>, d: "What turned the message into incidents: the model (checked by rules) or the rules alone." },
+  { term: <b>Expected output</b>, d: "A test case's answer key traced through the company tables: what a correct tower would change." },
+  { term: <b>Held-out sets</b>, d: "Test cases never used to tune the reader, so their score shows how well it generalizes." },
+];
+
+const RUN = {
+  quick: [
+    { c: "python start.py", d: "Run the tower, every test set and the ontology export, then open the dashboard." },
+    { c: "python start.py --rules", d: "The same, with the rule reader only (no Ollama needed)." },
+    { c: "python start.py --serve-only", d: "Just open the dashboard on the results already on disk." },
+  ],
+  steps: [
+    { c: "ollama pull qwen3:0.6b && ollama serve", d: "Optional: the local LLM reader. Pick another with TOWER_LLM_MODEL." },
+    { c: "python -m tower.run --notify dry-run", d: "Run the tower on the 15 events (writes runs/run1/)." },
+    { c: "python tests/run_given.py", d: "Grade the 15 given events." },
+    { c: "python tests/run_cases.py", d: "Run the 100 generated cases (--reader rules | llm | both)." },
+    { c: "python tests/run_model.py", d: "Score the model on its own against the held-out sets." },
+    { c: "python -m tower.ontology", d: "Export the ontology for the Knowledge graph page." },
+    { c: "python -m tower.ui.server", d: "Serve this dashboard at http://127.0.0.1:8080." },
+  ],
+  dev: [
+    { c: "cd tower/ui/web && npm install && npm run build", d: "Rebuild the dashboard after changing its React source." },
+    { c: "cd tower/ui/web && npm run dev", d: "Hot reload on :5173 (keep the Python server running for the data)." },
+  ],
+};
 
 const SOURCES = [
   ["Overview, Event feed", "runs/run1/"],
-  ["Tests", "runs/given, tests, holdout, holdout2 (+ tests/*.json)"],
-  ["Logs", "runs/logs/*.log, runs/run1/action_log.jsonl, runs/test_log.jsonl"],
-  ["Prediction scores", "tests/*.json (answer keys) + the graph"],
-  ["Knowledge graph", "Data/…/data/*.csv runs/ontology/"],
+  ["Tests", "runs/given, tests, holdout, holdout2"],
+  ["Answer keys", "tests/*.json"],
+  ["Knowledge graph", "Data/…/data/*.csv, runs/ontology/"],
+  ["Logs", "runs/logs/, runs/test_log.jsonl"],
   ["Notifications", "runs/run1/outbox.jsonl"],
 ];
 
-export default function Guide() {
+function Command({ c, d }) {
   const { toast } = useUi();
-  const copy = async (c) => {
+  const copy = async () => {
     try { await navigator.clipboard.writeText(c); toast("Copied"); } catch { toast("Copy failed; select the text instead"); }
   };
   return (
-    <Page title="How to run" subtitle={<span>From the Jaeger_Main/Hitachi folder: <b>python start.py</b></span>}>
-      <div className="grid g-chart">
-        <div className="card">
-          <CardHead title="How to run" sub="From the Jaeger_Main/Hitachi folder. Step 1 does everything; the rest are the same work one piece at a time." />
-          <div className="steps">
-            {GUIDE.map((g, i) => (
-              <div className="step" key={g.t}>
-                <div className="n">{i + 1}</div>
-                <div>
-                  <h4>{g.t}</h4><p>{g.p}</p>
-                  {g.c.map((c) => <div className="cmd" key={c}><code>{c}</code><button className="btn copy" onClick={() => copy(c)}><Icon name="copy" />Copy</button></div>)}
-                </div>
-              </div>
-            ))}
+    <div className="gcmd">
+      <div className="gcmd-line">
+        <code>{c}</code>
+        <button className="btn copy" onClick={copy} title="Copy command"><Icon name="copy" />Copy</button>
+      </div>
+      <p>{d}</p>
+    </div>
+  );
+}
+
+export default function Guide() {
+  const d = useData();
+  const [runTab, setRunTab] = useState("quick");
+  return (
+    <Page title="Guide" subtitle={<><span>What the control tower does and how to use each page</span><span>Start with <b>python start.py</b></span></>}>
+      <div className="card">
+        <CardHead title="What the control tower does"
+          sub="Wacky Wheels builds just in time, so one late part or idle plant ripples into orders, dealers and customers. The tower reads every incoming message, works out what it affects, and fixes it with the enterprise tools, following the policy handbook." />
+        <ol className="flow">
+          {FLOW.map((f, i) => (
+            <li key={f.t} className="panel">
+              <div className="flow-head"><span className="badge-ico"><Icon name={f.icon} /></span><span className="note">Step {i + 1}</span></div>
+              <b>{f.t}</b>
+              <p>{f.p}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="card" style={{ marginTop: 20 }}>
+        <CardHead title="The pages" sub="Click a card to open the page." />
+        <div className="tour">
+          {TOUR.map((p) => (
+            <a key={p.id} href={`#/${p.id}`} className="panel tour-card">
+              <div className="flow-head"><span className="badge-ico"><Icon name={p.icon} /></span><b>{p.t}</b></div>
+              <p>{p.p}</p>
+              <ul>{p.points.map((x) => <li key={x}>{x}</li>)}</ul>
+              <span className="go-link">Open {p.t} →</span>
+            </a>
+          ))}
+          <div className="panel tour-card tips">
+            <div className="flow-head"><span className="badge-ico"><Icon name="bolt" /></span><b>Tips</b></div>
+            <ul>
+              <li>Press <kbd>/</kbd> to search events or test cases; <kbd>Esc</kbd> clears it.</li>
+              <li><b>Refresh</b> reloads results after any run. The chip beside it shows the reader and how fresh the data is.</li>
+              <li>On a test set, <b>Delete run</b> removes that result for good (it asks first).</li>
+              {d.model && <li>This run was read by <b>{d.model}</b> with the rule check.</li>}
+            </ul>
           </div>
         </div>
+      </div>
+
+      <div className="grid g-guide" style={{ marginTop: 20 }}>
         <div className="card">
-          <CardHead title="What each page reads" sub="Files on disk, so a re-run shows after Refresh" />
-          <div className="scroll-x"><table>
-            <thead><tr><th>Page</th><th>Source</th></tr></thead>
-            <tbody>{SOURCES.map(([p, s]) => <tr key={p}><td><b>{p}</b></td><td className="mono">{s}</td></tr>)}</tbody>
-          </table></div>
-          <div className="section-title">Deleting a report</div>
-          <p className="note" style={{ lineHeight: 1.6 }}>On a test set's page, Delete run removes that reader's folder, for example <Mono>runs/tests/llm_qwen3_1.7b/</Mono>. It asks once to confirm and cannot be undone. Re-run the suite to get it back.</p>
+          <CardHead title="Run it" sub="From the Jaeger_Main/Hitachi folder. Python 3.10+ and the standard library are all the tower needs.">
+            <Toggle value={runTab} options={[["quick", "Quick start"], ["steps", "Step by step"], ["dev", "Dashboard dev"]]} onChange={setRunTab} />
+          </CardHead>
+          <div className="gcmds">{RUN[runTab].map((x) => <Command key={x.c} {...x} />)}</div>
+        </div>
+        <div className="card">
+          <CardHead title="Key terms" sub="The words the dashboard uses" />
+          <dl className="gloss">
+            {TERMS.map((x, i) => <div key={i}><dt>{x.term}</dt><dd>{x.d}</dd></div>)}
+          </dl>
+          <div className="section-title">Where each page's data lives</div>
+          <dl className="gloss compact">
+            {SOURCES.map(([p, s]) => <div key={p}><dt><b>{p}</b></dt><dd><Mono>{s}</Mono></dd></div>)}
+          </dl>
         </div>
       </div>
     </Page>

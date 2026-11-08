@@ -154,13 +154,13 @@ def _read_connected(section: str, read) -> list[Incident]:
 _QUIET = frozenset({"noise", "unconfirmed"})
 
 
-# Decision order: model error -> rules. Rules find no incident or cannot complete one, and the
-# model reads a real incident that checks out against the tables and the message -> the model.
-# Otherwise a kind disagreement -> rules; noise/unconfirmed -> rules' summary plus the model's
-# reason; same real kind -> built from the model's phrases, or rules if a field differs or fails.
+# The model decides; code checks. Step 1: the model says what kind of event a section is and why.
+# Step 2 (real incidents): it picks the records and dates that kind needs from candidates code found
+# in the message and the tables. Code then checks the picks make a complete, consistent incident; a
+# reading that does not check out (after one retry with the reason) is escalated to a human, never
+# guessed. Word lists play no part. The rule reader is used only when the model is unavailable.
 def _read_with_llm(graph, section: str, llm, anchor=None) -> Incident:
-    """Model proposes, code verifies. Every incident carries the model's reasoning (model_reason),
-    whether its reading was used, overruled or rejected."""
+    """Model proposes, code verifies. Every incident carries the model's reasoning (model_reason)."""
     box: dict = {}
     incident = _decide_with_llm(graph, section, llm, box, anchor)
     if box.get("reason"):
@@ -169,75 +169,161 @@ def _read_with_llm(graph, section: str, llm, anchor=None) -> Incident:
 
 
 def _decide_with_llm(graph, section: str, llm, box: dict, anchor=None) -> Incident:
-    """The arbitration behind _read_with_llm; box gets the model's last reason."""
+    """The model-first reading behind _read_with_llm; box gets the model's reason."""
     from tower.agents.llm_reader import LLMUnavailable
 
-    # The rule reading is always computed: it is the fallback and the referee for the model.
-    rules = _read_section(graph, section, anchor)
     try:
-        fields = llm.extract(section)
+        first = llm.classify(section)
     except (LLMUnavailable, ValueError) as exc:
-        return _fallback(rules, f"{llm.model} gave no usable answer ({exc}); used the rule reader.")
+        return _fallback(_read_section(graph, section, anchor),
+                         f"{llm.model} gave no usable answer ({exc}); used the rule reader.")
+    kind, reason = first["kind"], first["reason"]
+    box["reason"] = reason
+    said = f"{llm.model} read '{kind}': {reason or 'no reason given'}"
+    mentions = graph.resolve_mentions(section)
+    picked = {t: _pick(mentions, t) for t in ("plant", "part", "lot", "supplier", "shipment")}
 
-    box["reason"] = fields["reason"]
-    said = f"{llm.model} read '{fields['kind']}': {fields['reason'] or 'no reason given'}"
-    # The model reasons; word lists only match wording they know. When the rules find no incident
-    # (noise), or incident wording they cannot complete (unclear), a real incident the model reads
-    # is used if it checks out: every record it names is in the tables and every date is a date
-    # the message gives. A rumor stays a rumor, and a different real incident goes to the rules.
-    rules_unclear = rules.kind == "unconfirmed" and not any(e.startswith("rumor language") for e in rules.evidence)
-    if fields["kind"] not in _QUIET and (rules.kind == "noise" or rules_unclear):
-        built, problem, fields, retry = checked_model_reading(graph, section, llm, fields, anchor)
-        box["reason"] = fields["reason"] or box["reason"]
-        if built is not None and built.kind == fields["kind"]:
-            built.evidence[:0] = [said, *([retry] if retry else []),
-                                  f"rule word lists read '{rules.kind}'; the model's reading checked out "
-                                  "against the tables and the message, so it is used"]
-            built.reader = llm.model
+    if kind == "noise":
+        out = _noise(section, picked, [], [], [])
+        out.evidence = [said, *out.evidence[1:]]
+    elif kind == "unconfirmed":
+        out = Incident(
+            kind="unconfirmed",
+            summary=f"The report is not safe to act on: {reason.rstrip('.')}. It is escalated for a human to confirm.",
+            evidence=[said, *_chosen_lines(picked, ("plant", "part", "supplier", "shipment", "lot"))],
+        )
+    else:
+        out = _model_incident(graph, section, llm, kind, reason, said, anchor)
+    out.reader = llm.model
+    return out
+
+
+def model_options(graph, section: str, anchor=None) -> tuple[dict[str, list[str]], dict[str, object]]:
+    """Candidates for step 2: every record the message names (through aliases.csv, ids and
+    one-typo names) and every date it gives, as labels the model chooses from.
+    Returns (labels by role type, label -> Mention or date item)."""
+    labels: dict[str, list[str]] = {t: [] for t in ("plant", "part", "supplier", "lot", "shipment", "date")}
+    lookup: dict[str, object] = {}
+    for m in graph.resolve_mentions(section):
+        if m.entity_type not in labels:
+            continue
+        label = f'"{m.alias}" = {m.entity_id}{_record_note(graph, m.entity_type, m.entity_id, m.alias)}'
+        if label not in lookup:
+            lookup[label] = m
+            labels[m.entity_type].append(label)
+    for item in extract_dates(section, anchor):
+        phrase, iso = item["phrase"], item["date"]
+        label = f'"{phrase}" = {date.fromisoformat(iso):%a} {iso}'
+        if label not in lookup:
+            lookup[label] = item
+            labels["date"].append(label)
+    return labels, lookup
+
+
+def _record_note(graph, entity_type: str, entity_id: str, alias: str) -> str:
+    """What the tables say about a record, so the model can tell candidates apart."""
+    if entity_type in ("plant", "part", "supplier"):
+        row = {"plant": graph.plants, "part": graph.parts, "supplier": graph.suppliers}[entity_type].get(entity_id)
+        name = (row or {}).get("name", "")
+        return f" ({name})" if name and name.casefold() != alias.casefold() else ""
+    if entity_type == "lot" and entity_id in graph.lots:
+        r = graph.lots[entity_id]
+        return f" ({r['part_id']} from {r['supplier_id']} at {r['plant_id']}, builds {r['first_build_date']} to {r['last_build_date']})"
+    if entity_type == "shipment" and entity_id in graph.shipments:
+        r = graph.shipments[entity_id]
+        return f" ({r['part_id']} from {r['supplier_id']} to {r['plant_id']}, due {r['eta_date']})"
+    return ""
+
+
+def _model_incident(graph, section: str, llm, kind: str, reason: str, said: str, anchor=None) -> Incident:
+    """Step 2 for a real incident: the model picks records and dates, code checks them (one retry
+    with the reason), and a reading that still does not check out is escalated."""
+    from tower.agents.llm_reader import LLMUnavailable
+
+    options, lookup = model_options(graph, section, anchor)
+    notes = [said]
+    answer, problem = None, ""
+    for attempt in range(2):
+        try:
+            answer = llm.fill(section, kind, options, previous=answer if attempt else None,
+                              problem=problem if attempt else None)
+        except (LLMUnavailable, ValueError) as exc:
+            problem = f"no usable answer ({exc})"
+            break
+        built, problem = _incident_from_choices(graph, kind, answer, lookup)
+        picks = ", ".join(f"{k}={v.split(' = ')[0] if v else '-'}" for k, v in answer.items())
+        notes.append(f"{'retry: ' if attempt else ''}{llm.model} picked {picks}")
+        if built is not None:
+            built.evidence[:0] = [*notes, "every pick checks out against the tables and the message"]
             return built
-        return _fallback(rules, said, f"model reading did not check out ({problem}); used the rule reader.")
-    if fields["kind"] != rules.kind:
-        return _fallback(
-            rules,
-            said,
-            f"rule check reads '{rules.kind}', which wins: a kind disagreement is never acted on "
-            "from the model alone.",
-        )
-    # Both agree it is noise or a rumor: nothing to resolve, so keep the rule reading and credit
-    # the model, whose reason goes first in the evidence.
-    if fields["kind"] in _QUIET:
-        rules.evidence.insert(0, said)
-        rules.reader = llm.model
-        return rules
+        notes.append(f"does not check out: {problem}")
+    label = kind.replace("_", " ")
+    return Incident(
+        kind="unconfirmed",
+        summary=(f"The model read this as a {label} ({reason.rstrip('.')}), but the reading does not check "
+                 f"out against the tables: {problem}. It is escalated for a human to confirm."),
+        evidence=notes,
+    )
 
-    # A real incident: rebuild it from the model's phrases. Every name must be in the text and
-    # resolve through the graph, and every date must be a date the message gives.
-    built, problem, fields, retry = checked_model_reading(graph, section, llm, fields, anchor)
-    box["reason"] = fields["reason"] or box["reason"]
-    if retry:
-        said += f" ({retry})"
-    if built is None:
-        return _fallback(rules, said, f"model output failed verification ({problem}); used the rule reader.")
-    if built.kind != rules.kind:
-        return _fallback(
-            rules,
-            said,
-            f"model fields build a '{built.kind}' but the rule check reads '{rules.kind}'; used the rule reader.",
-        )
-    # Same kind both ways. Fields may still differ (e.g. a different date phrase); the model's
-    # verified reading is used and the differences are recorded for the audit.
-    diffs = _field_diffs(built, rules)
-    if diffs:
-        # A disputed date or id could move the wrong orders, so the checked rule reading is used.
-        return _fallback(
-            rules,
-            said,
-            "model fields differ from the rule check on " + "; ".join(diffs) + "; used the rule reading.",
-        )
-    built.evidence.insert(0, said)
-    built.evidence.append("rule check agrees on every field")
-    built.reader = llm.model
-    return built
+
+def _incident_from_choices(graph, kind: str, answer: dict, lookup: dict) -> tuple[Incident | None, str]:
+    """Build the incident from the model's picks, with the same completeness checks as the rule
+    reader. Returns (incident, "") or (None, what is missing or inconsistent)."""
+    from tower.agents.llm_reader import ROLES
+
+    def chosen(role):
+        label = answer.get(role, "")
+        return lookup.get(label) if label else None
+
+    picked = {t: (None, [], []) for t in ("plant", "part", "lot", "supplier", "shipment")}
+    for role, (rtype, _) in ROLES[kind].items():
+        m = chosen(role) if rtype != "date" else None
+        if m is not None:
+            picked[rtype] = (m, [m.alias], [])
+    plant, part, lot, shipment = (picked[t][0] for t in ("plant", "part", "lot", "shipment"))
+    hits = [f"{kind} (model)"]
+
+    if kind == "quality_hold":
+        first, last = chosen("first_build_date"), chosen("last_build_date")
+        lot_known = lot is not None and lot.entity_id in graph.lots
+        if not lot_known and (plant is None or part is None):
+            return None, "a quality hold needs a known lot, or a plant and a part"
+        if not lot_known and (first is None or last is None):
+            return None, "a quality hold needs the first and last build dates"
+        dates = [d for d in (first, last) if d is not None]
+        if len(dates) == 2 and dates[1]["date"] < dates[0]["date"]:
+            return None, "the build window ends before it starts"
+        return _quality(graph, picked, dates, hits), ""
+
+    if kind == "plant_outage":
+        first, last = chosen("first_day"), chosen("last_day")
+        if plant is None:
+            return None, "an outage needs a plant"
+        if first is None:
+            return None, "an outage needs its first day down"
+        dates, notes = [first], []
+        if last is not None:
+            if answer.get("end_meaning") == "day work resumes":
+                end = _day_before_restart(last["date"])
+                notes.append(f"'{last['phrase']}' is when work resumes, so the last day down is {end}")
+                last = {**last, "date": end}
+            dates.append(last)
+        if len(dates) == 2 and dates[1]["date"] < dates[0]["date"]:
+            return None, "the outage ends before it starts"
+        return _outage(picked, dates, hits, notes), ""
+
+    original, new = chosen("original_date"), chosen("new_date")
+    if shipment is None and (part is None or plant is None):
+        return None, "a delay needs a shipment, or a part and a plant"
+    if new is None:
+        return None, "a delay needs the new arrival date"
+    if original is None:
+        if shipment is not None and shipment.entity_id in graph.shipments:
+            eta = graph.shipments[shipment.entity_id]["eta_date"]
+            original = {"phrase": f"stored ETA of {shipment.entity_id}", "date": eta}
+        else:
+            return None, "a delay needs the original due date"
+    return _delay(graph, picked, [original, new], hits), ""
 
 
 def checked_model_reading(graph, section: str, llm, fields: dict, anchor=None) -> tuple[Incident | None, str, dict, str]:

@@ -2,7 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 const INITIAL = {
-  q: "", sel: null,
+  q: "", sel: null, evFilter: { outcome: "all", kind: "all" },
   testReader: null, logFilter: "reader", caseFilter: { verdict: "all", cat: "all" },
   logTab: "output", logFile: null, callEvent: "", callFailed: false,
   chartView: "chart", confirmDelete: null,

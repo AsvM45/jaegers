@@ -388,12 +388,15 @@ class QualityTests(TowerTest):
         result = plan_quality(self.graph, [incident])
         self.assertEqual(result.calls, [])
 
+        # The message reads like a real alert but names no lot or build dates, so nothing can be
+        # held. Policy (team decision, 2026-11-08): an unclear report goes to a human, so the
+        # only call is one escalate and nothing is written.
         _box, trace = self.handle(
             "adv-quality-part-only",
             "Quality alert: the infotainment chip is faulty.",
         )
         self.assert_no_writes(trace.calls)
-        self.assertEqual(trace.calls, [])
+        self.assert_one_escalate(trace.calls)
 
     def test_lot_0191_holds_stops_sale_and_notifies_without_loaners(self) -> None:
         lot = self.graph.lots["LOT-0191"]

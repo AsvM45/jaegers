@@ -1,9 +1,9 @@
-import { Fragment } from "react";
+import { Fragment, useEffect, useRef } from "react";
 import { Icon } from "../lib/icons.jsx";
-import { TOOL_WORD, argText, fmt, kindWords, kindsOf, when } from "../lib/constants.js";
+import { KIND_LABEL, TOOL_WORD, argText, fmt, kindWords, kindsOf, when } from "../lib/constants.js";
 import { useData } from "../lib/data.jsx";
 import { useUi } from "../lib/ui.jsx";
-import { KindTag, Mono, Status } from "../components/common.jsx";
+import { KindTag, Mono, Status, Toggle } from "../components/common.jsx";
 import { Page } from "./Page.jsx";
 import { useFilteredTraces } from "./Overview.jsx";
 
@@ -85,6 +85,10 @@ function EventDetail({ t }) {
       </div>
       <p className="quote">{t.text}</p>
 
+      <div className="section-title">Summary</div>
+      <div className="summary-box">{t.summary}</div>
+      <p className="note" style={{ marginTop: 10 }}>Guardrail: {t.guardrail}</p>
+
       <div className="section-title">1 · Understanding</div>
       <div className="grid" style={{ gap: 12 }}>{(t.incidents || []).map((i, k) => <IncidentCard key={k} i={i} />)}</div>
 
@@ -132,9 +136,6 @@ function EventDetail({ t }) {
         {notes.length > 40 && <p className="note">{notes.length - 40} more in outbox.jsonl.</p>}
       </> : <p className="note">No channel messages. Run the tower with <Mono>--notify dry-run</Mono> to see what Slack, Teams and email would get.</p>}
 
-      <div className="section-title">5 · Summary</div>
-      <div className="summary-box">{t.summary}</div>
-      <p className="note" style={{ marginTop: 10 }}>Guardrail: {t.guardrail}</p>
     </>
   );
 }
@@ -142,23 +143,67 @@ function EventDetail({ t }) {
 export default function Events() {
   const d = useData();
   const { ui, set } = useUi();
-  const list = useFilteredTraces();
+  const searched = useFilteredTraces();
+  const f = ui.evFilter;
+  const setF = (patch) => set((s) => ({ evFilter: { ...s.evFilter, ...patch } }));
+  // Counts for each option are taken with the other filter applied, so they add up to what you'd see.
+  const byOutcome = (o) => (t) => o === "all" || d.outcome(t.event_id) === o;
+  const byKind = (k) => (t) => k === "all" || kindsOf(t).includes(k);
+  const list = searched.filter(byOutcome(f.outcome)).filter(byKind(f.kind));
+  const nOutcome = (o) => searched.filter(byKind(f.kind)).filter(byOutcome(o)).length;
+  const nKind = (k) => searched.filter(byOutcome(f.outcome)).filter(byKind(k)).length;
+  const kinds = Object.keys(KIND_LABEL).filter((k) => d.traces.some((t) => kindsOf(t).includes(k)));
+  const filtered = f.outcome !== "all" || f.kind !== "all";
+  const label = (word, n) => <>{word} <span className="ev-n">{n}</span></>;
   const sel = list.some((t) => t.event_id === ui.sel) ? ui.sel : list[0]?.event_id;
+  // Keep the selected event visible in the list, however it was chosen (search, chart, table, list).
+  const listRef = useRef(null), first = useRef(true);
+  useEffect(() => {
+    const box = listRef.current, item = box?.querySelector(`[data-ev="${sel}"]`);
+    if (!item) return;
+    const b = box.getBoundingClientRect(), r = item.getBoundingClientRect();
+    if (r.top < b.top || r.bottom > b.bottom) {
+      box.scrollTo({ top: box.scrollTop + r.top - b.top - 8, behavior: first.current ? "auto" : "smooth" });
+    }
+    if (!first.current && window.scrollY > 0) window.scrollTo({ top: 0, behavior: "smooth" });
+    first.current = false;
+  }, [sel, list.length]);
   const subtitle = <><span><b>{fmt(d.traces.length)}</b> events</span><span>Selected <b>{sel || "—"}</b></span></>;
   return (
     <Page title="Event feed" subtitle={subtitle}>
-      {!list.length ? <div className="card empty">{d.loadedAt ? "No events match." : "Loading…"}</div> : (
+      {!d.traces.length ? <div className="card empty">{d.loadedAt ? "No events yet. Run python start.py." : "Loading…"}</div> : (
         <div className="ev-layout">
-          <div className="ev-list">
+          <div className="ev-side">
+          <div className="ev-filters panel">
+            <div className="ev-flabel">Outcome</div>
+            <Toggle value={f.outcome} onChange={(v) => setF({ outcome: v })} options={[
+              ["all", label("All", nOutcome("all"))], ["acted", label("Acted", nOutcome("acted"))],
+              ["esc", label("Escalated", nOutcome("esc"))], ["none", label("No action", nOutcome("none"))]]} />
+            <div className="ev-flabel">Incident type</div>
+            <div className="ev-kinds">
+              {[["all", "All types"], ...kinds.map((k) => [k, KIND_LABEL[k]])].map(([k, word]) => (
+                <button key={k} className={`ev-kind${f.kind === k ? " on" : ""}${k !== "all" ? ` k-${k}` : ""}`}
+                  onClick={() => setF({ kind: k })} disabled={k !== "all" && !nKind(k)}>{label(word, nKind(k))}</button>
+              ))}
+            </div>
+            <div className="ev-showing">
+              Showing <b>{list.length}</b> of {d.traces.length}{ui.q.trim() && <> · matching “{ui.q.trim()}”</>}
+              {(filtered || ui.q.trim()) && <button className="link-btn" onClick={() => set({ q: "", evFilter: { outcome: "all", kind: "all" } })}>Clear</button>}
+            </div>
+          </div>
+          {!list.length ? <div className="panel empty">No events match these filters.</div> : (
+          <div className="ev-list" ref={listRef}>
             {list.map((e) => (
-              <div key={e.event_id} className={`ev-item ${e.event_id === sel ? "on" : ""}`} onClick={() => set({ sel: e.event_id })}>
+              <div key={e.event_id} data-ev={e.event_id} className={`ev-item ${e.event_id === sel ? "on" : ""}`} onClick={() => set({ sel: e.event_id })}>
                 <div className="row1"><b>{e.event_id}</b><Status kind={d.outcome(e.event_id)} /></div>
                 <div>{kindsOf(e).map((k, i) => <KindTag key={i} kind={k} />)}</div>
                 <div className="txt">{e.text}</div>
               </div>
             ))}
+          </div>)}
           </div>
-          <div className="card"><EventDetail t={d.traceById[sel]} /></div>
+          {sel ? <div className="card"><EventDetail t={d.traceById[sel]} /></div>
+               : <div className="card empty">Pick an event, or clear the filters.</div>}
         </div>
       )}
     </Page>

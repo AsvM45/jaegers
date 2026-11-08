@@ -3,6 +3,7 @@ import { Icon } from "../lib/icons.jsx";
 import { fmt } from "../lib/constants.js";
 import { useData } from "../lib/data.jsx";
 import { useUi } from "../lib/ui.jsx";
+import { Search } from "./Search.jsx";
 
 const NAV = [
   ["overview", "home", "Overview"], ["events", "feed", "Event feed"], ["tests", "check", "Tests"],
@@ -21,7 +22,7 @@ export function Sidebar({ page }) {
       </div>
       <nav className="nav">{NAV.map(link)}</nav>
       <div className="nav-label">HELP</div>
-      <nav className="nav">{link(["guide", "play", "How to run"])}</nav>
+      <nav className="nav">{link(["guide", "book", "Guide"])}</nav>
     </aside>
   );
 }
@@ -89,11 +90,7 @@ export function Topbar({ title, trail, subtitle }) {
       </div>
       <div className="tb-right">
         <LiveChip />
-        <label className="search">
-          <Icon name="search" />
-          <input ref={q} placeholder="Search events or tests" autoComplete="off" value={ui.q} onChange={(e) => set({ q: e.target.value })} />
-          <kbd>/</kbd>
-        </label>
+        <Search ref={q} />
         <button className={`icon-btn${d.busy ? " busy" : ""}`} title="Reload the run and test results" onClick={refresh}>
           <Icon name="refresh" /><span>Refresh</span>
         </button>

@@ -86,6 +86,75 @@ _EXAMPLE_OUT = {
 }
 
 
+# --- Two-step reading -------------------------------------------------------------------------
+# Step 1 asks only what kind of event a section is and why. Step 2 (real incidents only) asks for
+# the records and dates that kind needs, as a choice among candidates code found in the message
+# and the tables: the answer format only allows those options, so the model cannot invent a name,
+# an id or a date, and it never has to spell a date or an id itself.
+
+_CLASSIFY_SYSTEM = """You read operations messages for Wacky Wheels Co., a carmaker with plants, parts suppliers and dealers.
+Decide what the message reports, by its meaning (people word things in many different ways):
+- supplier_delay: a delivery of parts will arrive later than planned (a new date replaces the planned one).
+- plant_outage: a plant cannot build for some days (any cause).
+- quality_hold: parts, a part lot or the vehicles built with them over some dates are defective or suspect and must be held.
+- unconfirmed: a possible problem that nobody has confirmed (hearsay, guesses, vague reports without specifics).
+- noise: not about the company's deliveries, plants or part quality (announcements, questions, news elsewhere).
+First write the reason: one or two sentences on what the message says and why that makes it this kind.
+Answer with JSON only."""
+
+# The same definitions plus the phrasing hints the one-step prompt already had (written before the
+# held-out sets, and unchanged so those sets stay unbiased). They are hints to the model about
+# meaning, not a word list: nothing in code matches them.
+_CLASSIFY_HINTS = """
+Examples of how each kind may be phrased (there are many other ways):
+- plant_outage: a plant or line is down, dark, offline, halted, shut down or cannot build; an outage or power failure.
+- supplier_delay: a delivery is late, delayed, slipping or postponed; a new or revised ETA or arrival date.
+- quality_hold: parts are defective, faulty, contaminated, cracked or out of spec; a lot to hold or a recall.
+- unconfirmed: hearsay or hedging (heard, might, apparently, rumor, not confirmed) about a possible problem.
+"""
+if os.environ.get("TOWER_CLASSIFY_HINTS", "1") == "1":
+    _CLASSIFY_SYSTEM = _CLASSIFY_SYSTEM.replace("First write the reason", _CLASSIFY_HINTS.strip() + "\nFirst write the reason")
+
+_CLASSIFY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "reason": {"type": "string", "minLength": 25},
+        "kind": {"type": "string", "enum": list(KINDS)},
+    },
+    "required": ["reason", "kind"],
+}
+
+# Step 2: the roles each kind needs, with what each role means. The keys are the JSON fields.
+ROLES = {
+    "supplier_delay": {
+        "shipment": ("shipment", "the shipment that is late"),
+        "supplier": ("supplier", "the supplier sending the parts"),
+        "part": ("part", "the part being delivered"),
+        "plant": ("plant", "the plant receiving the parts"),
+        "original_date": ("date", "the date the delivery was originally due"),
+        "new_date": ("date", "the new date the delivery will arrive"),
+    },
+    "plant_outage": {
+        "plant": ("plant", "the plant that cannot build"),
+        "first_day": ("date", "the first day the plant cannot build"),
+        "last_day": ("date", "the last day down, or the day work resumes (say which in end_meaning)"),
+    },
+    "quality_hold": {
+        "lot": ("lot", "the defective part lot, if one is named"),
+        "part": ("part", "the defective part"),
+        "supplier": ("supplier", "the supplier of the defective part"),
+        "plant": ("plant", "the plant that built with the part"),
+        "first_build_date": ("date", "the first build date affected"),
+        "last_build_date": ("date", "the last build date affected"),
+    },
+}
+
+_FILL_SYSTEM = """You read operations messages for Wacky Wheels Co. You are told what kind of event the message reports.
+For each field, pick the option that the message means, using the descriptions. The options were found in the message and the company records.
+Pick "" when the message does not say it. Never pick an option just because it is listed.
+Answer with JSON only."""
+
+
 class LLMUnavailable(RuntimeError):
     """Ollama is not reachable or the model is not pulled."""
 
@@ -129,6 +198,48 @@ class LLMReader:
                     f"That answer does not check out: {problem}. Read the message again and answer with "
                     "corrected JSON. Copy names and dates from the message; never invent one.")},
             ]
+        return self._post(payload, check_kind=True, keys=("kind", *FIELDS, "reason"))
+
+    def classify(self, section: str) -> dict:
+        """Step 1: {"kind", "reason"} for one message section."""
+        payload = {
+            "model": self.model, "stream": False, "format": _CLASSIFY_SCHEMA,
+            "options": {"temperature": 0, "seed": 7},
+            "messages": [{"role": "system", "content": _CLASSIFY_SYSTEM}, {"role": "user", "content": section}],
+        }
+        return self._post(payload, check_kind=True, keys=("kind", "reason"))
+
+    def fill(self, section: str, kind: str, options: dict[str, list[str]],
+             previous: dict | None = None, problem: str | None = None) -> dict:
+        """Step 2: pick the records and dates a `kind` needs. options maps a role type ("plant",
+        "part", "supplier", "lot", "shipment", "date") to the labels code found. The answer
+        format only allows those labels or "". With previous/problem, this is the one retry."""
+        roles = ROLES[kind]
+        props = {name: {"type": "string", "enum": ["", *options.get(rtype, [])]} for name, (rtype, _) in roles.items()}
+        required = list(roles)
+        if kind == "plant_outage":
+            props["end_meaning"] = {"type": "string", "enum": ["last day down", "day work resumes"]}
+            required.append("end_meaning")
+        schema = {"type": "object", "properties": props, "required": required}
+        lines = [f"Kind of event: {kind}.", "", "Fields:"]
+        for name, (rtype, meaning) in roles.items():
+            shown = options.get(rtype, [])
+            lines.append(f"- {name}: {meaning}. Options: " + (", ".join(shown) if shown else "none found, answer \"\""))
+        if kind == "plant_outage":
+            lines.append('- end_meaning: whether last_day is the "last day down" or the "day work resumes".')
+        lines += ["", "Message:", section]
+        messages = [{"role": "system", "content": _FILL_SYSTEM}, {"role": "user", "content": "\n".join(lines)}]
+        if previous is not None:
+            messages += [
+                {"role": "assistant", "content": json.dumps(previous)},
+                {"role": "user", "content": f"That answer does not check out: {problem}. Read the message again and answer again."},
+            ]
+        payload = {"model": self.model, "stream": False, "format": schema,
+                   "options": {"temperature": 0, "seed": 7}, "messages": messages}
+        return self._post(payload, check_kind=False, keys=tuple(required))
+
+    def _post(self, payload: dict, check_kind: bool, keys: tuple[str, ...]) -> dict:
+        """One call to Ollama; returns the answer's keys as stripped strings ("" if absent)."""
         if self.model.startswith("qwen3"):
             payload["think"] = False  # Qwen3 thinks by default; extraction does not need it.
         request = urllib.request.Request(
@@ -148,6 +259,6 @@ class LLMReader:
             out = json.loads(content)
         except json.JSONDecodeError as exc:
             raise ValueError(f"model returned non-JSON: {content[:200]!r}") from exc
-        if out.get("kind") not in KINDS:
+        if check_kind and out.get("kind") not in KINDS:
             raise ValueError(f"model returned unknown kind {out.get('kind')!r}")
-        return {key: str(out.get(key) or "").strip() for key in ("kind", *FIELDS, "reason")}
+        return {key: str(out.get(key) or "").strip() for key in keys}

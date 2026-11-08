@@ -59,45 +59,34 @@ def _texts() -> dict:
 
 
 def model_reading(graph, llm, text: str) -> tuple[list[dict], list[dict]]:
-    """The model's incidents for one message, in answer-key format, and what it said per section."""
+    """The model's incidents for one message, in answer-key format, and what it said per incident.
+
+    This is exactly the tower's reading (tower.agents.understand with the model): step 1 the model
+    names the kind and why, step 2 it picks records and dates from candidates found in the tables,
+    and code checks the picks. No word lists take part. If the model gives no usable answer the
+    tower would fall back to the rule reader; here that counts as unconfirmed, so the score is the
+    model's alone."""
     incidents, said = [], []
-    for section in understand._sections(text):
-        try:
-            fields = llm.extract(section)
-        except (LLMUnavailable, ValueError) as exc:
-            said.append({"section": section, "error": str(exc)[:200]})
-            incidents.append({"kind": "unconfirmed", "why": "no usable answer"})
-            continue
-        entry = {"section": section, "fields": fields}
-        kind = fields["kind"]
-        if kind in ("noise", "unconfirmed"):
-            incidents.append({"kind": kind})
+    for inc in understand.understand(graph, text, llm=llm):
+        entry = {"kind": inc.kind, "reader": inc.reader, "summary": inc.summary, "evidence": inc.evidence[:6]}
+        if inc.reader == "rules":
+            incidents.append({"kind": "unconfirmed", "why": "model gave no usable answer"})
+        elif inc.kind in ("noise", "unconfirmed"):
+            incidents.append({"kind": inc.kind})
+        elif inc.kind == "supplier_delay":
+            incidents.append({"kind": inc.kind, "supplier_id": inc.supplier_id, "part_id": inc.part_id,
+                              "plant_id": inc.plant_id, "blocked_from": inc.blocked_from,
+                              "blocked_until": inc.blocked_until})
+        elif inc.kind == "plant_outage":
+            incidents.append({"kind": inc.kind, "plant_id": inc.plant_id, "outage_start": inc.outage_start,
+                              "outage_end": inc.outage_end})
         else:
-            built, problem, fields, retry = understand.checked_model_reading(graph, section, llm, fields)
-            kind = fields["kind"]
-            if retry:
-                entry["retry"] = retry
-                entry["fields"] = fields
-            if kind in ("noise", "unconfirmed"):
-                entry["problem"] = problem
-                incidents.append({"kind": kind})  # the model's final answer, after the retry
-            elif built is None:
-                entry["problem"] = problem
-                incidents.append({"kind": "unconfirmed", "why": problem})  # would be escalated
-            elif kind == "supplier_delay":
-                incidents.append({"kind": kind, "supplier_id": built.supplier_id, "part_id": built.part_id,
-                                  "plant_id": built.plant_id, "blocked_from": built.blocked_from,
-                                  "blocked_until": built.blocked_until})
-            elif kind == "plant_outage":
-                incidents.append({"kind": kind, "plant_id": built.plant_id, "outage_start": built.outage_start,
-                                  "outage_end": built.outage_end})
+            lots, note = _select_lots(graph, inc)
+            if lots:
+                incidents.append({"kind": inc.kind, "lots": sorted(l["lot_id"] for l in lots)})
             else:
-                lots, note = _select_lots(graph, built)
-                if lots:
-                    incidents.append({"kind": kind, "lots": sorted(l["lot_id"] for l in lots)})
-                else:
-                    entry["problem"] = note
-                    incidents.append({"kind": "unconfirmed", "why": note})
+                entry["problem"] = note
+                incidents.append({"kind": "unconfirmed", "why": note})
         said.append(entry)
     return incidents, said
 
@@ -152,6 +141,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--suite", choices=("all", *SUITES), default="all")
     ap.add_argument("--limit", type=int, help="only the first N cases of each suite")
+    ap.add_argument("--tag", default="", help="suffix for the output folder, to keep experiments apart")
     cli = ap.parse_args()
     graphs = json.load(open(GRAPHS))
     truth, graph, llm, texts = rc.Truth(), WorldGraph(), LLMReader(), _texts()
@@ -170,7 +160,7 @@ def main() -> None:
             mark = "OK  " if sc["output_ok"] else "MISS"
             print(f"[{llm.model}] {suite:7} {case['id']:6} {mark} {case.get('category', ''):15} "
                   f"{'' if sc['output_ok'] else sc['mismatches'][0][:90]}", flush=True)
-    out = os.path.join(HITACHI, "runs", "model", llm.model.replace(":", "_"))
+    out = os.path.join(HITACHI, "runs", "model", llm.model.replace(":", "_") + (f"_{cli.tag}" if cli.tag else ""))
     os.makedirs(out, exist_ok=True)
     summary = {"model": llm.model, "run": time.strftime("%Y-%m-%d %H:%M"), "suites": {}}
     for suite in dict.fromkeys(r["suite"] for r in rows):
