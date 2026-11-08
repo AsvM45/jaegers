@@ -1,0 +1,80 @@
+{
+ "champion": {
+  "official_points": 55.12161530614107,
+  "loss_ratios": {
+   "stable": 0.06731585042317864,
+   "short_history": 0.11698014742007998,
+   "drift": 0.09232280188874972,
+   "shared_change": 0.07739003449861291
+  },
+  "seconds": 48.1
+ },
+ "causal_all": {
+  "official_points": 54.60993005376172,
+  "loss_ratios": {
+   "stable": 0.07733872498567473,
+   "short_history": 0.12697080732439286,
+   "drift": 0.1055431665380362,
+   "shared_change": 0.08495241743253829
+  },
+  "seconds": 53.3,
+  "vs_champion_points": {
+   "diff": -0.511685252379344,
+   "ci95": [
+    -0.8033097351069832,
+    -0.22673919948115917
+   ]
+  }
+ },
+ "causal_all_nohead": {
+  "official_points": 54.835771854144774,
+  "loss_ratios": {
+   "stable": 0.06923756599010165,
+   "short_history": 0.12945066825489343,
+   "drift": 0.09699275074139138,
+   "shared_change": 0.08102407240507851
+  },
+  "seconds": 43.9,
+  "vs_champion_points": {
+   "diff": -0.2858434519962927,
+   "ci95": [
+    -0.43207489021963813,
+    -0.12406019921273222
+   ]
+  }
+ },
+ "regime_only": {
+  "official_points": 54.926175647618145,
+  "loss_ratios": {
+   "stable": 0.06949216531232737,
+   "short_history": 0.12633914439276217,
+   "drift": 0.09353144194843632,
+   "shared_change": 0.08013862305956163
+  },
+  "seconds": 47.8,
+  "vs_champion_points": {
+   "diff": -0.1954396585229219,
+   "ci95": [
+    -0.3153623511096715,
+    -0.07378033596126325
+   ]
+  }
+ },
+ "prior_only": {
+  "official_points": 55.13375708320504,
+  "loss_ratios": {
+   "stable": 0.06678692332886034,
+   "short_history": 0.11574736504817865,
+   "drift": 0.0935568198693271,
+   "shared_change": 0.07695886869977807
+  },
+  "seconds": 40.7,
+  "vs_champion_points": {
+   "diff": 0.012141777063973791,
+   "ci95": [
+    -0.09332832435083684,
+    0.11419510217829351
+   ]
+  }
+ }
+}
