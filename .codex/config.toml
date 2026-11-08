@@ -1,0 +1,4 @@
+# Codex project-local configuration (loaded only for trusted workspaces).
+# Keep model selection/effort user-controlled; /plan selects planning mode interactively.
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
