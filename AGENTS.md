@@ -8,3 +8,5 @@
 
 - Shared agent infrastructure: Codex, Claude Code and Google Antigravity use these repository guardrails. Antigravity natively reads these `AGENTS.md` files and shared `.agents/skills/`; see `docs/ANTIGRAVITY_START.md` and `.agents/rules/antigravity-coordination.md` for its scoped lane.
 - Multi-agent ownership is tracked in `docs/MULTI_AGENT_OWNERSHIP.md` and GitHub issue #18. Never have two coding agents edit the same working tree. A human-approved separate worktree/branch and an explicit file scope are required for parallel implementation.
+
+- **Mandatory team-collaboration policy:** Before editing, read `docs/AGENT_COLLABORATION_PROTOCOL.md` and issue #18. Every concurrently coding agent requires its own physical Git worktree/clone AND unique `agent/...` or `human/...` branch, a named claimed issue and exclusive file-write scope. Communicate interface contracts, blockers and reviews like human teammates. Use issue-linked PRs; no self-merging, direct main pushes or silent handoffs. Shared GitHub assignees do not establish AI agent identity.
