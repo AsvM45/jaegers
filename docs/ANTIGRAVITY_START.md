@@ -1,64 +1,21 @@
-> **UPDATE / ACTIVE PROJECT POLICY (Nov 7 2026):** This document is a historical planning or evidence snapshot, NOT the live multi-agent operating agreement. Read [Autonomous Engineer Policy](AGENT_OPERATING_POLICY.md), [Current Scientific Context](AGENT_CONTEXT.md), [Ownership](MULTI_AGENT_OWNERSHIP.md), [GitHub #18](https://github.com/AsvM45/jaegers/issues/18), and current PR/issue comments before implementation. New Grok/Cursor/Claude/Antigravity/CHAT issue claims supersede older owner tables. Main code/runtime truth is the actual local checkout and official organizer kit; never treat this document as a completed test or organizer receipt.
+# Antigravity startup ? JAEGERS House Edge
 
-# Antigravity startup — JAEGERS House Edge
+Read [AGENTS](../AGENTS.md), [collaboration protocol](AGENT_COLLABORATION_PROTOCOL.md), [operating policy](AGENT_OPERATING_POLICY.md), [current state](CURRENT_STATE.md), and the latest named claims on issues #13 and #18. These are the current rules; this guide does not duplicate them.
 
-## Native compatibility (no duplicate configuration needed)
+Antigravity's lane is the read-only analytics dashboard (#13). Databricks (#14) follows only after the dashboard interface is reviewed and workspace/cost access is authorized. Shared forecasting/release modules and Hitachi remain outside this lane.
 
-Google Antigravity **already reads** the repository and nested `AGENTS.md` files and the existing `.agents/skills/*/SKILL.md` bundles. Its own additional `.agents/rules/antigravity-coordination.md` rule supplies multi-agent lane boundaries. Use the existing six JAEGERS skills; no copies of Codex/Claude skills or extra `GEMINI.md` are required.
+## Reuse an isolated workspace
 
-Docs: https://antigravity.google/docs/rules/ and https://antigravity.google/docs/skills
+Inspect `git status --short`, `git branch --show-current`, `git worktree list` and `git branch -a` before creating anything. Reuse an existing Antigravity worktree only after confirming its owner. Do not force-add, reset or switch another agent's checkout.
 
-## Recommended start (Windows PowerShell)
+The legacy `agy` branch contained startup instructions, not dashboard code. Its history is consolidated in the main-round handoff. Agree any migration with its owner; active implementation branches must follow the current `agent/...` policy and machine-readable issue claim. Do not silently rename or force-update `agy`.
 
-1. From the existing local `jaegers` checkout, check `git status --short` and **do not discard local Codex changes**.
-2. Fetch and create a separate worktree/branch, rather than opening the directory Codex is editing:
+If no Antigravity worktree exists, create an independently owned worktree and named feature branch from current main as described in the collaboration protocol. Open that directory in Antigravity; setup does not start an agent automatically.
 
-```powershell
-$repo = "C:\Users\asvat\OneDrive\Documents\GitHub\Datathon2026\jaegers"
-cd $repo
-git fetch origin
-git worktree list
-git worktree add -b agent/antigravity-dashboard ../jaegers-antigravity origin/main
-```
+## Implement and hand off
 
-If already created, reuse it instead. Open the resulting `jaegers-antigravity` directory in the Antigravity IDE. Prefer starting its agent in `Jaeger_Main/House_Edge/` with that folder inside the worktree. The root and nested `AGENTS.md` and skills will apply. The current team coordination issue is https://github.com/AsvM45/jaegers/issues/18.
+Post the actual agent, branch, worktree, exact file scope, intended tests and reviewer on #13 before editing. Use existing project skills when relevant. Obtain the read-only registry/schema handshake from #8, then implement in isolated dashboard/analytics files. Synthetic fixtures must be clearly marked DEMO; empty or incompatible registries must be reported honestly.
 
-## Paste this first prompt in Antigravity
+Show real runs, provenance, model/condition comparisons, calibration, paired uncertainty, feature ablations, runtime and failures. Keep dashboard/cloud dependencies out of the offline predictor. Commit/push only the claimed feature branch and open a tested PR; merges, organizer actions and paid cloud require human authorization.
 
-```text
-You are Antigravity working in a DEDICATED JAEGERS Git worktree, separate from
-the active Codex checkout. Read the applicable AGENTS.md files, the
-.agent(s)/rules Antigravity collaboration rule if discovered,
-docs/MULTI_AGENT_OWNERSHIP.md, docs/ANTIGRAVITY_START.md,
-docs/CURRENT_STATE.md, and GitHub issues #13, #14, and #18.
-
-Your current ownership is ISSUE #13: a read-only interactive experiment
-analytics dashboard, hypothesis reporting, and comparison tools. Codex owns
-release, champion, dataset/features/model adapters, and experiment registry.
-Do not edit its shared files or the original jaegers_entry model.
-
-Inspect current branch/HEAD/status and the actual research/trial schemas.
-First establish a read-only data contract and build the dashboard using
-isolated dashboard/ files and independently testable helpers. Use Streamlit
-and Plotly if appropriate. Display model comparisons, per-condition diagnostics,
-paired episode differences, calibration, feature ablations, hyperparameter
-effects, failures, runtime, and metric provenance. Never fabricate performance.
-If real trial results are not present, show "no runs yet" and keep any demo data
-explicitly labeled synthetic.
-
-Implement code, run genuine bounded tests, fix defects, and document
-startup commands, changed paths, results, integration requirements and
-blockers. After issue #13 is testable, propose the next scoped issue
-(Databricks #14 only after approved workspace/cost access). Do not push,
-merge, auto-submit, spend cloud money, overwrite teammates, or change Hitachi.
-Do not return another long plan: start implementation within your scope.
-```
-
-## Handoff to Codex and the humans
-
-- Send a GitHub issue #13 progress update and an own-feature-branch draft PR when the issue/human permission allows, with real tests and metrics after a tested milestone.
-- Issue #14 is **separate** Databricks research; keep cloud dependencies out of submission runner.
-- If you want independent read-only review instead, explicitly invoke the `jaegers-antigravity-review` skill and select a specific issue/claim.
-- Keep Antigravity file ownership separate. Never use its model changes to bypass Codex's reproducibility and release gates.
-
-**Antigravity rules are supported by the IDE, App and CLI.** In some versions UI locations differ; check the active Skills/Rules in Customizations. Do not assume installing a repo config starts or schedules an agent automatically.
+Use issue comments for evidence and handoff. A reservation, setup document or branch does not establish that a dashboard or background agent is operational.

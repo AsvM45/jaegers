@@ -1,44 +1,48 @@
-# JAEGERS House Edge ? live implementation state
+# JAEGERS House Edge ? current release and research state
 
-Updated: 2026-11-08T00:13:40.023005+00:00
+Updated: 2026-11-08T02:37:04.002516+00:00
 
-## Working baseline
+## Main-round deadline and upload candidate
 
-- HEAD: `b78abe75db15688e652b30b9d5388a151f2b7acd`; current main after the user's pull.
-- Original `jaegers_entry` model and parameters unchanged. Frozen source/data/scorer hashes:
-  `Jaeger_Main/House_Edge/research_runs/champion-b78abe75/manifest.json` (ignored local artifact).
-- Project runtime: CPython 3.13.18, workspace-local Windows environment. Runtime pins:
-  `requirements-runtime.txt`; dev pins: `requirements-research.txt` in House Edge.
-- Independently observed official public development validation: **55.121615/60**.
-  Condition ratios: stable 0.067316, short_history 0.116980, drift 0.092323,
-  shared_change 0.077390. Detailed evidence: `research_runs/reproduction-b78abe75/`.
-- Repeat validation and test-format evidence are being finalized. Test truth is private.
+Main closes November 7, 2026 at **21:00 America/Chicago** (November 8, 03:00 UTC), per the kit and human deadline confirmation. No organizer upload or receipt is recorded by CHAT.
 
-## Milestones
+Human review/upload folder in the original checkout:
+`Jaeger_Main/House_Edge/research_runs/REVIEW_MAIN_9PM/`.
+Upload the matched `submission.csv` and `code.zip` only after human release review.
 
-1. Source freeze and Python 3.13 setup COMPLETE.
-2. Baseline reproduction RUNNING; first validation agrees with the commit's rounded claim.
-3. Initial temporal audit: **5 tests passed** (`tests/test_temporal.py`).
-   Executed fixtures confirm query-time signal in old training rows and end-of-history
-   coverage affecting historical smoothing. Champion preserved; separate causal adapter
-   removes signal and uses fixed, predeclared smoothing to remove this coverage dependence.
-4. Linux provisioning RUNNING in existing Ubuntu 22.04 WSL. No cloud resources used.
+| Artifact | SHA-256 | Bytes |
+|---|---|---:|
+| submission.csv | b718f2d5e14a5a508d3c6c3658259042228a7a4d38e0221513e46e5590d9babf | 195579 |
+| code.zip | 9a8a9e0e18a8d21d30474b3e007156c1f19be4f693dd3b2235019be830d3001f | 8263 |
 
-## Scientific and release limitations
+This candidate keeps the original champion model, predictor and parameters unchanged and pins the Linux NumPy/OpenBLAS CPU policy in `reproduce.json`. Two cold Linux x86-64 Python 3.13.18 runs, using only the seven runtime distributions, disabled network, read-only code/data, two CPUs and 16 GiB memory limits, reproduced **all 1,536 queries with identical CSV bytes and maximum probability difference 0**. The two incoming CPU policies were tested on one physical host; universal hardware/build portability is not claimed. Hard aggregate scratch quota enforcement remains unavailable.
 
-- SIZE_REGIMES and model selection used public validation targets. This is a
-  development-exposed score, not pristine independent generalization evidence.
-- Historical signal availability unresolved; no clean leakage claim for champion.
-- Offline package parity, final artifact hashes, and organizer receipt not yet verified.
-- Kit says main 60/adaptation 40, main cutoff Nov 7 21:00 Central and adaptation cutoff
-  Nov 8 11:00 Central. Separate older 80/20 guide conflict remains unresolved.
-  No new organizer announcement has been verified in this session.
-- Databricks workspace/access not established. Do not claim cloud integration.
+Candidate provenance and both attempts: `.chat-he08/Jaeger_Main/House_Edge/research_runs/baseline-cpu-candidate/`. The review folder is a checksum-verified copy; CSV/ZIP are read-only. No challenger promotion is implied.
 
-## Next actions
+## Verified scores and failed hypotheses
 
-Finish baseline repeated/test checks; build and cold-verify a frozen release; then run
-causal candidates and grouped-CV smoke/resume checks before broader studies. All trials
-must retain failure records, data/source/environment identities and metric provenance.
-See `VALIDATION_PROTOCOL.md` for scoring/split rules and `ISSUE_BACKLOG.md` for backlog.
-No commit, push, upload, cloud spend, or Hitachi change authorized or performed.
+All scores below use the official organizer checker on **development-exposed public validation**, not hidden test.
+
+| Configuration/runtime | Main points / 60 | Release interpretation |
+|---|---:|---|
+| Original champion, Windows | 55.1216153061 | Independently reproduced; failed Linux parity |
+| Original champion, Linux default CPU | 55.1458245393 | Same-environment parity passed; changed-CPU parity failed |
+| Same champion, explicit Linux CPU policy | 55.0908150083 | Matched upload candidate; both cold parity checks passed |
+
+The Windows/Linux mismatch was 0.1068863090; disabling optional NumPy CPU dispatch changed the original Linux forecasts by 0.0903333471, above the required 1e-8 tolerance. Preserve those failed packages as evidence and do not mix their files with the candidate pair. The original Linux verification pointer is FAILED. Stable expert-weight sorting did not fix platform differences and was rejected. Release tooling now invalidates stale success after a recorded failure.
+
+## Integrated implementation and tests
+
+- Core PR #34 merged at `940dfbf0c9efd31eb565aec5af4319e507518603`. Model, audit, QA, feature, ML, temporal, ensemble and CI branches are integrated. Remaining historical documentation/governance tips are consolidated without reverting newer content. Hitachi is unchanged.
+- Python 3.13 setup, frozen source/data manifests, official reproduction/checking, ZIP staging, offline verification, grouped/as-of datasets, switchable features, serialization, deterministic/source-isolated trials, grid/random/Optuna searches, bounded processes, SQLite attempts/leases, resume proofs, OOF/calibration/paired reports are implemented.
+- Compatibility packages `research.models` and `research.features` re-export existing implementations from `adapters.py` and `feature_api.py`.
+- Final integrated test suite: **120 passed** in 40.39 seconds; one warning comes from the deliberate leaky-extension negative control. The QA cache regression now targets the actual feature_api.py implementation. Governance: 10 local tests passed. Core GitHub ownership and House Edge CI passed; the final consolidation PR records its own checks.
+- External setup/usage guide: [RESEARCH.md](../Jaeger_Main/House_Edge/RESEARCH.md). API contract: [CONTRACTS.md](../Jaeger_Main/House_Edge/research/CONTRACTS.md).
+
+## Research evidence and remaining work
+
+The canonical CHAT registry has **12 completed distinct configurations across three families**, four no-rewrite resume proofs, and a retained champion decision. Grouped sampled-label Brier: champion 0.3622911451 versus best screened challenger 0.5662851961; paired delta +0.2039940510, 95% episode-bootstrap interval [0.1851518350, 0.2231266999], 96 episodes. This is not official true-vector validation loss. Peer study reports are under `research/reports/` and `research/configs/`; their runs are not counted again here.
+
+Historical pseudo-row signal/final-history construction remains an audit finding; SIZE_REGIMES and selection used public validation targets. Human release review must account for these caveats. No hidden-test performance or organizer acceptance is knowable locally.
+
+Broad 100+ experimentation, a verified operational dashboard, cloud integration and adaptation release are **not declared complete**. Databricks access is not established. Adaptation uses a separate released kit, history, registry and package; kit deadline is November 8 at 11:00 Central. Release selection/upload/receipt and organizer announcements remain human-owned #5; #18 holds coordination.

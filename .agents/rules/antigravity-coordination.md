@@ -15,6 +15,6 @@ These supplement, not replace, the root and House Edge `AGENTS.md`. **Also read 
 - Preserve split provenance: sampled-label grouped-CV Brier is not official main points; public validation is development-exposed; hidden-test truths are unavailable. For dashboards use real run artifacts; explicitly label any synthetic UI fixtures as demonstration-only.
 - Keep progress in issue comments or a narrowly scoped handoff, not by overwriting other agents' `docs/CURRENT_STATE.md`. GitHub `#18` is the coordination board.
 
-- Other lanes now explicitly include Grok statistics (#9 reserved), Cursor CI (#16 claimed), Claude QA/audit (#2/#3/#7 with PRs #19–#21) and CHAT release/registry (#1/#4/#8). Do **not** claim or edit their files. Antigravity is B dashboard #13 (proposed), then #14 only after human approval.
-
-- Follow the binding `docs/AGENT_COLLABORATION_PROTOCOL.md` machine-readable issue claim, branch naming, PR body fields, and actual CI gate. Grok statistics #9 is reserved, #17 is already Claude-claimed (PR #22); don't duplicate.
+- Use the live ownership table and #18 for other lanes; older issue reservations are not current claims. Shared adapters live in `research/adapters.py` and `research/feature_api.py`; their compatibility packages remain core-owned.
+- The legacy `agy` startup-only branch history is consolidated during the main-round handoff. Reuse an existing isolated worktree where appropriate, verify its owner, and agree any migration to an `agent/...` branch before editing. Setup is not proof of an active agent.
+- Follow the binding collaboration protocol for named claims, explicit file scope, branch/PR metadata and CI. Preserve real evidence and obtain human authorization for merge, upload, promotion or paid resources.
