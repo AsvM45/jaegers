@@ -1,0 +1,10 @@
+{
+  "written": "2026-11-07 ~23:20 CT, before any result of this experiment (gamma result: neutral on validation, recorded separately)",
+  "finding": "On stable train machines the win rule is XNOR or XOR of win/loss at one of three lag pairs (1,3),(2,5),(4,7): 6 hypotheses cover 152/183 machines; context purity median 0.916.",
+  "model_SWM": "Structural win model: per machine, Bayesian posterior over H = {6 pair x rule hypotheses} + {null: constant rate}. Likelihood of each observed spin t (needs t-a and t-b observed, else hypothesis abstains -> uses null rate): win ~ Bernoulli(p_on) if rule true else Bernoulli(p_off). Log-likelihoods forgotten with lam_h (handles drift/shared_change). Prior over H = train frequencies. P(win at cutoff) = sum_h post(h) * pred_h.",
+  "parameters_fit_on_fit_split_only": "p_on, p_off pooled from fit-split machines (closed form from best-hypothesis counts); lam_h in {1.0, 0.99, 0.97} and null-rate decay chosen by fit-split query-label log score.",
+  "stage1": "Compare SWM P(win) vs champion P(win) (= 1 - p_0 from registry OOF trial a2c0acc4) with win-indicator Brier on the SAME 4 grouped train folds (fit SWM on 3 folds' machines, predict the held-out fold's queries). Report per condition, especially short_history, with paired episode bootstrap.",
+  "stage2_if_stage1_promising": "Hybrid: champion size distribution x SWM P(win), and a convex mix of champion and SWM P(win) with weight chosen by nested OOF. Selection on train folds only; official validation once for the selected hybrid.",
+  "expected": "SWM P(win) beats champion P(win) on short_history; roughly equal or worse on long histories (champion has 73 experts + stacker); hybrid gains mainly on short_history.",
+  "decision": "Issue + PR only if the selected hybrid improves train-fold Brier (interval excludes 0) AND official validation does not get worse."
+}

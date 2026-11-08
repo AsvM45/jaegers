@@ -1,0 +1,9 @@
+{
+  "written": "2026-11-07 ~23:05 CT, before any result of this experiment",
+  "finding": "Train machines' best experts are almost always one of 3 lag pairs (1,3), (2,5), (4,7); siblings do not share pairs beyond chance.",
+  "hypothesis": "A stronger train-learned expert prior (gamma) helps short histories (few samples cannot separate the 3 true pairs from 70 spurious experts) while leaving long histories mostly unchanged.",
+  "variants": {"champion": {"gamma": 1.0}, "gamma2": {"gamma": 2.0}, "gamma4": {"gamma": 4.0}, "gamma8": {"gamma": 8.0}},
+  "selection": "Choose gamma ONLY on the #8 registry train folds (sampled Brier, all conditions; short_history reported separately). Official validation used once, for the selected gamma only, as confirmation.",
+  "expected": "short_history Brier improves with gamma up to a point; overall effect small but positive; gamma >= 8 may hurt drift (prior resists change).",
+  "decision": "Worth an issue+PR only if the selected gamma improves train-fold Brier with interval excluding 0 or short_history clearly, AND official validation does not get worse."
+}

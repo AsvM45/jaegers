@@ -1,0 +1,13 @@
+{
+  "name": "research_gamma",
+  "strategy": "grid",
+  "seed": 0,
+  "folds": 4,
+  "budget": {"workers": 2, "trials": 4, "seconds": 5400, "trial_seconds": 1500},
+  "candidates": [
+    {"family": "jaeger", "causal": false},
+    {"family": "jaeger", "params": {"gamma": 2.0}},
+    {"family": "jaeger", "params": {"gamma": 4.0}},
+    {"family": "jaeger", "params": {"gamma": 8.0}}
+  ]
+}
