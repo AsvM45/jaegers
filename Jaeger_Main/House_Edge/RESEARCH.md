@@ -59,6 +59,8 @@ bash tools/verify_linux.sh --release research_runs/releases/my-release --data pu
 ```
 
 Verification disables networking, mounts entry/data read-only, limits CPU/memory/time,
+and uses a fresh prediction environment containing only the pinned runtime stack;
+the controller's pytest/Optuna/monitoring dependencies are not mounted into inference.
 and requires probability agreement <=1e-8. It records actual scratch/output use;
 the installed older Bubblewrap does not hard-enforce an aggregate scratch quota.
 The organizer builder/inspector remains authoritative for archive structure. A verified

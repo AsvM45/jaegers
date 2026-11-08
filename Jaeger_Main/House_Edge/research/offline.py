@@ -2,12 +2,14 @@
 import argparse
 from pathlib import Path
 import sys
+import json
+import subprocess
 from .common import ROOT, require_python, write_json
 from .process import run
 from .release import verify
 
 
-def offline(release, data):
+def offline(release, data, prediction_python=None):
     require_python()
     release, data = Path(release).resolve(), Path(data).resolve()
     attempt = 1
@@ -17,9 +19,13 @@ def offline(release, data):
     attempt_root.mkdir(parents=True,exist_ok=False)
     output = attempt_root / "output"
     output.mkdir(exist_ok=False)
-    executable = Path(sys.executable).absolute()
-    base = Path(sys.base_prefix).resolve()
-    venv = Path(sys.prefix).resolve()
+    executable = Path(prediction_python or sys.executable).absolute()
+    runtime=json.loads(subprocess.check_output([str(executable),"-c",
+        "import json,sys; print(json.dumps({'base':sys.base_prefix,'prefix':sys.prefix,'version':list(sys.version_info[:2])}))"],text=True))
+    if runtime["version"] != [3,13]:
+        raise ValueError("Prediction interpreter must be Python 3.13")
+    base = Path(runtime["base"]).resolve()
+    venv = Path(runtime["prefix"]).resolve()
     command = ["bwrap", "--unshare-all", "--die-with-parent", "--new-session"]
     for path in ("/usr", "/lib", "/lib64", "/etc"):
         if Path(path).exists():
@@ -49,5 +55,6 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--release", required=True)
     p.add_argument("--data", default=str(ROOT / "public"))
+    p.add_argument("--prediction-python",help="Separate runtime-only Python; controller dependencies remain outside sandbox")
     args = p.parse_args()
-    offline(args.release, args.data)
+    offline(args.release, args.data,args.prediction_python)
