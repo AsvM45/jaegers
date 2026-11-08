@@ -5,7 +5,7 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 BRANCH = re.compile(r"^(agent|human)/[a-z0-9][a-z0-9-]{2,90}$")
-CLAIM = re.compile(r"<!--\s*jaegers-claim:v1\s+agent=([a-z0-9-]+)\s+branch=([a-z0-9/-]+)\s+paths=([a-zA-Z0-9_.*\-/|]+)\s*-->", re.I)
+CLAIM = re.compile(r"(?m)^[ \t]*<!--[ \t]*jaegers-claim:v1\s+agent=([a-z0-9-]+)\s+branch=([a-z0-9/-]+)\s+paths=([a-zA-Z0-9_.*\-/|]+)\s*-->[ \t]*$", re.I)
 HANDOFF = re.compile(r"(?m)^[ \t]*<!--[ \t]*jaegers-handoff:v1[ \t]+branch=([a-z0-9/-]+)[ \t]*-->[ \t]*$", re.I)
 FIELDS = ("Agent-ID", "Issue", "Worktree", "Tests", "Handoff")
 
@@ -26,7 +26,7 @@ def latest_claim(comments, branch):
 def covered(path, pattern):
     return path.startswith(pattern) if pattern.endswith("/") else fnmatch.fnmatchcase(path, pattern)
 
-def check(event, paths, comments, other_pr_paths):
+def check(event, paths, comments, other_pr_paths, merged_prs=(), head_ancestor=False):
     pr = event["pull_request"]; branch = pr["head"]["ref"]; fields = metadata(pr.get("body") or "")
     errors = []
     if not BRANCH.fullmatch(branch): errors.append("Branch must be agent/<slug> or human/<slug>")
@@ -50,6 +50,19 @@ def check(event, paths, comments, other_pr_paths):
     for other, their_paths in other_pr_paths.items():
         collision = sorted(set(paths) & set(their_paths))
         if collision: errors.append(f"Overlapping open PR #{other}: " + ", ".join(collision))
+    if int(pr["number"]) > 22:
+        head_sha = pr.get("head", {}).get("sha")
+        if head_sha:
+            duplicates = sorted({int(p["number"]) for p in merged_prs
+                                 if p.get("merged_at") and p.get("head", {}).get("sha") == head_sha
+                                 and int(p["number"]) != int(pr["number"])})
+            if duplicates:
+                errors.append("Head SHA was already integrated by merged PR(s): "
+                              + ", ".join("#" + str(n) for n in duplicates))
+        if head_ancestor:
+            errors.append("PR head is already an ancestor of main; no new commits to integrate")
+        if len(re.findall(r"(?mi)^Issue:\s*#[1-9][0-9]*\s*$", pr.get("body") or "")) != 1:
+            errors.append("Exactly one canonical Issue: #NN line is required")
     return errors
 
 def get_json(url, token):
@@ -70,6 +83,10 @@ def main():
     token=os.environ["GITHUB_TOKEN"]; repo=os.environ["GITHUB_REPOSITORY"]
     event=json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
     pr=event["pull_request"]; number=pr["number"]; root="https://api.github.com/repos/"+repo
+    live = get_json(f"{root}/pulls/{number}", token)
+    if live["head"]["sha"] != pr["head"]["sha"]:
+        print("BLOCKED: PR head moved since this event; rerun checks on latest push")
+        return 1
     paths=[x["filename"] for x in pages(f"{root}/pulls/{number}/files",token)]
     issue=re.fullmatch(r"#([1-9][0-9]*)",metadata(pr.get("body") or "")["Issue"])
     comments=pages(f"{root}/issues/{issue.group(1)}/comments",token) if issue else []
@@ -77,7 +94,14 @@ def main():
     for p in pages(f"{root}/pulls?state=open",token):
         if p["number"]!=number:
             others[p["number"]]=[x["filename"] for x in pages(f"{root}/pulls/{p['number']}/files",token)]
-    errors=check(event,paths,comments,others)
+    merged = pages(f"{root}/pulls?state=closed", token)
+    ancestor = False
+    head_sha, base_sha = pr["head"].get("sha"), pr["base"].get("sha")
+    if head_sha and base_sha:
+        comparison = get_json(f"{root}/compare/{head_sha}...{base_sha}", token)
+        ancestor = (comparison.get("status") in ("ahead", "identical")
+                    and comparison.get("behind_by", 0) == 0)
+    errors=check(event,paths,comments,others,merged_prs=merged,head_ancestor=ancestor)
     for err in errors: print("FAIL:",err)
     print("AGENT COLLABORATION:", "BLOCKED" if errors else "PASS", "PR",number,"changed",len(paths))
     return 1 if errors else 0

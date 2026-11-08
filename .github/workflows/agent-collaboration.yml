@@ -7,6 +7,11 @@ on:
 permissions:
   contents: read
 
+# Only the latest commit of a given PR should be judged for ownership.
+concurrency:
+  group: agent-ownership-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   governance-tests:
     name: Agent governance unit tests
@@ -16,11 +21,11 @@ jobs:
       contents: read
     steps:
       - name: Checkout proposed PR files without writable credentials
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
       - name: Test proposed policy code (no token or secrets)
@@ -36,11 +41,11 @@ jobs:
       pull-requests: read
     steps:
       - name: Checkout latest TRUSTED default branch (never PR head)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
       - name: Validate claims and concurrent PR overlap using trusted base code
