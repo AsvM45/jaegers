@@ -1,0 +1,42 @@
+# Databricks Asset Bundle (DAB) specification for JAEGERS House Edge
+# Architecture: Delta Medallion Lakehouse with automated Lakeflow multi-task DAG
+
+bundle:
+  name: jaegers-house-edge
+
+include:
+  - resources/*.job.yml
+
+variables:
+  catalog:
+    description: "Unity Catalog catalog name"
+    default: "jaegers_dev"
+  schema:
+    description: "Unity Catalog schema name"
+    default: "house_edge"
+  data_dir:
+    description: "Root directory containing raw House Edge CSV splits"
+    default: "public"
+  pipeline_mode:
+    description: "Execution mode for Lakehouse pipeline (batch/continuous)"
+    default: "batch"
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/dev
+    variables:
+      catalog: jaegers_dev
+      schema: house_edge
+      pipeline_mode: batch
+
+  prod:
+    mode: production
+    workspace:
+      root_path: /Shared/.bundle/${bundle.name}/prod
+    variables:
+      catalog: jaegers_prod
+      schema: house_edge
+      pipeline_mode: batch
