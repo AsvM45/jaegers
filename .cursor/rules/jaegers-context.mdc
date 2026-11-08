@@ -1,0 +1,42 @@
+---
+description: "JAEGERS House Edge self-contained scientific and ownership context for Cursor"
+alwaysApply: true
+---
+
+# JAEGERS House Edge — Agent Boot Capsule
+
+**This file is a deliberately redundant, self-contained starter for coding agents with limited access to GitHub Issues, Wiki, plugins or outside documents.** Read local files first. Current code/issue claims can change; inspect the actual checkout before coding.
+
+## Mission and non-negotiable scientific contract
+Predict the next-spin payout distribution for every query over **exactly five classes [0,1,2,5,20]**. CSV columns exactly: `query_id,p_0,p_1,p_2,p_5,p_20`. Eight machines share one episode and one query cutoff. Types: steady, balanced, jackpot; conditions: stable, short_history, drift, shared_change. The main kit has 96 train, 96 public validation and 192 test episodes, eight machine queries each: **1536 main test rows**.
+
+Source data are histories of actual payouts with integer ticks, sometimes missing. A missing tick is **unknown**, NOT an observed payout of 0. At prediction tick c, use only rows with **tick < c** for both target and sibling machines, and **only within the same episode**. Exact lag c-2 is not the second-most-recent observed row. Historical as-of training at labeled tick t uses observed payout at t as label, features exclusively from ticks < t. Query signal (-1/0/1) is available at current cutoff but historical signal(t) isn't separately released: do NOT silently fill historical training rows using the final query's signal. Test true condition and target probabilities are hidden.
+
+**Official metric** is squared distance to true 5-class vector, averaged over the 8 machines in each episode and across episodes in each of 4 conditions, normalized by each condition's reference error; average ratios to R; main points = 60/(1+R), adaptation = 40/(1+R) per inspected kit. `check_submission.py --split validation` / `slot_forecasting.rounds` is the official path. A different scoring.py 0–100 diagnostic and train observed-label Brier ARE NOT official points. Public validation true probability vectors have already informed aspects of the champion (SIZE_REGIMES); treat public score as development-exposed, NOT hidden test performance.
+
+## Champion and present research
+Protected original `Jaeger_Main/House_Edge/jaegers_entry/`: 73 lag-context experts, within-episode peer evidence, shrinkage/recency, positive payout-size submodels and a scikit-learn HistGradientBoosting stacker. A repo report records a **local public validation** score around **55.121615/60**, not independently verified hidden performance, acceptance or ranking. Claude #3 audit indicates historical stack train/serve information skew involving query signal, final nobs and full-history expert log-likelihood. Keep champion as protected fallback until verified legal challenger + human approval. Official offline entry must cold-reproduce CSV+ZIP, no network at inference, under organizer 2 CPU/16 GB/30 minutes, with fixed pins; source ZIP, README and reproduce.json. Main and adaptation are distinct; actual organizer upload/receipt is human-owned.
+
+## One agent, one issue, one isolated branch/worktree
+**Read binding local** `docs/AGENT_COLLABORATION_PROTOCOL.md` (machine-readable issue claim, path allowlist and PR checker) and `docs/AGENT_OPERATING_POLICY.md`. Every *implementing* issue has one agent, one exclusive writable path set and one separate Git branch plus physical Git worktree. Before coding inspect `git status --short`, `git branch --show-current`, `git rev-parse HEAD`, `git worktree list`; read issue #18 and your exact assigned issue's latest comments when accessible. If the issue is already claimed by another agent, **STOP** and request an explicit handoff. Do NOT assume a reservation is active. Make measured progress like a human engineer: inspect, implement, test, debug, review own diff, document real commands/results/hashes, open one issue-linked PR for review. Never overwrite other agents, push main, merge, change protected champion, submit to organizers or spend paid cloud without human authorization.
+
+## Current lane map (verify latest claim comments; a platform label is not a lock)
+- **A CHAT/Codex**: claimed #1 champion reproduction, #4 offline main release and #8 trial registry; #6 adaptation later. Owns shared flat `research/{dataset,features,learners,models,metrics}.py` and release/experiment interfaces; no other modeler edits those files.
+- **B Antigravity**: #13 read-only dashboard reserved (actual running status unverified); #14 Databricks later only after release/expense approval. Owns new dashboard/analytics/cloud files.
+- **C Claude Code / InTheHiggsField**: #2 scorer/causality QA, #3 audit, #7 feature QA, #17 ablations and **#9 statistical challenger (PR #28)**. PRs #19–#22/#28 report findings awaiting review. #9 and #17 are NOT available to Grok.
+- **D Grok Build**: initial **#15 advanced temporal/HMM/state-space** RESERVED for explicit claim, optional #12 ensemble later. Must not duplicate Claude's #9 Dirichlet/Markov/decay models; work only in new stat_temporal_* files.
+- **E Cursor**: #16 scientific CI claimed; later #10/#11 only after explicit handoff. Cannot edit base governance workflow without delegation.
+- **Human release lead**: #5 actual organizer rules/submission/receipt, #18 coordination, #27 GitHub Projects/Discussions/Wiki admin setup.
+
+## Research architecture / platform stack
+Python 3.13, NumPy, scikit-learn, pytest; optional Pandas/DuckDB/Parquet, Optuna staged/bounded sweeps, XGBoost/LightGBM/CatBoost, Bayesian/Markov/HMM, SQLite/immutable run artifacts, Streamlit/Plotly dashboard. Databricks optional sponsor: Delta Bronze/Silver/Gold + PySpark exact-tick parity + MLflow for **real** trials, never a dependency of offline organizer inference. Keep source/data/split/config/seed/metric hashes, episode grouped train evaluation, and public target exposure. Reject fake results or runaway sweeps.
+
+## Context and collaboration pointers (also inside this repository)
+- `AGENTS.md`, nested House Edge `AGENTS.md`, `CLAUDE.md` — platform instructions.
+- `docs/AGENT_CONTEXT.md` — longer self-contained scientific context; `docs/AGENT_OPERATING_POLICY.md`; `docs/MULTI_AGENT_OWNERSHIP.md`; `docs/VALIDATION_PROTOCOL.md`; `docs/CURRENT_STATE.md`.
+- `docs/GITHUB_OPERATING_SYSTEM.md` and `docs/KNOWLEDGE_DISTRIBUTION.md` — use Issues for claims, PRs for merges, Projects for scheduling, Discussions for research, Wiki for public human-readable mirror, Actions for tests. **The wiki may only be staged in docs/wiki/** and Discussions/Projects require human setup; never assume they are active.
+- `Jaeger_Main/House_Edge/RULES.md`, `DATA.md`, `check_submission.py` — definitive active kit where present.
+- [GitHub issue #18](https://github.com/AsvM45/jaegers/issues/18), [issues](https://github.com/AsvM45/jaegers/issues), [PRs](https://github.com/AsvM45/jaegers/pulls) — live coordination, if available.
+
+## Offline fallback if you cannot read GitHub Issues
+**Do not invent an issue claim or work on a reserved path.** Read this file + local AGENTS + organizer rules + local source first. If no accessible owner assignment, inspect and run **read-only validation** or prepare a design/test proposal in your own notes. Request the specific issue/claim from the coordinator before editing shared repo files. The shared project docs are public-safe summaries, not raw private chat archives.

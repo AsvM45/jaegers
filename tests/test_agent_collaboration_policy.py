@@ -20,6 +20,20 @@ class CollaborationTests(unittest.TestCase):
     def test_handoff(self):
         comments=self.comments+[{"body":"<!-- jaegers-handoff:v1 branch="+self.branch+" -->"}]
         self.assertIsNone(latest_claim(comments,self.branch))
+    def test_single_digit_issue_reference(self):
+        self.event["pull_request"]["body"] = self.body.replace("Issue: #18", "Issue: #9")
+        self.assertEqual(check(self.event,self.paths,self.comments,{}),[])
+
+    def test_malformed_issue_reference(self):
+        self.event["pull_request"]["body"] = self.body.replace("Issue: #18", "Issue: #abc")
+        self.assertTrue(any("Issue must be #NN" in x for x in check(self.event,self.paths,self.comments,{})))
+
+    def test_quoted_handoff_is_not_a_handoff(self):
+        quoted = self.comments + [{"body": "Maybe later use `<!-- jaegers-handoff:v1 branch="+self.branch+" -->` (example only)"}]
+        self.assertIsNotNone(latest_claim(quoted, self.branch))
+        inline = self.comments + [{"body": "Text <!-- jaegers-handoff:v1 branch="+self.branch+" --> is a reference only"}]
+        self.assertIsNotNone(latest_claim(inline, self.branch))
+
     def test_old_pr_claim_exempt(self):
         for number in (20, 22):
             self.event["pull_request"]["number"]=number

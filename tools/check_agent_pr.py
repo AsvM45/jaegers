@@ -6,7 +6,7 @@ from urllib.request import Request, urlopen
 
 BRANCH = re.compile(r"^(agent|human)/[a-z0-9][a-z0-9-]{2,90}$")
 CLAIM = re.compile(r"<!--\s*jaegers-claim:v1\s+agent=([a-z0-9-]+)\s+branch=([a-z0-9/-]+)\s+paths=([a-zA-Z0-9_.*\-/|]+)\s*-->", re.I)
-HANDOFF = re.compile(r"<!--\s*jaegers-handoff:v1\s+branch=([a-z0-9/-]+)\s*-->", re.I)
+HANDOFF = re.compile(r"(?m)^[ \t]*<!--[ \t]*jaegers-handoff:v1[ \t]+branch=([a-z0-9/-]+)[ \t]*-->[ \t]*$", re.I)
 FIELDS = ("Agent-ID", "Issue", "Worktree", "Tests", "Handoff")
 
 def metadata(body):
@@ -34,7 +34,8 @@ def check(event, paths, comments, other_pr_paths):
     # Existing PRs #19-#22 existed before this workflow and are exempt from new claim metadata.
     if int(pr["number"]) > 22:
         for k in FIELDS:
-            if len(fields[k]) < 3: errors.append("Missing PR field: " + k)
+            if k != "Issue" and len(fields[k]) < 3:
+                errors.append("Missing PR field: " + k)
         issue = re.fullmatch(r"#([1-9][0-9]*)", fields["Issue"])
         if not issue: errors.append("Issue must be #NN")
         claim = latest_claim(comments, branch)

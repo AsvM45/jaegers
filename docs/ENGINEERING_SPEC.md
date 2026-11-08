@@ -1,3 +1,5 @@
+> **UPDATE / ACTIVE PROJECT POLICY (Nov 7 2026):** This document is a historical planning or evidence snapshot, NOT the live multi-agent operating agreement. Read [Autonomous Engineer Policy](AGENT_OPERATING_POLICY.md), [Current Scientific Context](AGENT_CONTEXT.md), [Ownership](MULTI_AGENT_OWNERSHIP.md), [GitHub #18](https://github.com/AsvM45/jaegers/issues/18), and current PR/issue comments before implementation. New Grok/Cursor/Claude/Antigravity/CHAT issue claims supersede older owner tables. Main code/runtime truth is the actual local checkout and official organizer kit; never treat this document as a completed test or organizer receipt.
+
 # JAEGERS House Edge — Codex / Astra Engineering Specification v5
 
 **Purpose:** a single authoritative, repo-aware, evidence-audited plan for GPT-6 Astra in PLAN MODE first and later bounded Codex implementation. This document supersedes prior v2-v4 execution plans for the inspected commit. It incorporates the two uploaded LLM conversation exports (historical summary and post-v4 clarification) but does not treat conversational summaries as current execution evidence.
