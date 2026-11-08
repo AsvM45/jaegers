@@ -1,0 +1,21 @@
+{
+  "seed": 0,
+  "fold_count": 4,
+  "prior": 0.5,
+  "window": 8,
+  "short_history_max": 8,
+  "baseline": "no_peer",
+  "temperatures": [0.5, 0.75, 1.0, 1.5, 2.0],
+  "learners": [
+    {
+      "family": "logistic",
+      "params": {"C": 1.0},
+      "groups": ["type", "lags", "missingness", "current_signal"]
+    },
+    {
+      "family": "hist_boost",
+      "params": {"iters": 20, "lr": 0.05, "leaves": 15, "l2": 1.0},
+      "groups": ["type", "lags", "missingness", "current_signal"]
+    }
+  ]
+}
