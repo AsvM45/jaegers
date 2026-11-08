@@ -36,3 +36,7 @@ If the branch/worktree already exists, inspect `git worktree list` and open it; 
 ## Immediate constraint
 
 Main-round release risk precedes dashboards. Antigravity's local analytics work must not change the Code ZIP/CSV or consume the release owner's compute budget. Where the trial registry is not yet implemented, build only the tested read-only reader/API and clearly labeled demo UI; integrate on real artifacts once available.
+
+## Binding governance rule (new)
+
+See [`AGENT_COLLABORATION_PROTOCOL.md`](AGENT_COLLABORATION_PROTOCOL.md) for the machine-readable GitHub issue claim, mandatory **separate branch AND physical worktree**, exclusive write scopes, PR template/check, explicit handoffs, and human reviewer rules. This owner table alone does **not** grant concurrent write access. Claims in latest relevant issue comments override stale proposed paths only when a named prior owner has handed off. Public source still has flat `research/models.py` and `research/features.py`; protect both old filenames and any proposed replacements until one integrator merges the rename with tests. The new Action cannot guarantee physical local isolation; admin ruleset is still required to block direct main pushes.

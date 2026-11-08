@@ -8,3 +8,5 @@
 - Main-round main-test inputs are already released. Test query truth is hidden. Test history may be used for specified as-of local adaptation; test cannot give a validation score.
 - Protect exact CSV+ZIP bytes/hashes and human upload receipts. Next upload may supersede a prior submission even if broken. Separate adaptation kit/main and Devpost sponsor workflows.
 - Work only one approved phase. For plan-only tasks, inspect and propose; never modify project code or configs. See `../../docs/CURRENT_STATE.md` for snapshot, `../../docs/PLAN_GATES.md` for phases, `../../docs/ENGINEERING_SPEC.md` only for deep research work.
+
+- **Parallel House Edge implementation:** Follow `../../docs/AGENT_COLLABORATION_PROTOCOL.md`. Work in an agent-exclusive branch/worktree, claim a narrow issue and file paths, treat other agents' code as read-only, and coordinate changes to shared feature, trial, model and release interfaces before editing. Require review and official scoring evidence before integrating.

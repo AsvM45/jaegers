@@ -1,0 +1,30 @@
+name: Agent collaboration gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  ownership-and-overlap:
+    name: Agent ownership and concurrent-PR overlap
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout TRUSTED base commit (never PR head)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m unittest discover -s tests -p 'test_agent_collaboration_policy.py' -v
+      - name: Validate named issue claim, file scope and open PR overlaps
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python tools/check_agent_pr.py
