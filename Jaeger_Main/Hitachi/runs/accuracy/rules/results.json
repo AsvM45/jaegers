@@ -1,0 +1,834 @@
+[
+  {
+    "id": "A-001",
+    "category": "plant_outage",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 59,
+      "calls": 59,
+      "moved": 9,
+      "rescheduled": 9,
+      "transferred": 0,
+      "expected_moves": 9,
+      "dealers": 34,
+      "loaners": 16,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "plant_outage",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_TX",
+        "outage_start": "2027-03-16",
+        "outage_end": "2027-03-18",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a plant outage at Wacky Wheels San Antonio (P_TX) from 2027-03-16 through 2027-03-18. Affected records: 9 production orders and 81 customer orders. The tower completed 9 reschedules, 34 dealer notices, and 16 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-002",
+    "category": "plant_outage",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 59,
+      "calls": 59,
+      "moved": 9,
+      "rescheduled": 9,
+      "transferred": 0,
+      "expected_moves": 9,
+      "dealers": 32,
+      "loaners": 18,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "plant_outage",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_KY",
+        "outage_start": "2027-03-16",
+        "outage_end": "2027-03-18",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-16 through 2027-03-18. Affected records: 9 production orders and 79 customer orders. The tower completed 9 reschedules, 32 dealer notices, and 18 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-003",
+    "category": "plant_outage",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 66,
+      "calls": 66,
+      "moved": 9,
+      "rescheduled": 9,
+      "transferred": 0,
+      "expected_moves": 9,
+      "dealers": 32,
+      "loaners": 25,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "plant_outage",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_AL",
+        "outage_start": "2027-03-16",
+        "outage_end": "2027-03-18",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a plant outage at Wacky Wheels Huntsville (P_AL) from 2027-03-16 through 2027-03-18. Affected records: 9 production orders and 82 customer orders. The tower completed 9 reschedules, 32 dealer notices, and 25 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-004",
+    "category": "supplier_delay",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 65,
+      "calls": 65,
+      "moved": 9,
+      "rescheduled": 9,
+      "transferred": 0,
+      "expected_moves": 9,
+      "dealers": 37,
+      "loaners": 19,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "supplier_delay",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "supplier_delay",
+        "supplier_id": "SUP-17",
+        "part_id": "AIRBAG-MOD",
+        "plant_id": "P_TX",
+        "shipment_id": "SH-0002",
+        "blocked_from": "2027-03-15",
+        "blocked_until": "2027-03-18",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a supplier delay of airbag module (AIRBAG-MOD) from Sentinel Brake and Airbag (SUP-17) into Wacky Wheels San Antonio (P_TX) from 2027-03-15 until 2027-03-18 on shipment SH-0002. Affected records: 9 production orders and 85 customer orders. The tower completed 9 reschedules, 37 dealer notices, and 19 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-005",
+    "category": "supplier_delay",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 65,
+      "calls": 65,
+      "moved": 9,
+      "rescheduled": 9,
+      "transferred": 0,
+      "expected_moves": 9,
+      "dealers": 37,
+      "loaners": 19,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "supplier_delay",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "supplier_delay",
+        "supplier_id": "SUP-17",
+        "part_id": "AIRBAG-MOD",
+        "plant_id": "P_TX",
+        "shipment_id": "SH-0002",
+        "blocked_from": "2027-03-15",
+        "blocked_until": "2027-03-18",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a supplier delay of airbag module (AIRBAG-MOD) from Sentinel Brake and Airbag (SUP-17) into Wacky Wheels San Antonio (P_TX) from 2027-03-15 until 2027-03-18 on shipment SH-0002. Affected records: 9 production orders and 85 customer orders. The tower completed 9 reschedules, 37 dealer notices, and 19 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-006",
+    "category": "quality_hold",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 184,
+      "calls": 184,
+      "moved": 0,
+      "rescheduled": 0,
+      "transferred": 0,
+      "expected_moves": 0,
+      "dealers": 0,
+      "loaners": 0,
+      "lots": [
+        "LOT-0001"
+      ],
+      "stop_sale_vins": 127,
+      "owners": 141
+    },
+    "classification": "quality_hold",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "quality_hold",
+        "supplier_id": "SUP-17",
+        "part_id": "AIRBAG-MOD",
+        "plant_id": "P_TX",
+        "lot_id": "LOT-0001",
+        "build_start": "2027-02-22",
+        "build_end": "2027-02-24",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a quality hold on lot LOT-0001 at Wacky Wheels San Antonio (P_TX) for builds 2027-02-22 through 2027-02-24. Affected records: 269 quality records. The tower completed 1 lot hold, 42 stop-sales, and 141 customer notices.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-007",
+    "category": "quality_hold",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 184,
+      "calls": 184,
+      "moved": 0,
+      "rescheduled": 0,
+      "transferred": 0,
+      "expected_moves": 0,
+      "dealers": 0,
+      "loaners": 0,
+      "lots": [
+        "LOT-0001"
+      ],
+      "stop_sale_vins": 127,
+      "owners": 141
+    },
+    "classification": "quality_hold",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "quality_hold",
+        "supplier_id": "SUP-17",
+        "part_id": "AIRBAG-MOD",
+        "plant_id": "P_TX",
+        "lot_id": "LOT-0001",
+        "build_start": "2027-02-22",
+        "build_end": "2027-02-24",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a quality hold on lot LOT-0001 at Wacky Wheels San Antonio (P_TX) for builds 2027-02-22 through 2027-02-24. Affected records: 269 quality records. The tower completed 1 lot hold, 42 stop-sales, and 141 customer notices.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-008",
+    "category": "compound",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 100,
+      "calls": 100,
+      "moved": 21,
+      "rescheduled": 21,
+      "transferred": 0,
+      "expected_moves": 21,
+      "dealers": 44,
+      "loaners": 35,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "plant_outage+supplier_delay",
+    "readers": [
+      "rules",
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_KY",
+        "outage_start": "2027-03-16",
+        "outage_end": "2027-03-18",
+        "reader": "rules"
+      },
+      {
+        "kind": "supplier_delay",
+        "supplier_id": "SUP-17",
+        "part_id": "AIRBAG-MOD",
+        "plant_id": "P_TX",
+        "shipment_id": "SH-0002",
+        "blocked_from": "2027-03-15",
+        "blocked_until": "2027-03-19",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-16 through 2027-03-18 and a supplier delay of airbag module (AIRBAG-MOD) from Sentinel Brake and Airbag (SUP-17) into Wacky Wheels San Antonio (P_TX) from 2027-03-15 until 2027-03-19 on shipment SH-0002. Affected records: 21 production orders and 190 customer orders. The tower completed 21 reschedules, 44 dealer notices, and 35 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-009",
+    "category": "compound",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 100,
+      "calls": 100,
+      "moved": 21,
+      "rescheduled": 21,
+      "transferred": 0,
+      "expected_moves": 21,
+      "dealers": 44,
+      "loaners": 35,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "plant_outage+supplier_delay",
+    "readers": [
+      "rules",
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_KY",
+        "outage_start": "2027-03-16",
+        "outage_end": "2027-03-18",
+        "reader": "rules"
+      },
+      {
+        "kind": "supplier_delay",
+        "supplier_id": "SUP-17",
+        "part_id": "AIRBAG-MOD",
+        "plant_id": "P_TX",
+        "shipment_id": "SH-0002",
+        "blocked_from": "2027-03-15",
+        "blocked_until": "2027-03-19",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-16 through 2027-03-18 and a supplier delay of airbag module (AIRBAG-MOD) from Sentinel Brake and Airbag (SUP-17) into Wacky Wheels San Antonio (P_TX) from 2027-03-15 until 2027-03-19 on shipment SH-0002. Affected records: 21 production orders and 190 customer orders. The tower completed 21 reschedules, 44 dealer notices, and 35 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-010",
+    "category": "unconfirmed",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 0,
+      "calls": 1
+    },
+    "classification": "unconfirmed",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "unconfirmed",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The report is not safe to act on because it is unconfirmed (nothing confirmed, someone mentioned) and does not name a specific shipment, outage, or lot to change. No operational records were changed. The tower escalated the report and wrote nothing else.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-011",
+    "category": "noise",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 0,
+      "calls": 0
+    },
+    "classification": "noise",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "noise",
+        "reader": "rules"
+      }
+    ],
+    "summary": "\"The plant tour will not run at San Antonio from March 16 through March 18\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-012",
+    "category": "noise",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 0,
+      "calls": 0
+    },
+    "classification": "noise",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "noise",
+        "reader": "rules"
+      }
+    ],
+    "summary": "\"Please scrap the old brochure. The San Antonio picnic is March 16 and March 17\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-013",
+    "category": "noise",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 0,
+      "calls": 0
+    },
+    "classification": "noise",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "noise",
+        "reader": "rules"
+      }
+    ],
+    "summary": "\"Lexington is not down from March 16 through March 18\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-014",
+    "category": "noise",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 0,
+      "calls": 0
+    },
+    "classification": "noise",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "noise",
+        "reader": "rules"
+      }
+    ],
+    "summary": "\"The quality hold on LOT-0001 is lifted\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-015",
+    "category": "noise",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 0,
+      "calls": 0
+    },
+    "classification": "noise",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "noise",
+        "reader": "rules"
+      }
+    ],
+    "summary": "\"The cafeteria line is closed at Lexington from March 16 through March 18\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-016",
+    "category": "plant_outage",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 59,
+      "calls": 59,
+      "moved": 9,
+      "rescheduled": 9,
+      "transferred": 0,
+      "expected_moves": 9,
+      "dealers": 34,
+      "loaners": 16,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "plant_outage",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_TX",
+        "outage_start": "2027-03-16",
+        "outage_end": "2027-03-18",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a plant outage at Wacky Wheels San Antonio (P_TX) from 2027-03-16 through 2027-03-18. Affected records: 9 production orders and 81 customer orders. The tower completed 9 reschedules, 34 dealer notices, and 16 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-017",
+    "category": "plant_outage",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 59,
+      "calls": 59,
+      "moved": 9,
+      "rescheduled": 9,
+      "transferred": 0,
+      "expected_moves": 9,
+      "dealers": 32,
+      "loaners": 18,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "plant_outage",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_KY",
+        "outage_start": "2027-03-16",
+        "outage_end": "2027-03-18",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-16 through 2027-03-18. Affected records: 9 production orders and 79 customer orders. The tower completed 9 reschedules, 32 dealer notices, and 18 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-018",
+    "category": "plant_outage",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 66,
+      "calls": 66,
+      "moved": 9,
+      "rescheduled": 9,
+      "transferred": 0,
+      "expected_moves": 9,
+      "dealers": 31,
+      "loaners": 26,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "plant_outage",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_IN",
+        "outage_start": "2027-03-16",
+        "outage_end": "2027-03-18",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a plant outage at Wacky Wheels Princeton (P_IN) from 2027-03-16 through 2027-03-18. Affected records: 9 production orders and 78 customer orders. The tower completed 9 reschedules, 31 dealer notices, and 26 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-019",
+    "category": "supplier_delay",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 65,
+      "calls": 65,
+      "moved": 9,
+      "rescheduled": 9,
+      "transferred": 0,
+      "expected_moves": 9,
+      "dealers": 37,
+      "loaners": 19,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "supplier_delay",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "supplier_delay",
+        "supplier_id": "SUP-17",
+        "part_id": "AIRBAG-MOD",
+        "plant_id": "P_TX",
+        "shipment_id": "SH-0002",
+        "blocked_from": "2027-03-15",
+        "blocked_until": "2027-03-18",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a supplier delay of airbag module (AIRBAG-MOD) from Sentinel Brake and Airbag (SUP-17) into Wacky Wheels San Antonio (P_TX) from 2027-03-15 until 2027-03-18 on shipment SH-0002. Affected records: 9 production orders and 85 customer orders. The tower completed 9 reschedules, 37 dealer notices, and 19 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-020",
+    "category": "quality_hold",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 184,
+      "calls": 184,
+      "moved": 0,
+      "rescheduled": 0,
+      "transferred": 0,
+      "expected_moves": 0,
+      "dealers": 0,
+      "loaners": 0,
+      "lots": [
+        "LOT-0001"
+      ],
+      "stop_sale_vins": 127,
+      "owners": 141
+    },
+    "classification": "quality_hold",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "quality_hold",
+        "supplier_id": "SUP-17",
+        "part_id": "AIRBAG-MOD",
+        "plant_id": "P_TX",
+        "lot_id": "LOT-0001",
+        "build_start": "2027-02-22",
+        "build_end": "2027-02-24",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a quality hold on lot LOT-0001 at Wacky Wheels San Antonio (P_TX) for builds 2027-02-22 through 2027-02-24. Affected records: 269 quality records. The tower completed 1 lot hold, 42 stop-sales, and 141 customer notices.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-021",
+    "category": "compound",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 100,
+      "calls": 100,
+      "moved": 21,
+      "rescheduled": 21,
+      "transferred": 0,
+      "expected_moves": 21,
+      "dealers": 44,
+      "loaners": 35,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "plant_outage+supplier_delay",
+    "readers": [
+      "rules",
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_KY",
+        "outage_start": "2027-03-16",
+        "outage_end": "2027-03-18",
+        "reader": "rules"
+      },
+      {
+        "kind": "supplier_delay",
+        "supplier_id": "SUP-17",
+        "part_id": "AIRBAG-MOD",
+        "plant_id": "P_TX",
+        "shipment_id": "SH-0002",
+        "blocked_from": "2027-03-15",
+        "blocked_until": "2027-03-19",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-16 through 2027-03-18 and a supplier delay of airbag module (AIRBAG-MOD) from Sentinel Brake and Airbag (SUP-17) into Wacky Wheels San Antonio (P_TX) from 2027-03-15 until 2027-03-19 on shipment SH-0002. Affected records: 21 production orders and 190 customer orders. The tower completed 21 reschedules, 44 dealer notices, and 35 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-022",
+    "category": "compound",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 95,
+      "calls": 95,
+      "moved": 18,
+      "rescheduled": 18,
+      "transferred": 0,
+      "expected_moves": 18,
+      "dealers": 44,
+      "loaners": 33,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "plant_outage+supplier_delay",
+    "readers": [
+      "rules",
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_KY",
+        "outage_start": "2027-03-16",
+        "outage_end": "2027-03-18",
+        "reader": "rules"
+      },
+      {
+        "kind": "supplier_delay",
+        "supplier_id": "SUP-17",
+        "part_id": "AIRBAG-MOD",
+        "plant_id": "P_TX",
+        "shipment_id": "SH-0002",
+        "blocked_from": "2027-03-15",
+        "blocked_until": "2027-03-18",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-16 through 2027-03-18 and a supplier delay of airbag module (AIRBAG-MOD) from Sentinel Brake and Airbag (SUP-17) into Wacky Wheels San Antonio (P_TX) from 2027-03-15 until 2027-03-18 on shipment SH-0002. Affected records: 18 production orders and 164 customer orders. The tower completed 18 reschedules, 44 dealer notices, and 33 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "A-023",
+    "category": "compound",
+    "edge": null,
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 94,
+      "calls": 94,
+      "moved": 18,
+      "rescheduled": 18,
+      "transferred": 0,
+      "expected_moves": 18,
+      "dealers": 41,
+      "loaners": 35,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "plant_outage+plant_outage",
+    "readers": [
+      "rules",
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_KY",
+        "outage_start": "2027-03-16",
+        "outage_end": "2027-03-18",
+        "reader": "rules"
+      },
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_TX",
+        "outage_start": "2027-03-23",
+        "outage_end": "2027-03-25",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-16 through 2027-03-18 and a plant outage at Wacky Wheels San Antonio (P_TX) from 2027-03-23 through 2027-03-25. Affected records: 18 production orders and 161 customer orders. The tower completed 18 reschedules, 41 dealer notices, and 35 loaner assignments.",
+    "seconds": 0.0
+  }
+]

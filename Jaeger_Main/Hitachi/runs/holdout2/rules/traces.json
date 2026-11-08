@@ -1934,7 +1934,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: revised date, missed the",
+          "delay language: revised, revised date, missed the",
           "dates: 'the 22nd' = 2027-03-22, '2027-03-23' = 2027-03-23",
           "supplier: 'Ridgeline' -> SUP-16",
           "part: 'harness A' -> HARN-A",
@@ -9947,7 +9947,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: pushed out",
+          "delay language: pushed out, pushed",
           "dates: '2027-03-15' = 2027-03-15, '2027-03-18' = 2027-03-18",
           "supplier: 'Volt' -> SUP-05",
           "part: 'harness C' -> HARN-C",
@@ -18940,7 +18940,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '3/29' = 2027-03-29, 'April 2nd' = 2027-04-02",
           "supplier: 'Northgate' -> SUP-02",
           "part: 'TIRE-17' -> TIRE-17",
@@ -22481,7 +22481,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: pushed out",
+          "delay language: pushed out, pushed",
           "dates: '2027-03-22' = 2027-03-22, 'March 26th' = 2027-03-26",
           "supplier: 'Quanta' -> SUP-12",
           "part: 'CHIP-IVI' -> CHIP-IVI",
@@ -29261,7 +29261,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: 'March 29th' = 2027-03-29, '2027-04-01' = 2027-04-01",
           "supplier: 'Meridian' -> SUP-04",
           "part: 'leather seat set' -> SEAT-LEA",
@@ -37267,7 +37267,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: revised date, missed the",
+          "delay language: revised, revised date, missed the",
           "dates: 'next Mon' = 2027-03-15, 'March 18th' = 2027-03-18",
           "supplier: 'Northgate Tire Co' -> SUP-02",
           "part: '20-inch all-season tire' -> TIRE-20",
@@ -54730,7 +54730,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: pushed out",
+          "delay language: pushed out, pushed",
           "dates: 'Monday the 22nd' = 2027-03-22, '24 Mar.' = 2027-03-24",
           "supplier: 'Meridian Seating' -> SUP-04",
           "part: 'leather seats' -> SEAT-LEA",
@@ -67782,7 +67782,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: 'Monday the 15th' = 2027-03-15, 'next Tue' = 2027-03-16",
           "supplier: 'SUP-03' -> SUP-03",
           "part: '20-inch rims' -> WHEEL-20",
@@ -74275,7 +74275,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: pushed out",
+          "delay language: pushed out, pushed",
           "dates: 'Mon 22 March' = 2027-03-22, 'Wednesday the 24th' = 2027-03-24",
           "supplier: 'Ironwood' -> SUP-14",
           "part: '16-inch alloy wheels' -> WHEEL-16",
@@ -78223,7 +78223,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: pushed out",
+          "delay language: pushed out, pushed",
           "dates: '3/29' = 2027-03-29, 'March 30th' = 2027-03-30",
           "supplier: 'Atlas' -> SUP-07",
           "part: 'standard wiring harness' -> HARN-A",
@@ -93182,7 +93182,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '29 Mar.' = 2027-03-29, 'Tue 30 March.' = 2027-03-30",
           "supplier: 'Volt' -> SUP-05",
           "part: 'harness B' -> HARN-B",
@@ -100630,7 +100630,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: 'Mon 15 March.' = 2027-03-15, 'next Tue' = 2027-03-16",
           "supplier: 'SUP-06' -> SUP-06",
           "part: 'infotainment chips' -> CHIP-IVI",
@@ -107259,7 +107259,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: pushed out",
+          "delay language: pushed out, pushed",
           "dates: '3/22' = 2027-03-22, 'March 23rd' = 2027-03-23",
           "supplier: 'SUP-05' -> SUP-05",
           "part: 'HARN-C' -> HARN-C",
@@ -112290,7 +112290,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: pushed out",
+          "delay language: pushed out, pushed",
           "dates: '3/29' = 2027-03-29, 'April 2nd' = 2027-04-02",
           "supplier: 'Atlas' -> SUP-07",
           "part: 'HARN-A' -> HARN-A",
@@ -115789,7 +115789,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: 'next Mon' = 2027-03-15, '2027-03-19' = 2027-03-19",
           "supplier: 'Sentinel Brake and Airbag' -> SUP-17",
           "part: 'airbag modules' -> AIRBAG-MOD",
@@ -118265,7 +118265,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: pushed out",
+          "delay language: pushed out, pushed",
           "dates: '3/29' = 2027-03-29, 'Tue 30 March.' = 2027-03-30",
           "supplier: 'Quanta' -> SUP-12",
           "part: 'infotainment chip' -> CHIP-IVI",
@@ -132891,7 +132891,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: pushed out",
+          "delay language: pushed out, pushed",
           "dates: '22 Mar' = 2027-03-22, '26 Mar.' = 2027-03-26",
           "supplier: 'Kestrel' -> SUP-06",
           "part: 'infotainment chips' -> CHIP-IVI",
@@ -135177,7 +135177,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: 'Monday the 22nd' = 2027-03-22, '26 Mar.' = 2027-03-26",
           "supplier: 'Ridgeline' -> SUP-16",
           "part: 'HARN-A' -> HARN-A",
@@ -141115,7 +141115,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-22' = 2027-03-22, '2027-03-23' = 2027-03-23",
           "supplier: 'SUP-16' -> SUP-16",
           "part: 'HARN-A' -> HARN-A",
@@ -143875,7 +143875,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-29' = 2027-03-29, '2027-03-31' = 2027-03-31",
           "supplier: 'SUP-15' -> SUP-15",
           "part: 'SEAT-VAN' -> SEAT-VAN",
@@ -151043,7 +151043,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-29' = 2027-03-29, '2027-04-02' = 2027-04-02",
           "supplier: 'SUP-02' -> SUP-02",
           "part: 'TIRE-17' -> TIRE-17",
@@ -154583,7 +154583,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-15' = 2027-03-15, '2027-03-17' = 2027-03-17",
           "supplier: 'SUP-16' -> SUP-16",
           "part: 'HARN-A' -> HARN-A",
@@ -160927,7 +160927,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-29' = 2027-03-29, '2027-04-01' = 2027-04-01",
           "supplier: 'SUP-04' -> SUP-04",
           "part: 'SEAT-LEA' -> SEAT-LEA",
@@ -173360,7 +173360,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-15' = 2027-03-15, '2027-03-18' = 2027-03-18",
           "supplier: 'SUP-02' -> SUP-02",
           "part: 'TIRE-20' -> TIRE-20",
@@ -184043,7 +184043,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-29' = 2027-03-29, '2027-04-01' = 2027-04-01",
           "supplier: 'SUP-16' -> SUP-16",
           "part: 'HARN-A' -> HARN-A",
@@ -209864,7 +209864,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-15' = 2027-03-15, '2027-03-16' = 2027-03-16",
           "supplier: 'SUP-03' -> SUP-03",
           "part: 'WHEEL-20' -> WHEEL-20",
@@ -211614,7 +211614,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-29' = 2027-03-29, '2027-04-01' = 2027-04-01",
           "supplier: 'SUP-04' -> SUP-04",
           "part: 'SEAT-VAN' -> SEAT-VAN",
@@ -213703,7 +213703,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-22' = 2027-03-22, '2027-03-24' = 2027-03-24",
           "supplier: 'SUP-14' -> SUP-14",
           "part: 'WHEEL-16' -> WHEEL-16",
@@ -224244,7 +224244,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-29' = 2027-03-29, '2027-03-30' = 2027-03-30",
           "supplier: 'SUP-07' -> SUP-07",
           "part: 'HARN-A' -> HARN-A",
@@ -239624,7 +239624,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-29' = 2027-03-29, '2027-03-30' = 2027-03-30",
           "supplier: 'SUP-05' -> SUP-05",
           "part: 'HARN-B' -> HARN-B",
@@ -244249,7 +244249,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-15' = 2027-03-15, '2027-03-16' = 2027-03-16",
           "supplier: 'SUP-06' -> SUP-06",
           "part: 'CHIP-IVI' -> CHIP-IVI",
@@ -268948,7 +268948,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-29' = 2027-03-29, '2027-04-02' = 2027-04-02",
           "supplier: 'SUP-07' -> SUP-07",
           "part: 'HARN-A' -> HARN-A",
@@ -274902,7 +274902,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-15' = 2027-03-15, '2027-03-19' = 2027-03-19",
           "supplier: 'SUP-17' -> SUP-17",
           "part: 'AIRBAG-MOD' -> AIRBAG-MOD",
@@ -279965,7 +279965,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-29' = 2027-03-29, '2027-03-30' = 2027-03-30",
           "supplier: 'SUP-12' -> SUP-12",
           "part: 'CHIP-IVI' -> CHIP-IVI",
@@ -283712,7 +283712,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-22' = 2027-03-22, '2027-03-25' = 2027-03-25",
           "supplier: 'SUP-16' -> SUP-16",
           "part: 'HARN-C' -> HARN-C",
@@ -286975,7 +286975,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-15' = 2027-03-15, '2027-03-19' = 2027-03-19",
           "supplier: 'SUP-06' -> SUP-06",
           "part: 'CHIP-IVI' -> CHIP-IVI",
@@ -301888,7 +301888,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-22' = 2027-03-22, '2027-03-26' = 2027-03-26",
           "supplier: 'SUP-06' -> SUP-06",
           "part: 'CHIP-IVI' -> CHIP-IVI",
@@ -306147,7 +306147,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-22' = 2027-03-22, '2027-03-26' = 2027-03-26",
           "supplier: 'SUP-16' -> SUP-16",
           "part: 'HARN-A' -> HARN-A",

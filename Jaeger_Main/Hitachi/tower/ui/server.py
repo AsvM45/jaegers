@@ -57,7 +57,7 @@ STATIC_TYPES = {
 }
 # Test-suite run folders the knowledge graph may read traces from (suite id -> runs/ subfolder).
 SUITE_RUNS = {"given": "given", "generated": "tests", "holdout": "holdout", "holdout2": "holdout2",
-              "stress": "stress"}
+              "stress": "stress", "accuracy": "accuracy"}
 EVENTS = os.path.join(HITACHI, "Data", "hack_the_highway_package", "data", "events.json")
 # TOWER_RUN_DIR=runs/live shows the live channel feed instead of the batch run.
 RUN_DIR = os.path.join(HITACHI, os.environ.get("TOWER_RUN_DIR", os.path.join("runs", "run1")))
@@ -88,6 +88,8 @@ class TowerServer(ThreadingHTTPServer):
         if self.allow_reuse_address:
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind(self.server_address)
+        # Port 0 is assigned by the OS. getsockname() is the port that actually listened.
+        self.server_address = self.socket.getsockname()
         host, port = self.server_address[:2]
         self.server_name = host
         self.server_port = port
@@ -255,6 +257,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"error": "invalid json", "detail": str(exc)}, 500)
         except OSError as exc:
             return self._json({"error": "read failed", "detail": str(exc)}, 500)
+        except UnicodeError as exc:
+            return self._json({"error": "bad encoding", "detail": str(exc)}, 500)
         self._json({"error": "not found"}, 404)
 
     def do_DELETE(self):
@@ -308,7 +312,10 @@ class Handler(BaseHTTPRequestHandler):
 
     def _json(self, payload, code=200):
         """Send a JSON response. ensure_ascii=False keeps names and dashes readable."""
-        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        try:
+            body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        except UnicodeEncodeError:
+            body = json.dumps(payload).encode("ascii")
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
@@ -322,9 +329,21 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    """Serve until Ctrl-C. Bound to 127.0.0.1 only: the page is for this laptop."""
-    server = TowerServer((HOST, PORT), Handler)
-    print(f"http://{HOST}:{PORT}", flush=True)
+    """Serve until Ctrl-C. Bound to 127.0.0.1 only: the page is for this laptop.
+
+    The Electron shell (desktop/) passes --port so it can open the window on a free port.
+    """
+    import argparse
+
+    ap = argparse.ArgumentParser(description="Serve the control tower dashboard on 127.0.0.1.")
+    ap.add_argument("--port", type=int, default=PORT, help="port (default 8080)")
+    cli = ap.parse_args()
+    try:
+        server = TowerServer((HOST, cli.port), Handler)
+    except OSError as exc:
+        print(f"could not bind {HOST}:{cli.port}: {exc}", file=sys.stderr, flush=True)
+        raise SystemExit(1) from exc
+    print(f"http://{HOST}:{server.server_port}", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

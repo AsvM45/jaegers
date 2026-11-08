@@ -1,7 +1,7 @@
 // #/tests                         charts across every set and the run log
 // #/tests/<suite>/<reader>        one test set: its charts and its cases
 // #/tests/<suite>/<reader>/<id>   one test case: input, expected output, actual output
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { Icon } from "../lib/icons.jsx";
 import { CAT_NAME, CAT_ORDER, KIND_LABEL, TOOL_WORD, fmt, passColor, pctOf, readerName, sameSet } from "../lib/constants.js";
 import { useData } from "../lib/data.jsx";
@@ -12,10 +12,20 @@ import { Page } from "./Page.jsx";
 
 const readerOf = (suite, id) => suite?.readers.find((r) => r.id === id);
 
-function readerChoices(reports) {
-  const ids = new Set();
-  for (const s of reports?.suites || []) for (const r of s.readers) ids.add(r.id);
-  return [...ids].sort((a, b) => (a.startsWith("llm_") ? -1 : 1) - (b.startsWith("llm_") ? -1 : 1) || a.localeCompare(b));
+// One row per saved reader: the newest `updated` stamp wins, then the score across every set it has.
+function readerRollup(reports) {
+  const byId = new Map();
+  for (const suite of reports?.suites || []) {
+    for (const reader of suite.readers) {
+      const row = byId.get(reader.id) || { id: reader.id, updated: "", passed: 0, total: 0, sets: [] };
+      if ((reader.updated || "") > row.updated) row.updated = reader.updated;
+      row.passed += reader.passed;
+      row.total += reader.total;
+      row.sets.push({ suite, reader });
+      byId.set(reader.id, row);
+    }
+  }
+  return [...byId.values()].sort((a, b) => b.updated.localeCompare(a.updated) || a.id.localeCompare(b.id));
 }
 
 function incLine(i) {
@@ -47,36 +57,38 @@ function OutcomeLine({ o }) {
 
 function useTestsSubtitle() {
   const d = useData();
-  const all = (d.reports?.suites || []).flatMap((x) => x.readers);
-  const passed = all.reduce((a, r) => a + r.passed, 0), total = all.reduce((a, r) => a + r.total, 0);
+  const current = readerRollup(d.reports)[0];
+  const sets = current ? current.sets.length : 0;
   return <>
-    <span><b>{fmt((d.reports?.suites || []).length)}</b> test sets</span><span><b>{fmt(all.length)}</b> saved runs</span>
-    <span><b>{fmt(passed)}</b> of <b>{fmt(total)}</b> cases passed</span>
+    <span><b>{fmt(sets)}</b> test sets</span>
+    <span>{current ? <><b>{readerName(current.id)}</b> · saved {current.updated}</> : "No results yet"}</span>
+    <span><b>{fmt(current?.passed || 0)}</b> of <b>{fmt(current?.total || 0)}</b> cases passed</span>
   </>;
 }
 
 /* ---- level 1: every set ---- */
 function AllSets() {
   const d = useData();
-  const { ui, set } = useUi();
   const subtitle = useTestsSubtitle();
-  const choices = readerChoices(d.reports);
-  const rid = choices.includes(ui.testReader) ? ui.testReader : choices[0];
-  const sets = d.reports.suites.map((s) => ({ s, r: readerOf(s, rid) })).filter((x) => x.r);
+  const roll = readerRollup(d.reports);
+  const current = roll[0];
+  const rid = current.id;
+  const [historyId, setHistoryId] = useState(null);
+  const sets = current.sets.map(({ suite, reader }) => ({ s: suite, r: reader }));
   const passed = sets.reduce((a, x) => a + x.r.passed, 0), total = sets.reduce((a, x) => a + x.r.total, 0);
   const byCat = {};
   for (const { r } of sets) for (const [k, v] of Object.entries(r.by_category)) {
     byCat[k] ||= { passed: 0, total: 0 };
     byCat[k].passed += v.passed; byCat[k].total += v.total;
   }
-  const log = (d.reports.log || []).filter((e) => ui.logFilter === "all" || e.reader === rid);
+  const log = (d.reports.log || []).filter((e) => e.reader === rid);
+  const older = roll.slice(1);
   return (
     <Page title="Tests" subtitle={subtitle}>
       <div className="card">
-        <CardHead title={`All test sets · ${readerName(rid)} reader`}
-          sub="The latest result of every test set. Each case's expected output is its answer key traced through the company graph; a case passes when the tower's actions match it and every action passes the simulator's handbook checks.">
+        <CardHead title={`Latest results · ${readerName(rid)} reader`}
+          sub={`Saved ${current.updated}. This score is only the newest reader. Each case passes when the tower's actions match the answer key and the simulator's handbook checks.`}>
           <div className="controls">
-            <Toggle value={rid} options={choices.map((c) => [c, readerName(c)])} onChange={(v) => set({ testReader: v })} />
             <a className="btn" href="/runs/TEST_SUMMARY.md" download><Icon name="doc" />Summary .md</a>
           </div>
         </CardHead>
@@ -89,10 +101,45 @@ function AllSets() {
         <div className="panel" style={{ marginTop: 16 }}><h4>By category</h4><PassBars rows={catRows(byCat)} /></div>
       </div>
 
+      {older.length > 0 && (
+        <div className="card" style={{ marginTop: 20 }}>
+          <CardHead title="History" sub="Earlier readers, kept as a record. They are not part of the score above. Open a row to see that saved run." />
+          <div className="scroll-x"><table>
+            <thead><tr><th>Reader</th><th>Saved</th><th>Test sets</th><th className="num">Result</th></tr></thead>
+            <tbody>
+              {older.map((row) => {
+                const open = historyId === row.id;
+                const pct = pctOf(row.passed, row.total);
+                const histLog = (d.reports.log || []).filter((e) => e.reader === row.id);
+                return (
+                  <Fragment key={row.id}>
+                    <tr className="click" onClick={() => setHistoryId(open ? null : row.id)}>
+                      <td><span className="tag">Historical</span> <b style={{ marginLeft: 8 }}>{readerName(row.id)}</b></td>
+                      <td className="mono">{row.updated}</td>
+                      <td>{row.sets.length}</td>
+                      <td className="num"><b>{row.passed}/{row.total}</b> <span className="note">{pct}%</span></td>
+                    </tr>
+                    {open && (
+                      <tr>
+                        <td colSpan={4}>
+                          <PassBars rows={row.sets.map(({ suite, reader }) => ({
+                            label: suite.title, passed: reader.passed, total: reader.total,
+                            href: `#/tests/${suite.id}/${reader.id}`,
+                          }))} />
+                          {histLog.length > 0 && <p className="note" style={{ margin: "12px 0 0" }}>{histLog.length} saved run{histLog.length === 1 ? "" : "s"} for this reader, from {histLog[histLog.length - 1].time} to {histLog[0].time}. Click a set above to open one.</p>}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table></div>
+        </div>
+      )}
+
       <div className="card" style={{ marginTop: 20 }}>
-        <CardHead title="Test run log" sub="Every time a test set was run, newest first. Click a row to open that set's latest results.">
-          <Toggle value={ui.logFilter === "all" ? "all" : "reader"} options={[["reader", readerName(rid)], ["all", "All readers"]]} onChange={(v) => set({ logFilter: v })} />
-        </CardHead>
+        <CardHead title="Run history" sub={`Each time the ${readerName(rid)} reader was run, newest first.`} />
         <div className="scroll-x"><table>
           <thead><tr><th>When</th><th>Test set</th><th>Reader</th><th>Result</th><th className="num">Passed</th></tr></thead>
           <tbody>
@@ -120,6 +167,8 @@ function TestSet({ sid, rid }) {
   const d = useData();
   const { ui, set, toast } = useUi();
   const suite = d.suiteById(sid), reader = readerOf(suite, rid);
+  const latest = readerRollup(d.reports)[0];
+  const historical = latest && reader && reader.id !== latest.id;
   if (!reader) return (
     <Page title="Tests" trail={[["Tests", "#/tests"], [sid, null]]}>
       <div className="card empty">That test set has no results for this reader. <a href="#/tests" style={{ color: "var(--accent-2)" }}>Back to all tests</a></div>
@@ -147,6 +196,7 @@ function TestSet({ sid, rid }) {
 
   return (
     <Page title={`${suite.title} · ${readerName(reader.id)}`} trail={[["Tests", "#/tests"], [suite.title, null]]}>
+      {historical && <p className="note" style={{ margin: "0 0 12px" }}>Historical record, saved {reader.updated}. The current score uses {readerName(latest.id)}, saved {latest.updated}. <a href="#/tests" style={{ color: "var(--accent-2)" }}>Back to latest</a></p>}
       <div className="card">
         <CardHead title={`${suite.title} · ${readerName(reader.id)} reader`} sub={`${suite.subtitle}. Run ${reader.updated}.`}>
           <div className="controls">

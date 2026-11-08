@@ -21,7 +21,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: late, will now arrive, was due",
+          "delay language: late, was due 2027-03-15 and will now, will now arrive, was due",
           "dates: '2027-03-15' = 2027-03-15, '2027-03-17' = 2027-03-17",
           "shipment: 'SH-0090' -> SH-0090",
           "supplier: 'Meridian Seating' -> SUP-04",
@@ -4719,7 +4719,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: delayed, will now arrive, was due",
+          "delay language: delayed, was due 2027-03-15 and will now, will now arrive, was due",
           "dates: '2027-03-15' = 2027-03-15, '2027-04-01' = 2027-04-01",
           "shipment: 'SH-0318' -> SH-0318",
           "supplier: 'quanta' -> SUP-12",
@@ -8386,7 +8386,7 @@
     "incidents": [
       {
         "kind": "unconfirmed",
-        "summary": "The message reads like an incident (will now arrive, was due) but is not specific enough to act on: it names SH-9999, which is not in the company records. It is escalated for a human to confirm.",
+        "summary": "The message reads like an incident (was due monday mar 15 and will now, will now arrive, was due) but is not specific enough to act on: it names SH-9999, which is not in the company records. It is escalated for a human to confirm.",
         "supplier_id": null,
         "part_id": null,
         "plant_id": null,
@@ -8399,7 +8399,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "incident language without enough detail: will now arrive, was due",
+          "incident language without enough detail: was due monday mar 15 and will now, will now arrive, was due",
           "dates: 'Monday Mar 15' = 2027-03-15, 'Wednesday Mar 17' = 2027-03-17",
           "plant: 'Princeton' -> P_IN",
           "unknown record ids: SH-9999"
@@ -8413,14 +8413,14 @@
       {
         "tool": "escalate",
         "args": {
-          "reason": "The message reads like an incident (will now arrive, was due) but is not specific enough to act on: it names SH-9999, which is not in the company records. It is escalated for a human to confirm."
+          "reason": "The message reads like an incident (was due monday mar 15 and will now, will now arrive, was due) but is not specific enough to act on: it names SH-9999, which is not in the company records. It is escalated for a human to confirm."
         },
-        "reason": "The message reads like an incident (will now arrive, was due) but is not specific enough to act on: it names SH-9999, which is not in the company records. It is escalated for a human to confirm.",
+        "reason": "The message reads like an incident (was due monday mar 15 and will now, will now arrive, was due) but is not specific enough to act on: it names SH-9999, which is not in the company records. It is escalated for a human to confirm.",
         "writes": false,
         "agent": "coordinator"
       }
     ],
-    "summary": "The message reads like an incident (will now arrive, was due) but is not specific enough to act on: it names SH-9999, which is not in the company records. It is escalated for a human to confirm. No operational records were changed. The tower escalated the report and wrote nothing else.",
+    "summary": "The message reads like an incident (was due monday mar 15 and will now, will now arrive, was due) but is not specific enough to act on: it names SH-9999, which is not in the company records. It is escalated for a human to confirm. No operational records were changed. The tower escalated the report and wrote nothing else.",
     "guardrail": "Noise writes nothing; an unconfirmed report is escalate only; confirmed incidents change only the affected records.",
     "handoffs": [
       {
@@ -40661,7 +40661,8 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "no confirmed supplier delay, plant outage, or quality hold"
+          "no confirmed supplier delay, plant outage, or quality hold",
+          "outage wording was incomplete (needs a plant and two dates): closes"
         ],
         "reader": "rules",
         "model_reason": ""
@@ -40708,7 +40709,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: pushed to, originally scheduled",
+          "delay language: pushed to, pushed, originally scheduled",
           "dates: '2027-03-22' = 2027-03-22, 'Tuesday Mar 23' = 2027-03-23",
           "supplier: 'Brightline Rubber' -> SUP-01",
           "part: '16-inch tires' -> TIRE-16",
@@ -42221,7 +42222,8 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "no confirmed supplier delay, plant outage, or quality hold"
+          "no confirmed supplier delay, plant outage, or quality hold",
+          "outage wording was incomplete (needs a plant and two dates): closes"
         ],
         "reader": "rules",
         "model_reason": ""
@@ -43774,7 +43776,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: pushed to, originally scheduled",
+          "delay language: pushed to, pushed, originally scheduled",
           "dates: 'Monday Mar 22' = 2027-03-22, '2027-03-23' = 2027-03-23",
           "supplier: 'Volt Harness Systems' -> SUP-05",
           "part: 'compact wiring harness' -> HARN-C",
@@ -51214,7 +51216,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: delayed, revised eta, eta, original eta",
+          "delay language: delayed, revised eta, eta, revised, original eta",
           "dates: 'Mar 22' = 2027-03-22, 'Mar 23' = 2027-03-23",
           "shipment: 'SH-0275' -> SH-0275",
           "supplier: 'Atlas' -> SUP-07",
@@ -54953,7 +54955,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: pushed to, originally scheduled",
+          "delay language: pushed to, pushed, originally scheduled",
           "dates: 'March 22' = 2027-03-22, '2027-03-25' = 2027-03-25",
           "supplier: 'Cobalt Wheels', 'SUP-03' -> SUP-03",
           "part: '17-inch alloy wheel', 'WHEEL-17' -> WHEEL-17",
@@ -60482,7 +60484,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: late, will now arrive, was due",
+          "delay language: late, was due monday mar 29 and will now, will now arrive, was due",
           "dates: 'Monday Mar 29' = 2027-03-29, 'Fri 4/2' = 2027-04-02",
           "shipment: 'SH-0248' -> SH-0248",
           "supplier: 'Lumen' -> SUP-18",
@@ -76575,7 +76577,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: pushed to, originally scheduled",
+          "delay language: pushed to, pushed, originally scheduled",
           "dates: '2027-03-22' = 2027-03-22, 'Thu 3/25' = 2027-03-25",
           "supplier: 'Sentinel Brake and Airbag' -> SUP-17",
           "part: 'brake kit' -> BRAKE-KIT",
@@ -103163,7 +103165,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: pushed to, originally scheduled",
+          "delay language: pushed to, pushed, originally scheduled",
           "dates: 'Monday Mar 29' = 2027-03-29, 'Thursday Apr 1' = 2027-04-01",
           "supplier: 'Kestrel Electronics' -> SUP-06",
           "part: 'infotainment chip', 'CHIP-IVI' -> CHIP-IVI",
@@ -104889,7 +104891,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: delayed, revised eta, eta, original eta",
+          "delay language: delayed, revised eta, eta, revised, original eta",
           "dates: 'Monday Mar 29' = 2027-03-29, 'Thursday Apr 1' = 2027-04-01",
           "shipment: 'SH-0228' -> SH-0228",
           "supplier: 'Brightline Rubber', 'SUP-01' -> SUP-01",
@@ -106748,7 +106750,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: late, will now arrive, was due",
+          "delay language: late, was due 2027-03-22 and will now, will now arrive, was due",
           "dates: '2027-03-22' = 2027-03-22, '2027-03-25' = 2027-03-25",
           "shipment: 'SH-0319' -> SH-0319",
           "supplier: 'Quanta Silicon' -> SUP-12",
@@ -120963,7 +120965,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: pushed to, originally scheduled",
+          "delay language: pushed to, pushed, originally scheduled",
           "dates: 'March 29' = 2027-03-29, 'March 30' = 2027-03-30",
           "supplier: 'Orbit Optics', 'SUP-11' -> SUP-11",
           "part: 'CAM-360' -> CAM-360",
@@ -127801,7 +127803,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: late, will now arrive, was due",
+          "delay language: late, was due mon 3/15 and will now, will now arrive, was due",
           "dates: 'Mon 3/15' = 2027-03-15, 'next Thursday' = 2027-03-18",
           "shipment: 'SH-0258' -> SH-0258",
           "supplier: 'Quanta Silicon' -> SUP-12",
@@ -129031,7 +129033,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: late, will now arrive, was due",
+          "delay language: late, was due monday mar 15 and will now, will now arrive, was due",
           "dates: 'Monday Mar 15' = 2027-03-15, 'Mar 16' = 2027-03-16",
           "shipment: 'SH-0278' -> SH-0278",
           "supplier: 'Ridgeline Wire', 'SUP-16' -> SUP-16",
@@ -129588,7 +129590,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: pushed to, originally scheduled",
+          "delay language: pushed to, pushed, originally scheduled",
           "dates: 'Monday Mar 22' = 2027-03-22, '2027-03-24' = 2027-03-24",
           "supplier: 'Volt Harness Systems', 'SUP-05' -> SUP-05",
           "part: 'compact wiring harness' -> HARN-C",

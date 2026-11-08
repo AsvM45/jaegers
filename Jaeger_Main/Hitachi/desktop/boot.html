@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Wacky Wheels Control Tower</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #070c27; color: #fff;
+      font-family: "Segoe UI", system-ui, sans-serif; }
+    body { display: grid; place-items: center; }
+    .card { text-align: center; max-width: 460px; padding: 24px; }
+    .mark { width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 16px;
+      display: grid; place-items: center; background: #0075ff; font-weight: 700; font-size: 26px; }
+    h1 { font-size: 15px; letter-spacing: 0.16em; font-weight: 700; margin: 0; }
+    p { color: #93a1c4; margin: 10px 0 0; font-size: 14px; line-height: 1.5; }
+    .spin { width: 22px; height: 22px; margin: 22px auto 0; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.15); border-top-color: #2b8cff;
+      animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="mark">W</div>
+    <h1>WACKY WHEELS</h1>
+    <p id="status">Starting the control tower…</p>
+    <div class="spin" id="spin"></div>
+  </div>
+</body>
+</html>

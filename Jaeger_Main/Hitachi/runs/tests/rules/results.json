@@ -215,7 +215,7 @@
         "reader": "rules"
       }
     ],
-    "summary": "The message reads like an incident (will now arrive, was due) but is not specific enough to act on: it names SH-9999, which is not in the company records. It is escalated for a human to confirm. No operational records were changed. The tower escalated the report and wrote nothing else.",
+    "summary": "The message reads like an incident (was due monday mar 15 and will now, will now arrive, was due) but is not specific enough to act on: it names SH-9999, which is not in the company records. It is escalated for a human to confirm. No operational records were changed. The tower escalated the report and wrote nothing else.",
     "seconds": 0.0
   },
   {

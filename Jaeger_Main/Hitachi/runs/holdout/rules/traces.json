@@ -1853,7 +1853,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: arrival moved",
+          "delay language: moved, arrival moved",
           "dates: 'March 22nd' = 2027-03-22, 'the 24th' = 2027-03-24",
           "shipment: 'SH-0339' -> SH-0339",
           "supplier: 'Harbor Seating' -> SUP-15",
@@ -9538,7 +9538,7 @@
         "build_start": "2027-02-22",
         "build_end": "2027-02-24",
         "evidence": [
-          "quality language: hold lot, delamination",
+          "quality language: hold lot, delamination, containment",
           "dates: '22 Feb' = 2027-02-22, 'February 24th' = 2027-02-24",
           "plant: 'Princeton' -> P_IN",
           "part: 'harness B' -> HARN-B",
@@ -28619,7 +28619,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: arrival moved",
+          "delay language: moved, arrival moved",
           "dates: 'Mon 29 March' = 2027-03-29, 'March 30th' = 2027-03-30",
           "shipment: 'SH-0020' -> SH-0020",
           "supplier: 'Atlas Wire and Cable' -> SUP-07",
@@ -30160,7 +30160,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: eta",
+          "delay language: eta, was 2027-03-22, now",
           "dates: '2027-03-22' = 2027-03-22, 'the 26th' = 2027-03-26",
           "supplier: 'SUP-05' -> SUP-05",
           "part: 'HARN-A' -> HARN-A",
@@ -44715,7 +44715,7 @@
         "build_start": "2027-03-04",
         "build_end": "2027-03-05",
         "evidence": [
-          "quality language: hold lot, water ingress",
+          "quality language: hold lot, water ingress, containment",
           "dates: '3/4' = 2027-03-04, '2027-03-05' = 2027-03-05",
           "plant: 'P_IN' -> P_IN",
           "part: 'infotainment chips' -> CHIP-IVI",
@@ -51212,7 +51212,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: eta",
+          "delay language: eta, was the 15th, now",
           "dates: 'the 15th' = 2027-03-15, '3/17' = 2027-03-17",
           "supplier: 'Volt' -> SUP-05",
           "part: 'standard wiring harness' -> HARN-A",
@@ -53040,7 +53040,7 @@
         "build_start": "2027-03-04",
         "build_end": "2027-03-05",
         "evidence": [
-          "quality language: hold lot, checksum",
+          "quality language: hold lot, checksum, containment",
           "dates: '2027-03-04' = 2027-03-04, 'Fri 5 March.' = 2027-03-05",
           "plant: 'San Antonio' -> P_TX",
           "part: '20-inch tires' -> TIRE-20",
@@ -57536,7 +57536,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: eta",
+          "delay language: eta, was the 29th, now",
           "dates: 'the 29th' = 2027-03-29, 'Thu 1 April.' = 2027-04-01",
           "supplier: 'SUP-03' -> SUP-03",
           "part: '20-inch alloy wheels' -> WHEEL-20",
@@ -61276,7 +61276,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: arrival moved",
+          "delay language: moved, arrival moved",
           "dates: 'next Monday' = 2027-03-15, 'March 19th' = 2027-03-19",
           "shipment: 'SH-0018' -> SH-0018",
           "supplier: 'SUP-07' -> SUP-07",
@@ -65960,7 +65960,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: eta",
+          "delay language: eta, was the 29th, now",
           "dates: 'the 29th' = 2027-03-29, 'April 1st' = 2027-04-01",
           "supplier: 'Cobalt' -> SUP-03",
           "part: '17-inch alloy wheels' -> WHEEL-17",
@@ -74369,7 +74369,7 @@
         "build_start": "2027-02-25",
         "build_end": "2027-03-01",
         "evidence": [
-          "quality language: contaminated, hold lot, contaminated grease",
+          "quality language: contaminated, hold lot, contaminated grease, containment",
           "dates: 'Thu 25 February' = 2027-02-25, 'Mon 1 March.' = 2027-03-01",
           "plant: 'Wacky Wheels Princeton' -> P_IN",
           "part: 'harness A' -> HARN-A",
@@ -88608,7 +88608,7 @@
         "build_start": "2027-03-04",
         "build_end": "2027-03-05",
         "evidence": [
-          "quality language: hold lot, water ingress",
+          "quality language: hold lot, water ingress, containment",
           "dates: 'Thu 4 March' = 2027-03-04, 'the 5th' = 2027-03-05",
           "plant: 'San Antonio' -> P_TX",
           "part: '20-inch all-season tires' -> TIRE-20",
@@ -111926,7 +111926,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: eta",
+          "delay language: eta, was mon 22 march, now",
           "dates: 'Mon 22 March' = 2027-03-22, '3/25' = 2027-03-25",
           "supplier: 'SUP-02' -> SUP-02",
           "part: '17-inch tires' -> TIRE-17",
@@ -124996,7 +124996,7 @@
         "build_start": "2027-02-25",
         "build_end": "2027-03-01",
         "evidence": [
-          "quality language: hold lot, delamination",
+          "quality language: hold lot, delamination, containment",
           "dates: '25 Feb' = 2027-02-25, '1 Mar.' = 2027-03-01",
           "plant: 'Lexington' -> P_KY",
           "part: 'standard wiring harness' -> HARN-A",
@@ -139359,7 +139359,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: eta",
+          "delay language: eta, was the 22nd, now",
           "dates: 'the 22nd' = 2027-03-22, '25 Mar.' = 2027-03-25",
           "supplier: 'Sentinel' -> SUP-17",
           "part: 'brake kits' -> BRAKE-KIT",
@@ -150178,7 +150178,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-29' = 2027-03-29, '2027-03-31' = 2027-03-31",
           "supplier: 'SUP-01' -> SUP-01",
           "part: 'TIRE-16' -> TIRE-16",
@@ -162397,7 +162397,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-15' = 2027-03-15, '2027-03-18' = 2027-03-18",
           "supplier: 'SUP-02' -> SUP-02",
           "part: 'TIRE-20' -> TIRE-20",
@@ -162422,7 +162422,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-15' = 2027-03-15, '2027-03-18' = 2027-03-18",
           "supplier: 'SUP-02' -> SUP-02",
           "part: 'TIRE-17' -> TIRE-17",
@@ -165380,7 +165380,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-15' = 2027-03-15, '2027-03-16' = 2027-03-16",
           "supplier: 'SUP-13' -> SUP-13",
           "part: 'TIRE-17' -> TIRE-17",
@@ -171699,7 +171699,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-29' = 2027-03-29, '2027-04-01' = 2027-04-01",
           "supplier: 'SUP-03' -> SUP-03",
           "part: 'WHEEL-20' -> WHEEL-20",
@@ -174440,7 +174440,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-22' = 2027-03-22, '2027-03-25' = 2027-03-25",
           "supplier: 'SUP-11' -> SUP-11",
           "part: 'CAM-360' -> CAM-360",
@@ -177852,7 +177852,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-29' = 2027-03-29, '2027-04-01' = 2027-04-01",
           "supplier: 'SUP-03' -> SUP-03",
           "part: 'WHEEL-17' -> WHEEL-17",
@@ -183970,7 +183970,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-22' = 2027-03-22, '2027-03-24' = 2027-03-24",
           "supplier: 'SUP-14' -> SUP-14",
           "part: 'WHEEL-20' -> WHEEL-20",
@@ -196780,7 +196780,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-15' = 2027-03-15, '2027-03-19' = 2027-03-19",
           "supplier: 'SUP-04' -> SUP-04",
           "part: 'SEAT-FAB' -> SEAT-FAB",
@@ -202480,7 +202480,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-15' = 2027-03-15, '2027-03-17' = 2027-03-17",
           "supplier: 'SUP-03' -> SUP-03",
           "part: 'WHEEL-16' -> WHEEL-16",
@@ -227446,7 +227446,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: won't show, now quoting",
+          "delay language: quoting, won't show, now quoting",
           "dates: '2027-03-15' = 2027-03-15, '2027-03-16' = 2027-03-16",
           "supplier: 'SUP-17' -> SUP-17",
           "part: 'AIRBAG-MOD' -> AIRBAG-MOD",

@@ -228,7 +228,7 @@
 {"event_id": "T-05", "tool": "crm.assign_loaner", "args": {"customer_order_id": "CO-03033"}, "ok": true}
 {"event_id": "T-05", "tool": "crm.assign_loaner", "args": {"customer_order_id": "CO-03063"}, "ok": true}
 {"event_id": "T-05", "tool": "dealer.notify", "args": {"dealer_id": "D50", "customer_order_ids": ["CO-02921", "CO-03031"], "message": "quanta (SUP-12) will deliver infotainment chip (CHIP-IVI) to Wacky Wheels Greensboro (P_NC) late, blocking builds from 2027-03-15 until 2027-04-01. Shipment SH-0318 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."}, "ok": true}
-{"event_id": "T-06", "tool": "escalate", "args": {"reason": "The message reads like an incident (will now arrive, was due) but is not specific enough to act on: it names SH-9999, which is not in the company records. It is escalated for a human to confirm."}, "ok": true}
+{"event_id": "T-06", "tool": "escalate", "args": {"reason": "The message reads like an incident (was due monday mar 15 and will now, will now arrive, was due) but is not specific enough to act on: it names SH-9999, which is not in the company records. It is escalated for a human to confirm."}, "ok": true}
 {"event_id": "T-07", "tool": "mes.reschedule", "args": {"production_order_id": "PO-0226", "new_date": "2027-03-17"}, "ok": true}
 {"event_id": "T-07", "tool": "mes.reschedule", "args": {"production_order_id": "PO-0227", "new_date": "2027-03-17"}, "ok": true}
 {"event_id": "T-07", "tool": "mes.reschedule", "args": {"production_order_id": "PO-0228", "new_date": "2027-03-18"}, "ok": true}

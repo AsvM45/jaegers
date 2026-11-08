@@ -36,14 +36,16 @@ RUNS = os.path.join(HITACHI, "runs")
 SUITES = [
     {"id": "given", "title": "Given tests", "subtitle": "The 15 events in events.json, graded against docx TC1–TC6",
      "cases": "given_cases.json", "runs": "given"},
-    {"id": "holdout2", "title": "Held-out tests (set 2)", "subtitle": "100 fresh messages, written after the fixes; never tuned on (tests/make_holdout2.py)",
+    {"id": "holdout2", "title": "Held-out tests (set 2)", "subtitle": "190 messages: the original 100 plus two regressions for each miss (tests/make_holdout2.py, tests/make_regression.py)",
      "cases": "holdout2_cases.json", "runs": "holdout2"},
-    {"id": "holdout", "title": "Held-out tests (set 1)", "subtitle": "100 messages; used to diagnose the reader, so no longer blind (tests/make_holdout.py)",
+    {"id": "holdout", "title": "Held-out tests (set 1)", "subtitle": "146 messages: the original 100 plus two regressions for each miss (tests/make_holdout.py, tests/make_regression.py)",
      "cases": "holdout_cases.json", "runs": "holdout"},
     {"id": "generated", "title": "Generated tests", "subtitle": "100 messages: 25 hand-made edge cases + 75 from real records (tests/make_cases.py)",
      "cases": "cases.json", "runs": "tests"},
     {"id": "stress", "title": "Stress tests", "subtitle": "149 messages: 74 normal, 45 edge cases, 30 overload (tests/make_stress.py)",
      "cases": "stress_cases.json", "runs": "stress"},
+    {"id": "accuracy", "title": "Accuracy paraphrases", "subtitle": "23 messages: ordinary wording the reader used to miss, plus noise guards (tests/accuracy_cases.json)",
+     "cases": "accuracy_cases.json", "runs": "accuracy"},
 ]
 
 _cache: dict = {"key": None, "data": None}
@@ -263,6 +265,7 @@ def build() -> dict:
                 "report_md": f"runs/{suite['runs']}/REPORT.md" if os.path.isfile(os.path.join(folder, "REPORT.md")) else None,
                 "cases": items,
             })
+        readers.sort(key=lambda r: r["updated"], reverse=True)
         suites.append({k: suite[k] for k in ("id", "title", "subtitle")} | {"readers": readers})
     return {"suites": suites, "system_prompt": _system_prompt(), "model_eval": model_eval(), "log": run_log(suites)}
 

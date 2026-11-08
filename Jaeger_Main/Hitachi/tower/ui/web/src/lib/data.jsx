@@ -31,8 +31,8 @@ function derive(raw) {
   const suites = raw.reports?.suites || [];
   const suiteById = (id) => suites.find((s) => s.id === id);
   const defaultReader = (suite) => {
-    const ids = suite.readers.map((r) => r.label);
-    return model && ids.includes(model) ? model : ids.includes("rules") ? "rules" : ids[0];
+    const newest = [...suite.readers].sort((a, b) => (b.updated || "").localeCompare(a.updated || ""))[0];
+    return newest?.label;
   };
   let passed = 0, total = 0;
   for (const s of suites) {

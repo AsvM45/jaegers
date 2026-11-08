@@ -23,11 +23,19 @@ from tower.contracts import Incident
 _MARKER = re.compile(r"\((\d+)\)")
 # The same list written without the opening parenthesis: "1) ... 2) ...".
 _MARKER_BARE = re.compile(r"(?:(?<=\s)|^)(\d)\)\s")
+# "1. ... 2. ..." The number has to count from 1, so "March 16. The line" is not a list.
+_MARKER_DOT = re.compile(r"(?:(?<=\s)|^)(\d{1,2})\.\s+")
+# A bullet at the start of the message, after a newline, or after a sentence: "- Lexington... . - Voicemail..."
+# A date range ("March 16 - March 18") has no period in front of the hyphen, so it is not a bullet.
+_BULLET = re.compile(r"(?:(?<=\n)|^|(?<=\.))\s*[-•]\s+(?=[A-Z])")
 # "A) ... B) ..." and "First, ... Second, ...".
 _LETTER = re.compile(r"(?:(?<=\s)|^)([A-D])\)\s")
-_ORDINAL = re.compile(r"(?:(?<=\s)|^)(First|Second|Third),", re.I)
-# A sentence that starts a second, separate item: "Also, ...", "Separately, ...".
-_CONNECTOR = re.compile(r"(?<=[.!?])\s+(?:also|separately|in addition|additionally|and another thing|unrelated)[,:]\s+", re.I)
+_ORDINAL = re.compile(r"(?:(?<=\s)|^)(First|Second|Third)(?:ly)?,", re.I)
+# A sentence that starts a second, separate item: "Also, ...", "Separately, ...", or "Also" after a period.
+_CONNECTOR = re.compile(
+    r"(?<=[.!?;])\s+(?:also|separately|in addition|additionally|and another thing|unrelated)(?:[,:]\s+|\s+)",
+    re.I,
+)
 # Restart wording after an outage ("the line restarts the following working day", "back up
 # Monday", "production resumes on the 22nd"). Dates after it are the restart, not outage days.
 _RESTART = re.compile(r"\b(?:restart\w*|resum\w*|reopen\w*|back (?:on|up|online|running|in operation))\b", re.I)
@@ -53,6 +61,25 @@ _QUALITY = (
     r"porosit\w*", r"checksum", r"water ingress", r"delamination", r"contaminated grease",
     r"undersized fasteners", r"torque spec", r"seal leaks?", r"thread pitch", r"mislabeled",
     r"excess solder", r"brittle plastic", r"intermittent shorts?",
+    # "scrap LOT-0001" / "stop using lot LOT-0001". A bare "scrap" is not enough: a picnic note
+    # can say "scrap the brochure" and name a plant.
+    r"scrap(?:ped|ping)?\s+(?:the\s+)?(?:lot\s+)?lot-\d+",
+    r"lot-\d+\s+is\s+scrap",
+    r"stop using\s+(?:lot\s+)?lot-\d+",
+    r"(?:do not|don't) use\s+(?:lot\s+)?lot-\d+",
+    r"do not install\s+(?:lot\s+)?lot-\d+",
+    r"out of tolerance",
+    r"hold(?:\s+[\w-]+){0,8}\s+for inspection",
+    r"seals?(?:\s+[\w-]+){0,6}\s+leak",
+    r"reject(?:ed)?\s+(?:lot\s+)?lot-\d+",
+    r"lot-\d+\s+is\s+rejected",
+    r"(?:do not|don't) install\s+(?:lot\s+)?lot-\d+",
+    r"(?:do not|don't) build with\s+(?:lot\s+)?lot-\d+",
+    r"containment",
+    r"held for inspection",
+    r"incoming check",
+    r"\bscrapped\b",
+    r"fail(?:ed|s)?\s+(?:\w+\s+){0,2}inspection",
 )
 _OUTAGE = (
     r"outages?", r"power (?:failure|cut|loss|outage)", r"blackout",
@@ -60,7 +87,7 @@ _OUTAGE = (
     r"(?:production|builds?|the line|lines?|assembly|plant|operations?)"
     r"(?:\s+[\w'’-]+){0,5}\s+"
     r"(?:is |are |was |were |has |have |will be )?"
-    r"(?:stopped|halted|suspended|shut down|down|offline|idle|dark|paused|closed)",
+    r"(?:stopped|stops|halted|halts|suspended|shut down|down|offline|idle|dark|paused|closed)",
     r"(?:we're|we are|we'll be|will be|is|are|was|went|going|stays?) (?:dark|down|offline|idle)",
     # "we're losing Princeton for the 16th through the 18th" is the plant, not a parts shortage.
     r"(?:we(?:'re| are)|they(?:'re| are))\s+losing\b",
@@ -68,12 +95,27 @@ _OUTAGE = (
     r"(?:lost|losing|halt\w*|stop\w*|suspend\w*|no) (?:all )?(?:production|builds?|output)",
     _NEG + r" (?:build|produce|run (?:the line|production))",
     r"(?:down|dark|offline) (?:from|on|until|through|for)",
+    # The plant itself is idle, as opposed to "is not down" (an all-clear, handled separately).
+    r"(?:is not|isn't|will not be|won't be|cannot|will not) (?:be )?running\b",
+    r"(?:is not|isn't) producing\b",
+    r"cannot operate", r"will not operate", r"\bhalts?\b",
+    r"will be closed", r"\bcloses\b", r"set to close", r"stay closed", r"remains shut",
+    r"downtime", r"out of service", r"\bidled\b", r"in maintenance", r"into maintenance",
+    r"ceased operations", r"(?:operations?)(?:\s+\w+){0,5}\s+cease",
+    r"(?:production|builds?)(?:\s+\w+){0,5}\s+cancell\w*",
+    r"power is out", r"no power", r"blacked out", r"no assembly", r"goes offline",
+    r"suspended operations", r"will idle", r"\bshuttered\b",
 )
 _DELAY = (
     r"delay\w*", r"late", r"later than", r"behind schedule", r"running behind",
     r"(?:new|revised|updated|adjusted) (?:eta|arrival|delivery|ship) ?(?:date|time)?", r"\beta\b",
-    r"slip\w*", r"\bslid\b", r"push\w* (?:back|out|to)", r"postpon\w*", r"reschedul\w*",
-    r"(?:arrival|delivery|shipment) (?:moved|moves|changed)",
+    r"slip\w*", r"\bslid\b", r"push\w* (?:back|out|to|from)", r"postpon\w*", r"reschedul\w*",
+    r"\bshifted\b", r"\bbumped\b", r"\bdeferred\b", r"put off", r"did(?:n't| not) ship",
+    r"\bpushed\b", r"\brevised\b", r"\bquoted\b", r"\bquoting\b", r"instead of", r"\bmoved\b",
+    r"(?:arrival|delivery|shipment)(?:\s+[\w-]+){0,10}\s+(?:has been |was |is )?moved\b",
+    # "was March 15, now March 18" names both ends without the word "delay".
+    r"\bwas\b[^.]{0,120}\bnow\b",
+    r"\bdue\b[^.]{0,40}\bexpected\b",
     _NEG + r" (?:make it|arriv\w*|land\w*|deliver\w*|ship\w*|show|be there|reach)",
     r"(?:won'?t|will not|does(?:n't| not)|do(?:n't| not))\s+show",
     r"(?:will now|now|instead) (?:arriv\w*|land\w*|ship\w*|deliver\w*|come|com\w*)",
@@ -110,9 +152,24 @@ _HEARSAY = (
 )
 # Non-events: checked before a quality hold, an outage or a delay.
 _NON_EVENT = (r"no delay expected", r"if it goes past", r"drills?")
+# An explicit all-clear. "Is not running" is not one of these: the plant being down is an outage.
+_ALL_CLEAR = (
+    r"not\s+(?:down|shut\s*down|closed|offline|delayed|late)\b",
+    r"no\s+(?:outage|delay|defects?|faults?|cracks?)\b",
+    r"(?:hold|outage|delay)(?:\s+[\w-]+){0,14}\s+(?:is |was |has been )?(?:lifted|released|cancelled|canceled|resolved)",
+    r"cancel\w*\s+(?:the\s+)?(?:[\w-]+\s+){0,6}(?:outage|delay|hold)",
+    r"back on schedule",
+)
+# Cafeteria, tour, and picnic notes name a plant without being about production.
+_CHATTER = re.compile(r"\b(?:cafeteria|lunch line|plant tour|picnic|parking garage)\b", re.I)
+_SEMI = re.compile(r";\s+")
+_AND_NEXT = re.compile(r"\s+and\s+(?=[A-Z])")
+_NEGATED_BEFORE = re.compile(r"\b(?:not|no)\s+$")
+_NEGATED_INSIDE = re.compile(r"\bnot\s+(?:down|closed|offline|shut|delayed|late|halted|stopped)\b")
+_CONTROLS = re.compile(r"[\x00-\x08\x0e-\x1f\x7f]")
 # Labels that bind a delay's dates when both appear, whatever their order.
-_ORIGINAL_ETA = ("original drop", "was due", "due")
-_NEW_ETA = ("new eta", "will now arrive")
+_ORIGINAL_ETA = ("original drop", "was due", "due", "instead of", "in place of", "not")
+_NEW_ETA = ("new eta", "will now arrive", "arrive", "comes", "quoting", "quoted")
 _ZERO_WIDTH = str.maketrans("", "", "\u200b\u200c\u200d\ufeff")
 _DASH = str.maketrans({"\u2013": "-", "\u2014": "-", "\u2212": "-"})
 _UNICODE_SPACE = re.compile(r"[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]+")
@@ -124,6 +181,7 @@ def _prepare(text: str) -> str:
     letters, odd dashes, zero-width characters and broken whitespace are folded into the sentence
     a person would read, so none of them can hide a phrase or open an extra incident."""
     raw = html.unescape(unicodedata.normalize("NFKC", text or ""))
+    raw = _CONTROLS.sub("", raw)
     raw = raw.translate(_ZERO_WIDTH).translate(_DASH)
     raw = _UNICODE_SPACE.sub(" ", raw)
     return _SPACE_RUN.sub(" ", raw).strip()
@@ -147,15 +205,35 @@ def understand(graph, text: str, llm=None, anchor=None) -> list[Incident]:
     return out
 
 
+_ACTIONABLE = ("plant_outage", "supplier_delay", "quality_hold")
+
+
 def _read_connected(section: str, read) -> list[Incident]:
     """Read "<item>. Also, <item>." as two items when both halves are about something; otherwise as
-    one, so a single report whose second sentence starts with "Also" is not cut in two."""
+    one, so a single report whose second sentence starts with "Also" is not cut in two.
+
+    A semicolon splits only when both sides are finished incidents. "Original ETA Mar 22; revised
+    ETA Mar 23" and "suspended; back up on the 24th" stay one item.
+    """
     cut = _CONNECTOR.search(section)
-    if not cut:
+    semi = None if cut else _SEMI.search(section)
+    # "Lexington is down ... and San Antonio is down ..." is two outages. Other "and" joins stay one item.
+    and_cut = _AND_NEXT.search(section)
+    if and_cut and not cut and not semi:
+        parts = [section[:and_cut.start()].strip(), section[and_cut.end():].strip()]
+        readings = [read(part) for part in parts if part]
+        if len(readings) == 2 and all(item.kind == "plant_outage" for item in readings):
+            return readings
+    if not cut and not semi:
         return [read(section)]
-    parts = [section[:cut.start()].strip(), section[cut.end():].strip()]
+    mark = cut or semi
+    parts = [section[:mark.start()].strip(), section[mark.end():].strip()]
     parts[1] = parts[1][:1].upper() + parts[1][1:]
     readings = [read(part) for part in parts if part]
+    if semi:
+        if len(readings) == 2 and all(item.kind in _ACTIONABLE for item in readings):
+            return readings
+        return [read(section)]
     if len(readings) == 2 and all(r.kind != "noise" for r in readings):
         return readings
     # One half is chatter ("Stock markets closed higher. Also, <outage>"). Keep that half so a
@@ -544,15 +622,14 @@ def _chunks(text: str, marks: list) -> list[str]:
 def _sections(text: str) -> list[str]:
     """Parts of a compound message, or the whole text when it is not a list.
 
-    Recognized lists: "(1) ... (2) ...", "1) ... 2) ...", "A) ... B) ...", and
-    "First, ... Second, ...". A single marker is not a list.
+    Recognized lists: "(1) ... (2) ...", "1) ... 2) ...", "1. ... 2. ...",
+    "A) ... B) ...", "First, ... Second, ...", and bullets. A single marker is not a list.
     """
     marks = list(_MARKER.finditer(text))
     if len(marks) < 2:
-        bare = list(_MARKER_BARE.finditer(text))
-        # Only a real list: the markers count up 1, 2, ...
-        if len(bare) >= 2 and [int(m.group(1)) for m in bare] == list(range(1, len(bare) + 1)):
-            marks = bare
+        marks = _numbered(_MARKER_BARE, text)
+    if len(marks) < 2:
+        marks = _numbered(_MARKER_DOT, text)
     if len(marks) < 2:
         letters = list(_LETTER.finditer(text))
         got = [m.group(1).upper() for m in letters]
@@ -564,19 +641,64 @@ def _sections(text: str) -> list[str]:
         if len(names) >= 2 and names == ["first", "second", "third"][: len(names)]:
             marks = ordinals
     if len(marks) < 2:
+        bullets = list(_BULLET.finditer(text))
+        if len(bullets) >= 2:
+            marks = bullets
+    if len(marks) < 2:
         return [text]
     return _chunks(text, marks)
+
+
+def _numbered(pattern, text: str) -> list:
+    """Markers whose numbers are exactly 1, 2, 3, ... otherwise not a list."""
+    marks = []
+    for mark in pattern.finditer(text):
+        # "March 18." is a date, not item 18 of a list.
+        before = text[max(0, mark.start() - 16): mark.start()]
+        if re.search(r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*$", before, re.I):
+            continue
+        marks.append(mark)
+    nums = [int(m.group(1)) for m in marks]
+    if len(marks) >= 2 and nums == list(range(1, len(marks) + 1)):
+        return marks
+    return []
+
+
+def _plant_is_subject(section: str, plant) -> bool:
+    """False when the plant is only a place: 'the cafeteria at Lexington is closed'."""
+    if plant is None:
+        return False
+    before = section[max(0, plant.start - 24): plant.start]
+    return re.search(r"\b(?:at|in|near|inside|by)\s+$", before, re.I) is None
 
 
 def _name_closed(section: str, plant) -> bool:
     """True when 'closed' follows the plant name ('Lexington closed', 'San Antonio plant closed').
 
     'Markets closed' does not: the word has to sit next to the resolved plant.
+    'The cafeteria at Lexington is closed' does not either: Lexington is the place, not the subject.
     """
-    if plant is None:
+    if not _plant_is_subject(section, plant):
         return False
-    tail = section[plant.end: plant.end + 40]
-    return re.match(r"(?:\W+(?:plant|line))?\W+closed\b", tail, re.I) is not None
+    tail = section[plant.end: plant.end + 48]
+    # "Lexington closed", "Lexington plant closed", and "Lexington is closed".
+    return re.match(
+        r"(?:\W+(?:plant|line))?\W+(?:(?:is|are|was|were|stays?|remains?|will be|will stay)\W+)?(?:closed|shut)\b",
+        tail,
+        re.I,
+    ) is not None
+
+
+def _plant_will_not_run(section: str, plant) -> bool:
+    """True when the plant itself 'will not run' ('San Antonio will not run', 'the plant will not run')."""
+    if not _plant_is_subject(section, plant):
+        return False
+    tail = section[plant.end: plant.end + 48]
+    return re.match(
+        r"(?:\W+(?:plant|line))?\W+(?:will not|won't|cannot|can't|can not)\W+run\b",
+        tail,
+        re.I,
+    ) is not None
 
 
 # The rule reader. Kinds are tried in priority order; each needs its keywords AND the fields to
@@ -590,9 +712,9 @@ def _read_section(graph, section: str, anchor=None) -> Incident:
     mentions = graph.resolve_mentions(section)
     dates, restart_notes = _operational_dates(section, anchor)
     folded = _fold(section)
-    quality_hits = _hits(section, _QUALITY, folded)
-    outage_hits = _hits(section, _OUTAGE, folded)
-    delay_hits = _hits(section, _DELAY, folded)
+    quality_hits = _hits(section, _QUALITY, folded, drop_negated=True)
+    outage_hits = _hits(section, _OUTAGE, folded, drop_negated=True)
+    delay_hits = _hits(section, _DELAY, folded, drop_negated=True)
     rumor_hits = _hits(section, _RUMOR, folded)
     # For each entity type: (first mention, its aliases, other ids of that type).
     picked = {kind: _pick(mentions, kind) for kind in ("plant", "part", "lot", "supplier", "shipment")}
@@ -602,9 +724,12 @@ def _read_section(graph, section: str, anchor=None) -> Incident:
     lot = picked["lot"][0]
     supplier = picked["supplier"][0]
     shipment = picked["shipment"][0]
-    # "Lexington closed 16 Mar" names no outage verb; the plant name itself is the subject.
+    # "Lexington closed 16 Mar" and "the San Antonio plant will not run" name the plant
+    # as the subject. The verb has to follow that name, so "the tour will not run at San Antonio" does not.
     if _name_closed(section, plant):
         outage_hits = [*outage_hits, "closed"]
+    if _plant_will_not_run(section, plant):
+        outage_hits = [*outage_hits, "will not run"]
 
     # Hearsay first: a fully specified sentence that is still a rumor is escalated, never acted on.
     hearsay = _hits(section, _HEARSAY, folded)
@@ -612,6 +737,12 @@ def _read_section(graph, section: str, anchor=None) -> Incident:
         return _unconfirmed(section, picked, dates, hearsay, inverted=False)
     # Non-events ("no delay expected", "if it goes past", a fire drill) write nothing.
     if _hits(section, _NON_EVENT, folded):
+        return _noise(section, picked, [], [], [])
+    # "Not down" and "the hold is lifted" are all-clears. A cafeteria or a plant tour is not production.
+    lot_known_early = lot is not None and lot.entity_id in graph.lots
+    if _CHATTER.search(section) and not lot_known_early:
+        return _noise(section, picked, [], [], [])
+    if _hits(section, _ALL_CLEAR, folded):
         return _noise(section, picked, [], [], [])
     # A date that is not a real day ("March 32") leaves the window unknown: escalate, never guess.
     bad_dates = impossible_dates(section)
@@ -780,8 +911,17 @@ def _delay(graph, picked, dates, hits) -> Incident:
         )
     elif mentioned is not None:
         evidence.append(f"shipment {mentioned.entity_id} is not in the shipment table")
-    elif supplier_id and part_id and plant_id:
+    elif part_id and plant_id:
         found = graph.find_shipments(supplier_id, part_id, plant_id, eta=blocked_from)
+        if supplier_id is None:
+            suppliers = {row["supplier_id"] for row in found}
+            if len(suppliers) == 1:
+                supplier_id = next(iter(suppliers))
+                evidence.append(
+                    f"supplier {supplier_id} is the only one shipping {part_id} to {plant_id} on {blocked_from}"
+                )
+            else:
+                found = []
         found_ids = [row["shipment_id"] for row in found]
         if len(found) == 1:
             shipment_id = found_ids[0]
@@ -946,6 +1086,18 @@ def _bind_labeled_etas(section: str, dates: list[dict]) -> list[dict]:
     """
     if len(dates) < 2:
         return dates
+    # "was March 15 ... yesterday ... now March 18": the date after "was" is the original,
+    # the date after "now" is the new one. A date in between is not the window.
+    was = re.search(r"\bwas\b", section, re.I)
+    if was:
+        now = re.search(r"\bnow\b", section[was.end(): was.end() + 120], re.I)
+        if now:
+            now_at = was.end() + now.end()
+            original_was = next((item for item in dates if was.end() <= item["start"] < was.end() + now.start()), None)
+            revised_now = next((item for item in dates if item["start"] >= now_at), None)
+            if original_was is not None and revised_now is not None and original_was is not revised_now:
+                rest = [item for item in dates if item is not original_was and item is not revised_now]
+                return [original_was, revised_now, *rest]
     original = _date_after(dates, _label_ends(section, _ORIGINAL_ETA))
     revised = _date_after(dates, _label_ends(section, _NEW_ETA))
     if original is None or revised is None or original is revised:
@@ -1033,7 +1185,7 @@ def _fold(text: str) -> str:
 _COMPILED_HITS: dict[tuple[str, ...], tuple[re.Pattern, ...]] = {}
 
 
-def _hits(text: str, patterns: tuple[str, ...], folded: str | None = None) -> list[str]:
+def _hits(text: str, patterns: tuple[str, ...], folded: str | None = None, drop_negated: bool = False) -> list[str]:
     """The words in text that match any pattern, as whole words, in reading order, each once.
     The matched words are quoted in the evidence, so the trace shows what was actually read.
     `folded` is _fold(text) when the caller already has it; the patterns are compiled once."""
@@ -1046,6 +1198,10 @@ def _hits(text: str, patterns: tuple[str, ...], folded: str | None = None) -> li
     found = []
     for pattern in compiled:
         for m in pattern.finditer(folded):
+            if drop_negated:
+                before = folded[max(0, m.start() - 16): m.start()]
+                if _NEGATED_BEFORE.search(before) or _NEGATED_INSIDE.search(m.group(0)):
+                    continue
             if m.group(0) not in found:
                 found.append(m.group(0))
     return found

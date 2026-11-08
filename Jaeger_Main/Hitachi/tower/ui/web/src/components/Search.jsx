@@ -20,7 +20,7 @@ function useResults(q) {
     // One row per case per test set, from the set's first reader (the case text is the same for every reader).
     const cases = [];
     for (const s of d.reports?.suites || []) {
-      const r = s.readers[0];
+      const r = [...s.readers].sort((a, b) => (b.updated || "").localeCompare(a.updated || ""))[0];
       for (const c of r?.cases || []) if (hit(`${c.id} ${c.text}`)) cases.push({
         key: `c:${s.id}:${c.id}`, kind: "case", id: c.id, text: c.text, tag: c.category, set: s.title,
         href: `#/tests/${s.id}/${r.id}/${encodeURIComponent(c.id)}`, reader: readerName(r.id), pass: c.verdict === "PASS",

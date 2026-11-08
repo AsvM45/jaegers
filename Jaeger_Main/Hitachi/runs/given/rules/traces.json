@@ -23,7 +23,6 @@
         "evidence": [
           "outage language: outage, we're dark, dark from",
           "dates: 'next Friday' = 2027-03-19, 'Monday Mar 22' = 2027-03-22",
-          "ignored trailing wording 'restarts'; it is not an extra outage day",
           "plant: 'San Antonio' -> P_TX"
         ],
         "reader": "rules",
@@ -7543,7 +7542,6 @@
         "evidence": [
           "outage language: outage, we're dark, dark from",
           "dates: 'next Tuesday' = 2027-03-16, 'next Thursday' = 2027-03-18",
-          "ignored trailing wording 'restarts'; it is not an extra outage day",
           "plant: 'The Kentucky plant' -> P_KY"
         ],
         "reader": "rules",
@@ -14125,7 +14123,6 @@
         "evidence": [
           "outage language: power failure, we're dark, dark from",
           "dates: 'Friday Mar 26' = 2027-03-26, 'Tuesday Mar 30' = 2027-03-30",
-          "ignored trailing wording 'restarts'; it is not an extra outage day",
           "plant: 'Jackson' -> P_MS"
         ],
         "reader": "rules",
@@ -16179,7 +16176,7 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: delayed, will now arrive, was due",
+          "delay language: delayed, was due 2027-03-15 and will now, will now arrive, was due",
           "dates: '2027-03-15' = 2027-03-15, '2027-03-18' = 2027-03-18",
           "shipment: 'SH-0182' -> SH-0182",
           "supplier: 'orbit' -> SUP-11",

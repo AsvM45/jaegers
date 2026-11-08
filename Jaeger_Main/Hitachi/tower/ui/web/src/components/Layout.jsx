@@ -48,7 +48,7 @@ function LiveChip() {
 }
 
 // title, and either a trail ([[label, href|null], ...]) or a subtitle (node) under it.
-export function Topbar({ title, trail, subtitle }) {
+export function Topbar({ title, trail, subtitle, showRefresh = true }) {
   const d = useData();
   const { ui, set, toast } = useUi();
   const q = useRef(null);
@@ -91,9 +91,11 @@ export function Topbar({ title, trail, subtitle }) {
       <div className="tb-right">
         <LiveChip />
         <Search ref={q} />
-        <button className={`icon-btn${d.busy ? " busy" : ""}`} title="Reload the run and test results" onClick={refresh}>
-          <Icon name="refresh" /><span>Refresh</span>
-        </button>
+        {showRefresh && (
+          <button className={`icon-btn${d.busy ? " busy" : ""}`} title="Reload the run and test results" onClick={refresh}>
+            <Icon name="refresh" /><span>Refresh</span>
+          </button>
+        )}
       </div>
     </header>
   );

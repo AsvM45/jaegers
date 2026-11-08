@@ -6,6 +6,7 @@
     python start.py --model-test   # also score the LLM reader on its own (held-out + given, ~6 min)
     python start.py --no-browser   # don't open a browser tab
     python start.py --port 9000
+    cd desktop && npm start        # the same dashboard in an Electron window
 
 Works from any directory. Steps, in order:
 
@@ -131,12 +132,14 @@ def main() -> None:
                                                 "--overwrite"]),
             ("Given tests (docx TC1–TC6)", ["tests/run_given.py", "--reader", test_reader]),
             ("Generated tests (100 cases)", ["tests/run_cases.py", "--reader", test_reader]),
-            ("Held-out tests, set 1 (100 cases)", ["tests/run_cases.py", "--reader", test_reader,
+            ("Held-out tests, set 1 (146 cases)", ["tests/run_cases.py", "--reader", test_reader,
                                                   "--cases", "tests/holdout_cases.json", "--out", "runs/holdout"]),
-            ("Held-out tests, set 2 (100 cases)", ["tests/run_cases.py", "--reader", test_reader,
+            ("Held-out tests, set 2 (190 cases)", ["tests/run_cases.py", "--reader", test_reader,
                                                   "--cases", "tests/holdout2_cases.json", "--out", "runs/holdout2"]),
             ("Stress tests (149 cases)", ["tests/run_cases.py", "--reader", test_reader,
                                           "--cases", "tests/stress_cases.json", "--out", "runs/stress"]),
+            ("Accuracy paraphrases (23 cases)", ["tests/run_cases.py", "--reader", test_reader,
+                                                 "--cases", "tests/accuracy_cases.json", "--out", "runs/accuracy"]),
             ("Ontology export", ["-m", "tower.ontology"]),
         ]
         if cli.model_test:

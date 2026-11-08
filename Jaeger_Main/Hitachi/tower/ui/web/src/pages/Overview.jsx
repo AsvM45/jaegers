@@ -83,7 +83,7 @@ export default function Overview() {
   </>;
 
   return (
-    <Page title="Overview" subtitle={subtitle}>
+    <Page title="Overview" subtitle={subtitle} showRefresh={false}>
       <div className="grid g4">
         <StatCard label="Events handled" value={traces.length} delta={`${acted} acted on`} trend="up" icon="feed" />
         <StatCard label="Tool calls" value={calls} delta={failed ? `${failed} failed` : "None failed"} trend={failed ? "down" : "up"} icon="bolt" />
