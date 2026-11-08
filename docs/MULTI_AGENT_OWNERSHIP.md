@@ -1,6 +1,8 @@
 # JAEGERS — Current five-agent ownership map
 
-**Deadline update:** team reports **Sunday Nov 8, 2026 at 10:30 AM CT** operational target; original organizer House Edge RULES.md still specifies main Sat 9PM and adaptation Sun 11AM. This is not a verified main-round extension. See [deadline handoff](DEADLINE_1030_HANDOFF.md).\n\n**Single coordination source:** [#18](https://github.com/AsvM45/jaegers/issues/18), latest issue claim comments. **Agent policy:** [AGENT_OPERATING_POLICY](AGENT_OPERATING_POLICY.md); **source context:** [AGENT_CONTEXT](AGENT_CONTEXT.md). Agent claims and actual local worktree trump default reservations below. The shared GitHub login is not an agent identity.
+**Deadline update:** team reports **Sunday Nov 8, 2026 at 10:30 AM CT** operational target; original organizer House Edge RULES.md still specifies main Sat 9PM and adaptation Sun 11AM. This is not a verified main-round extension. See [deadline handoff](DEADLINE_1030_HANDOFF.md).
+
+**Single coordination source:** [#18](https://github.com/AsvM45/jaegers/issues/18), latest issue claim comments. **Agent policy:** [AGENT_OPERATING_POLICY](AGENT_OPERATING_POLICY.md); **source context:** [AGENT_CONTEXT](AGENT_CONTEXT.md). Agent claims and actual local worktree trump default reservations below. The shared GitHub login is not an agent identity.
 
 | Lane / platform | Sole implementation issue set | What is confirmed vs reserved | Owned code boundaries |
 | --- | --- | --- | --- |
