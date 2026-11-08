@@ -77,6 +77,15 @@ def main() -> None:
 
     print("VEHICLE STATUS", Counter(v["status"] for v in graph.vehicles.values()))
     print("TIERS", Counter(c["tier"] for c in graph.customers.values()))
+    export = graph.ontology_export()
+    assert "Shipment" in export["nodes"]
+    assert any(edge[0] == "Lot" for edge in export["edges"])
+    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ontology.json")
+    import json
+    with open(out, "w", encoding="utf-8") as handle:
+        json.dump(export, handle, indent=2)
+        handle.write("\n")
+
     print("TODAY", TODAY.isoformat())
     print("OK")
 

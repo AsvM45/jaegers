@@ -7,7 +7,7 @@ Does not reschedule production or assign loaners.
 from __future__ import annotations
 
 from tower.contracts import Incident, SpecialistResult, ToolCall
-from tower.graph import WorldGraph
+from tower.graph import PATH_KEEP, WorldGraph
 
 
 def plan_quality(graph: WorldGraph, incidents: list[Incident]) -> SpecialistResult:
@@ -58,10 +58,17 @@ def plan_quality(graph: WorldGraph, incidents: list[Incident]) -> SpecialistResu
         affected_ids.extend(lot_ids)
         affected_ids.extend(vehicle["vin"] for vehicle in vehicles)
         # Cite each lot with only its own vehicles. Every selected lot shares the part and plant
-        # (find_lots filtered on both), so the build dates are enough to tell them apart.
+        # (find_lots filtered on both), so the build dates are enough to tell them apart. At most
+        # PATH_KEEP paths are stored per lot; the rest follow the same links and are counted.
         for lot in lots:
             in_lot = [v for v in vehicles if lot["first_build_date"] <= v["build_date"] <= lot["last_build_date"]]
-            graph_paths.extend(graph.quality_paths(lot, in_lot))
+            stored, total = graph.quality_paths(lot, in_lot, limit=PATH_KEEP)
+            graph_paths.extend(stored)
+            if total > len(stored):
+                notes.append(
+                    f"Stored {len(stored)} graph paths for lot {lot['lot_id']}. "
+                    f"{total - len(stored)} further vehicle paths follow the same links and were not stored."
+                )
 
     return SpecialistResult(
         agent="quality",

@@ -17,6 +17,8 @@ Listens on http://127.0.0.1:8080
     GET /api/ontology_export   node and edge types for the ontology diagram
     GET /runs/<...>.md         a Markdown report the test runs wrote (download from the Tests page)
     GET /api/logs[?name=...]   saved start.py output (runs/logs/), list or one file
+    GET /api/domains           the domain map (tower/domains.py): which part of the tower owns which fact
+    GET /api/ontology.mmd      the ontology as a Mermaid diagram (tower/ontology.mmd)
     GET /api/agents            the coordinator and the three specialist agents (role, tools, rules)
     GET /api/test_reports      expected vs actual outcome for every test case, per reader
     GET /api/knowledge_graph?view=network|schema|event&event=E-01[&run=given/rules]
@@ -44,6 +46,7 @@ if HITACHI not in sys.path:
 DASHBOARD = os.path.join(HERE, "dashboard.html")
 ONTOLOGY_JSON = os.path.join(HITACHI, "runs", "ontology", "ontology.json")
 ORB_ROOT = os.path.join(HITACHI, "orb-graph", "public")
+ONTOLOGY_MMD = os.path.join(HITACHI, "tower", "ontology.mmd")
 STATIC_TYPES = {
     ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
     ".css": "text/css; charset=utf-8", ".json": "application/json", ".svg": "image/svg+xml",
@@ -223,6 +226,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self._static(os.path.join(HITACHI, "runs"), urllib.parse.unquote(split.path[len("/runs/"):]))
             if path == "/api/logs":
                 return self._json(logs_payload((query.get("name") or [None])[0]))
+            if path == "/api/domains":
+                from tower.domains import payload as domain_payload
+
+                return self._json(domain_payload())
+            if path == "/api/ontology.mmd":
+                return self._file(ONTOLOGY_MMD, "text/plain; charset=utf-8")
             if path == "/api/agents":
                 from tower.agents.roster import roster
 

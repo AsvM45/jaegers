@@ -4,8 +4,9 @@ day_index 0 (Monday 2027-03-08), and the planning window is the table's first to
 Relative dates follow one rule, checked against the delay sentences in the
 feed: a new ETA has to fall after the original ETA.
 
-"next <weekday>" means that weekday in the next calendar week
-(the week after today's), not the rest of this week.
+Relative dates are measured from an anchor: the day the event was received (event_day), or
+TODAY when there is none. "next <weekday>" means that weekday in the calendar week after the
+anchor's, not the rest of the anchor's week.
 "last <weekday>" means the most recent past occurrence, never today.
 "this <weekday>" means the occurrence in the current week.
 
@@ -61,12 +62,15 @@ _WEEKDAY = (r"(mon(?:day)?|tue(?:s(?:day)?)?|wed(?:nesday)?|thu(?:r(?:s(?:day)?)
 _MONTH = (r"(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|"
           r"sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?")
 _ORD = r"(?:st|nd|rd|th)?"
-_YEAR = r"(?:,?\s+(20\d\d))?"
+# An optional year, but not the start of a following ISO or slash date ("March 24, 2027-03-25").
+_YEAR = r"(?:,?\s+(20\d\d)(?![\d/-]))?"
 _ISO = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")
+# 2027/03/24: year first, so it is never confused with month/day.
+_ISO_SLASH = re.compile(r"\b(\d{4})/(\d{2})/(\d{2})\b")
 _NEXT = re.compile(r"\b(next|last|this|coming)\s+(mon(?:day)?|tue(?:s(?:day)?)?|wed(?:nesday)?|thu(?:r(?:s(?:day)?)?)?"
-                   r"|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b\.?", re.I)
+                   r"|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b", re.I)
 _NAMED = re.compile(r"\b(?:" + _WEEKDAY + r"\s+)?" + _MONTH + r"\s+(\d{1,2})" + _ORD + r"\b" + _YEAR, re.I)
-_DAY_MONTH = re.compile(r"\b(?:" + _WEEKDAY + r"\s+)?(\d{1,2})" + _ORD + r"\s+(?:of\s+)?" + _MONTH + r"(?![a-z])" + _YEAR, re.I)
+_DAY_MONTH = re.compile(r"(?<![\w-])(?:" + _WEEKDAY + r"\s+)?(\d{1,2})" + _ORD + r"\s+(?:of\s+)?" + _MONTH + r"(?![a-z])" + _YEAR, re.I)
 # Not a fraction: "3/4 capacity", "3/4-inch", "1/2 of the lot".
 _SLASH = re.compile(r"\b(?:" + _WEEKDAY + r"\s+)?(\d{1,2})/(\d{1,2})(?:/(\d{2}|\d{4}))?\b(?![/\d])"
                     r"(?!\s*-?\s*(?:inch|in\b|capacity|full|of\b|mile|ton|scale|time))", re.I)
@@ -87,9 +91,20 @@ _BARE = re.compile(r"\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday
 
 
 # Index <-> date. Five working days make one calendar week; weekends are skipped.
+def _date_for_index(i: int) -> date:
+    return TODAY + timedelta(days=7 * (i // 5) + (i % 5))
+
+
+# The feed and the slot board ask for FIRST_IDX..LAST_IDX over and over; compute them once.
+_INDEX_DATES = tuple(_date_for_index(i) for i in range(FIRST_IDX, LAST_IDX + 1))
+
+
 def idx_to_date(i: int) -> date:
     """Match enterprise.py: Mon-Fri only, index 0 is TODAY."""
-    return TODAY + timedelta(days=7 * (i // 5) + (i % 5))
+    slot = i - FIRST_IDX
+    if 0 <= slot < len(_INDEX_DATES):
+        return _INDEX_DATES[slot]
+    return _date_for_index(i)
 
 
 def date_to_idx(d: date) -> int:
@@ -122,23 +137,44 @@ def iso(d: date) -> str:
     return d.isoformat()
 
 
-def _shift_weekday(which: str, name: str) -> date:
-    """Resolve "next/this/last <weekday>" against TODAY, using the rules in the module docstring."""
+def _anchor(anchor: date | None) -> date:
+    """None means TODAY from the calendar table. Callers never read the wall clock."""
+    return TODAY if anchor is None else anchor
+
+
+def event_day(received_at: str | None) -> date:
+    """Working date of an event timestamp ("2027-03-08T07:17:00"). Missing or unreadable is TODAY."""
+    if not received_at:
+        return TODAY
+    text = received_at.strip()
+    if "T" in text:
+        text = text.split("T", 1)[0]
+    elif " " in text:
+        text = text.split(" ", 1)[0]
+    try:
+        return date.fromisoformat(text)
+    except ValueError:
+        return TODAY
+
+
+def _shift_weekday(which: str, name: str, anchor: date | None = None) -> date:
+    """Resolve "next/this/last <weekday>" against the anchor, using the rules in the module docstring."""
+    base = _anchor(anchor)
     target = [w[:3] for w in WEEKDAYS].index(name.lower()[:3])
     which = which.lower()
     # "next X": X in the week that starts next Monday, even if X is still ahead this week.
     if which in ("next", "coming"):
-        next_monday = TODAY + timedelta(days=(7 - TODAY.weekday()))
+        next_monday = base + timedelta(days=(7 - base.weekday()))
         return next_monday + timedelta(days=target)
     # "this X": X in the current Monday-to-Sunday week, past or future.
     if which == "this":
-        this_monday = TODAY - timedelta(days=TODAY.weekday())
+        this_monday = base - timedelta(days=base.weekday())
         return this_monday + timedelta(days=target)
     # "last X": the most recent X strictly before today. On a Monday, "last Monday" is a week ago.
-    delta = (TODAY.weekday() - target) % 7
+    delta = (base.weekday() - target) % 7
     if delta == 0:
         delta = 7
-    return TODAY - timedelta(days=delta)
+    return base - timedelta(days=delta)
 
 
 def _same_weekday(d: date, written: str) -> bool:
@@ -146,7 +182,7 @@ def _same_weekday(d: date, written: str) -> bool:
     return d.strftime("%A").lower()[:3] == written.lower().rstrip(".,")[:3]
 
 
-def _named_date(pattern, m) -> tuple[str | None, date | None]:
+def _named_date(pattern, m, base: date = TODAY) -> tuple[str | None, date | None]:
     """(weekday as written, date) for a _NAMED, _DAY_MONTH or _SLASH match. Messages without a
     year are about the simulation year (today's). None for an impossible date like Feb 30."""
     if pattern is _NAMED:
@@ -155,7 +191,7 @@ def _named_date(pattern, m) -> tuple[str | None, date | None]:
         weekday, day, month, year = m.group(1), int(m.group(2)), MONTHS[m.group(3).lower().rstrip(".")], m.group(4)
     else:
         weekday, month, day, year = m.group(1), int(m.group(2)), int(m.group(3)), m.group(4)
-    y = int(year) if year else TODAY.year
+    y = int(year) if year else base.year
     y = 2000 + y if y < 100 else y
     try:
         return weekday, date(y, month, day)
@@ -163,11 +199,11 @@ def _named_date(pattern, m) -> tuple[str | None, date | None]:
         return weekday, None
 
 
-def _day_only_date(day: int, weekday: str | None, ref: date | None) -> date | None:
+def _day_only_date(day: int, weekday: str | None, ref: date | None, base: date = TODAY) -> date | None:
     """The date a bare day refers to. With an earlier date in the message (ref), the first match on
     or after it, in ref's month or the next ("2/25 through Monday the 1st" is March 1). Without one,
-    today's month in the calendar table. A weekday given with the day must match."""
-    months = [(ref.year, ref.month), ((ref.year + ref.month // 12), ref.month % 12 + 1)] if ref else [(TODAY.year, TODAY.month)]
+    the anchor's month (today's in the calendar table by default). A weekday given with the day must match."""
+    months = [(ref.year, ref.month), ((ref.year + ref.month // 12), ref.month % 12 + 1)] if ref else [(base.year, base.month)]
     for year, month in months:
         try:
             d = date(year, month, day)
@@ -181,20 +217,28 @@ def _day_only_date(day: int, weekday: str | None, ref: date | None) -> date | No
     return None
 
 
-def parse_phrase(phrase: str) -> date | None:
-    """Parse one date phrase. Returns None when the phrase is not a date."""
+def parse_phrase(phrase: str, anchor: date | None = None) -> date | None:
+    """Parse one date phrase. Returns None when the phrase is not a date.
+
+    Relative phrases are measured from `anchor` (None means TODAY).
+    """
+    base = _anchor(anchor)
     text = phrase.strip()
-    m = _ISO.fullmatch(text)
-    if m:
-        return date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    for pattern in (_ISO, _ISO_SLASH):
+        m = pattern.fullmatch(text)
+        if m:
+            try:
+                return date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            except ValueError:
+                return None
     m = _NEXT.fullmatch(text)
     if m:
-        return _shift_weekday(m.group(1), m.group(2))
+        return _shift_weekday(m.group(1), m.group(2), base)
     for pattern in (_NAMED, _DAY_MONTH, _SLASH):
         m = pattern.fullmatch(text)
         if m:
             # A weekday given with the date must agree with the calendar, or the phrase is rejected.
-            weekday, found = _named_date(pattern, m)
+            weekday, found = _named_date(pattern, m, base)
             if found is None:
                 return None
             if weekday and not _same_weekday(found, weekday):
@@ -204,31 +248,60 @@ def parse_phrase(phrase: str) -> date | None:
     if m:
         weekday = m.group(1) if m.re is _DAY_ONLY else None
         day = int(m.group(2) if m.re is _DAY_ONLY else m.group(1))
-        return _day_only_date(day, weekday, None)
+        return _day_only_date(day, weekday, None, base)
     m = _RELDAY.fullmatch(text)
     if m:
-        return TODAY + timedelta(days=_RELDAY_SHIFT[m.group(1).lower()])
+        return base + timedelta(days=_RELDAY_SHIFT[m.group(1).lower()])
     m = _BARE.fullmatch(text)
     if m:
-        return TODAY + timedelta(days=(WEEKDAYS.index(m.group(1).lower()) - TODAY.weekday()) % 7)
+        return base + timedelta(days=(WEEKDAYS.index(m.group(1).lower()) - base.weekday()) % 7)
     return None
+
+
+def impossible_dates(text: str) -> list[str]:
+    """Date-shaped phrases that are not real days ("March 32", "2027-02-30"). extract_dates skips
+    them; a reader that sees one knows the message's window cannot be trusted."""
+    bad = []
+    for pattern in (_ISO, _ISO_SLASH):
+        for m in pattern.finditer(text):
+            try:
+                date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            except ValueError:
+                bad.append(m.group(0))
+    for pattern in (_NAMED, _DAY_MONTH):
+        for m in pattern.finditer(text):
+            if _named_date(pattern, m)[1] is None:
+                bad.append(m.group(0))
+    return bad
 
 
 # Used by both readers: scans text left to right and returns every date phrase with its position.
 # A named date whose weekday does not match the calendar is skipped as a typo.
-def extract_dates(text: str) -> list[dict]:
-    """Dates in reading order. Each item is phrase, iso date, and span."""
+def extract_dates(text: str, anchor: date | None = None) -> list[dict]:
+    """Dates in reading order. Each item is phrase, iso date, and span.
+
+    An impossible day ("March 32", "2027-02-30") is skipped; the caller sees the dates that
+    remain. Relative phrases and dates without a year use `anchor` (None means TODAY).
+    """
+    base = _anchor(anchor)
     found: list[tuple[int, int, str, date]] = []
-    for m in _ISO.finditer(text):
-        found.append((m.start(), m.end(), m.group(0), date(int(m.group(1)), int(m.group(2)), int(m.group(3)))))
+    for pattern in (_ISO, _ISO_SLASH):
+        for m in pattern.finditer(text):
+            try:
+                when = date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            except ValueError:
+                continue
+            if not any(s < m.end() and m.start() < e for s, e, _, _ in found):
+                found.append((m.start(), m.end(), m.group(0), when))
     for m in _NEXT.finditer(text):
-        found.append((m.start(), m.end(), m.group(0), _shift_weekday(m.group(1), m.group(2))))
+        if not any(s < m.end() and m.start() < e for s, e, _, _ in found):
+            found.append((m.start(), m.end(), m.group(0), _shift_weekday(m.group(1), m.group(2), base)))
     for pattern in (_NAMED, _DAY_MONTH, _SLASH):
         for m in pattern.finditer(text):
             # Skip a match that overlaps one already found, e.g. the "Monday" of "next Monday".
             if any(s < m.end() and m.start() < e for s, e, _, _ in found):
                 continue
-            weekday, found_date = _named_date(pattern, m)
+            weekday, found_date = _named_date(pattern, m, base)
             if found_date is None or (weekday and not _same_weekday(found_date, weekday)):
                 continue
             found.append((m.start(), m.end(), m.group(0), found_date))
@@ -249,24 +322,24 @@ def extract_dates(text: str) -> list[dict]:
 
     for m in _RELDAY.finditer(text):
         if _free(m.start(), m.end()):
-            found.append((m.start(), m.end(), m.group(0), TODAY + timedelta(days=_RELDAY_SHIFT[m.group(1).lower()])))
+            found.append((m.start(), m.end(), m.group(0), base + timedelta(days=_RELDAY_SHIFT[m.group(1).lower()])))
     found.sort(key=lambda item: item[0])
     # A day with no month takes its month from the date before it in the message, if any.
     for m in _DAY_ONLY.finditer(text):
         if not _free(m.start(), m.end()):
             continue
         earlier = [item[3] for item in found if item[0] < m.start()]
-        when = _day_only_date(int(m.group(2)), m.group(1), earlier[-1] if earlier else None)
+        when = _day_only_date(int(m.group(2)), m.group(1), earlier[-1] if earlier else None, base)
         if when:
             found.append((m.start(), m.end(), m.group(0), when))
             found.sort(key=lambda item: item[0])
     # A weekday on its own ("this Wednesday and Thursday") is the first such day on or
-    # after the date just before it in the text, or on or after today when there is none.
+    # after the date just before it in the text, or on or after the anchor when there is none.
     for m in _BARE.finditer(text):
         if not _free(m.start(), m.end()):
             continue
         earlier = [item[3] for item in found if item[0] < m.start()]
-        ref = earlier[-1] if earlier else TODAY
+        ref = earlier[-1] if earlier else base
         target = WEEKDAYS.index(m.group(1).lower())
         found.append((m.start(), m.end(), m.group(0), ref + timedelta(days=(target - ref.weekday()) % 7)))
         found.sort(key=lambda item: item[0])
