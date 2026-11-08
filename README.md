@@ -1,13 +1,33 @@
 # JAEGERS — TAMU Datathon 2026
 
-Probabilistic forecasting, experiment engineering, and agentic operations developed for TAMU Datathon 2026. This public repository includes two distinct challenge areas:
+Probabilistic forecasting, experiment engineering, and research infrastructure developed for TAMU Datathon 2026. This public repository includes two distinct challenge areas:
+
+## Featured project: Clairvoyance — See What Can't Be Seen
+
+**Clairvoyance**, our House Edge entry, infers five-class slot-machine payout probabilities from sparse and changing histories. It combines **73 lag-context experts**, a Bayesian posterior over **XOR/XNOR lag rules**, and a **gradient-boosted stacker**, with conditional payout-size estimates.
+
+![Clairvoyance system architecture: offline probabilistic forecasting beside the separate Databricks Medallion research pipeline](docs/architecture/assets/clairvoyance_architecture_overview.png)
+
+**[Live Devpost entry](https://devpost.com/software/high-roller)** · **[Technical architecture](docs/architecture/CLAIRVOYANCE.md)** · **[Editable architecture SVG](docs/architecture/assets/clairvoyance_architecture_overview.svg)** · **[Databricks implementation](Jaeger_Main/House_Edge/databricks/README.md)**
+
+| What we built | Evidence or capability |
+| --- | --- |
+| **Probabilistic inference** | Offline CPU predictor producing `p_0,p_1,p_2,p_5,p_20` from strictly earlier observed ticks |
+| **Structure discovery** | Six XOR/XNOR lag-rule hypotheses plus null, combined with 73 contextual experts |
+| **Main-round validation** | **55.485/60**, team-recorded *public validation*, not an official hidden score |
+| **New-data evaluation** | **18.5/20**, team-reported *local checker scale*, not the organizer's 40-point adaptation allocation |
+| **Databricks research infrastructure** | PySpark + Delta Bronze/Silver/Gold, Unity Catalog, **471 engineered features**, MLflow and SQL analytics; PR [#90](https://github.com/AsvM45/jaegers/pull/90) merged |
+| **Reproducible research** | Grouped evaluations, experiment registry, statistical comparisons, CI and read-only Streamlit dashboard |
+
+**Architecture boundary:** Databricks powers the separate data-engineering and experimentation lane; the competition predictor calls **no cloud service** at inference. Historical stacker pseudo-example as-of compliance remains **NOT_CERTIFIED**, and local scores are not official leaderboard results. The Databricks merge does not independently certify its reported live job runs, MLflow metrics, or Lakeview publication. See [scientific caveats](docs/science/EVALUATION_AND_PROVENANCE.md).
+
 
 | Project | Source | Scope |
 | --- | --- | --- |
 | **House Edge** | [`Jaeger_Main/House_Edge/`](Jaeger_Main/House_Edge/) | Five-class payout-probability forecasting, reproducible statistical evaluation, offline release engineering, research experiments and monitoring |
 | **Hack the Highway / Hitachi** | [`Jaeger_Main/Hitachi/`](Jaeger_Main/Hitachi/) | An independent challenge project. The full `tower/` implementation and adversarial tests currently live on the separate [`hitachi` branch](https://github.com/AsvM45/jaegers/tree/hitachi/Jaeger_Main/Hitachi) |
 
-**Status is evidence-specific.** The House Edge model's approximately **55.12/60 is public development validation**, **not** hidden-test points or an organizer receipt. The separately frozen Linux candidate was tested under a pinned CPU policy. Whether the organizers accepted any entry must be established from an actual receipt; see [release status](docs/CURRENT_STATE.md). The historical pseudo-example feature-compliance witness reports **NOT_CERTIFIED**, not a passing organizer ruling.
+**Submission and evidence:** [Clairvoyance's Devpost entry](https://devpost.com/software/high-roller) is published with a recorded TAMU Datathon submission timestamp. The team reports separate House Edge form submission; the public repository does not contain its private receipt. The **55.485/60** result is main public *development validation*, and **18.5/20** is a team-reported *local new-data evaluation*, not the organizer's official 40-point adaptation result or a hidden leaderboard score. An earlier frozen Linux candidate has separate reproducibility evidence. Historical pseudo-training feature compliance remains **NOT_CERTIFIED**; see [current state](docs/CURRENT_STATE.md) and [architecture evidence](docs/architecture/CLAIRVOYANCE.md).
 
 ## Read first
 
@@ -18,7 +38,8 @@ For an up-to-date synthesized continuity source for new ChatGPT sessions, start 
 | Need | Canonical source |
 | --- | --- |
 | Current evidence, integrated work and unknowns | [Verified status](docs/CURRENT_STATE.md) and [issue #18](https://github.com/AsvM45/jaegers/issues/18) |
-| System architecture and source directories | [Architecture overview](docs/architecture/SYSTEM_OVERVIEW.md) |
+| Clairvoyance model, Databricks and architecture diagram | [Clairvoyance technical architecture](docs/architecture/CLAIRVOYANCE.md) |
+| Monorepo architecture and source directories | [Architecture overview](docs/architecture/SYSTEM_OVERVIEW.md) |
 | Evaluation, calibration and statistical pitfalls | [Scientific validation and provenance](docs/science/EVALUATION_AND_PROVENANCE.md) |
 | Setup, offline tests, packaging and operations | [CI and release runbook](docs/runbooks/CI_AND_RELEASE.md) |
 | AI agents, physical worktrees, GitHub Agents tab | [Agents and worktrees](docs/agents/GITHUB_AGENTS_AND_WORKTREES.md) |

@@ -2,6 +2,11 @@
 
 **Verification anchor:** source tree and merged commit `9eec670c8bd3b1fcdcc67f7d376cbf316dd639a8`, Nov 8 2026. Modules evolve; verify imports and interfaces before implementation. See [current state](../CURRENT_STATE.md) and [House Edge contracts](../../Jaeger_Main/House_Edge/research/CONTRACTS.md).
 
+
+> **Post-submission architecture addendum (Nov 8, 2026):** The visitor-facing [Clairvoyance architecture](CLAIRVOYANCE.md) contains the current model diagram, Databricks Medallion workflow, experiment components, score provenance, and public Devpost link. The source-specific verification anchor below is an older snapshot; **Databricks PR #90 has now merged**, whereas cloud job outcomes reported in that PR are not thereby independently verified. The team's new-data **18.5/20** is on a local reporting scale, not the official 40-point round allocation. Historical stacker pseudo-training as-of compliance remains **NOT_CERTIFIED**.
+
+![Clairvoyance offline and Databricks architecture](assets/clairvoyance_architecture_overview.png)
+
 ## Monorepo boundaries
 
 ```text
@@ -63,7 +68,7 @@ Round-two adaptation uses the **different** data kit, season metadata and query 
 
 ## Sponsors and visibility boundaries
 
-The `databricks/` subtree contains a Bronze/Silver/Gold, Spark-style feature and MLflow proof-of-concept; offline/mock CI tests are not equivalent to actual workspace execution. The `dashboard/` package reads exported trial records without rewriting them. The Hitachi `tower/` component is maintained on a distinct development branch and must be integrated/reviewed separately.
+The `databricks/` subtree now includes the merged [PR #90](https://github.com/AsvM45/jaegers/pull/90) Serverless execution, Delta Medallion, 471-feature Gold, parity and MLflow implementation. The reported six-task job and MLflow run evidence are **PR-author reports**; merge/CI do not independently establish numeric data parity, authentic job outcomes, MLflow metric validity or published Lakeview deployment. The `dashboard/` package reads exported trial records without rewriting them. The Hitachi `tower/` component remains an independent challenge area.
 
 ## Operational ownership
 
@@ -74,8 +79,8 @@ One issue per agent, explicit claim, exclusive writable paths, own physical chec
 
 The complete Nov 7 v7 design and plain-English Drive source were reconciled into the current [experiment-factory technical specification](../research/EXPERIMENT_FACTORY_v7.md) and [human guide](../research/EXPERIMENT_FACTORY_GUIDE.md). Their immutable source texts are retained as historical design evidence in [Drive research origins](../archive/drive/README.md); separate personal educational material is excluded.
 
-**Implemented in main** (inspect code and checks): Python loaders, as-of/episode-grouped feature and evaluation contracts, the local trial registry/worker tooling, challengers, an offline Databricks mock pipeline/SQL and MLflow logging adapters, read-only dashboard, and several path-scoped Actions checks. **Proposed or not proven live:** a generalized condition-constraint compiler for every model family, durable multi-host leasing or budget scheduler, a production Spark Delta deployment with actual MLflow/SQL job evidence, and an organizer acceptance receipt. Do not represent these as completed services.
+**Implemented in main** (inspect code and checks): Python loaders, as-of/episode-grouped feature and evaluation contracts, the local trial registry/worker tooling, challengers, an offline Databricks mock pipeline/SQL and MLflow logging adapters, read-only dashboard, and several path-scoped Actions checks. **Not fully independently certified:** a generalized condition-constraint compiler for every model family, durable multi-host leasing or budget scheduler, author-reported live Spark/MLflow job outcomes, a published Lakeview dashboard, and private organizer submission receipts. Databricks cloud implementation has merged; that is not a scientific provenance audit.
 
 The source design separates **data durability** (immutable CSV/Parquet/Delta source + lineage), **trial scheduling** (atomic unique trial IDs, claims/leases, retries, budgets), **scientific evaluation** (episode-grouped and cutoff-safe metrics), and **presentation** (read-only dashboard/MLflow views). This separation is architectural, not evidence each component is production ready.
 
-The Databricks trial workspace is reported available to the team, but authentic jobs/Delta table readback must still be established through issue [#14](https://github.com/AsvM45/jaegers/issues/14). Main inference must run offline independent of Databricks. 
+Independent workspace metadata checks observed 15 managed Delta tables and one view in `workspace.house_edge`, including a Gold schema with 477 columns (6 metadata + 471 engineered features). This does not itself verify row-level integrity, final scientific metrics or a published Lakeview dashboard. Issue [#14](https://github.com/AsvM45/jaegers/issues/14) and merged [PR #90](https://github.com/AsvM45/jaegers/pull/90) contain the evolving evidence. Main inference must run offline independent of Databricks. 
