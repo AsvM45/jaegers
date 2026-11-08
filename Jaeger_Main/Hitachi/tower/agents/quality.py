@@ -6,8 +6,6 @@ Does not reschedule production or assign loaners.
 
 from __future__ import annotations
 
-from datetime import date
-
 from tower.contracts import Incident, SpecialistResult, ToolCall
 from tower.graph import WorldGraph
 
@@ -22,37 +20,48 @@ def plan_quality(graph: WorldGraph, incidents: list[Incident]) -> SpecialistResu
     for incident in incidents:
         if incident.kind != "quality_hold":
             continue
-        lot, selection = _select_lot(graph, incident)
-        if lot is None:
+        # Step A: decide which lot or lots the message is about.
+        lots, selection = _select_lots(graph, incident)
+        if not lots:
             notes.append(selection)
             continue
 
-        vehicles = sorted(
-            graph.affected_vehicles(
-                lot["plant_id"],
-                lot["part_id"],
-                lot["first_build_date"],
-                lot["last_build_date"],
-            ),
-            key=lambda vehicle: vehicle["vin"],
-        )
+        # Step B: the cars built with them (each lot's plant and build dates, on models whose
+        # bill of materials has the part). A car is counted once even if two lots reach it.
+        # The lot's own dates are used, not the message's: the message only picks the lot, and
+        # the lot record says which builds it actually went into.
+        by_vin: dict[str, dict] = {}
+        for lot in lots:
+            for vehicle in graph.affected_vehicles(
+                lot["plant_id"], lot["part_id"], lot["first_build_date"], lot["last_build_date"]
+            ):
+                by_vin[vehicle["vin"]] = vehicle
+        vehicles = [by_vin[vin] for vin in sorted(by_vin)]
         sold = sum(vehicle["status"] == "sold" for vehicle in vehicles)
         in_stock = sum(vehicle["status"] == "in_stock" for vehicle in vehicles)
         notes.append(f"{selection} {sold} sold, {in_stock} in stock.")
 
-        calls.append(
-            ToolCall(
-                tool="quality.hold_lot",
-                args={"lot_id": lot["lot_id"]},
-                reason=f"Place lot {lot['lot_id']} on quality hold.",
+        # Step C: hold each lot, stop sale of unsold cars (one call per dealer across all lots),
+        # then notify each owner of a sold car once.
+        lot_ids = [lot["lot_id"] for lot in lots]
+        for lot_id in lot_ids:
+            calls.append(
+                ToolCall(
+                    tool="quality.hold_lot",
+                    args={"lot_id": lot_id},
+                    reason=f"Place lot {lot_id} on quality hold.",
+                )
             )
-        )
-        calls.extend(_stop_sale_calls(lot, vehicles))
-        calls.extend(_notify_calls(graph, lot, vehicles))
+        calls.extend(_stop_sale_calls(lot_ids, vehicles))
+        calls.extend(_notify_calls(graph, lots[0]["part_id"], lot_ids, vehicles))
 
-        affected_ids.append(lot["lot_id"])
+        affected_ids.extend(lot_ids)
         affected_ids.extend(vehicle["vin"] for vehicle in vehicles)
-        graph_paths.extend(graph.quality_paths(lot, vehicles))
+        # Cite each lot with only its own vehicles. Every selected lot shares the part and plant
+        # (find_lots filtered on both), so the build dates are enough to tell them apart.
+        for lot in lots:
+            in_lot = [v for v in vehicles if lot["first_build_date"] <= v["build_date"] <= lot["last_build_date"]]
+            graph_paths.extend(graph.quality_paths(lot, in_lot))
 
     return SpecialistResult(
         agent="quality",
@@ -63,16 +72,23 @@ def plan_quality(graph: WorldGraph, incidents: list[Incident]) -> SpecialistResu
     )
 
 
-def _select_lot(graph: WorldGraph, incident: Incident) -> tuple[dict | None, str]:
-    """Use the named lot, otherwise the exact window, then overlap, then lowest lot id."""
+def _select_lots(graph: WorldGraph, incident: Incident) -> tuple[list[dict], str]:
+    """The named lot; otherwise the one lot whose build dates match exactly; otherwise every
+    lot whose build dates overlap the stated window, since each may hold suspect parts.
+
+    Returns (lots, note) or ([], note). The note explains the choice in the trace either way.
+    """
+    # A named lot is used only if it exists. An unknown id never falls back to a window
+    # search, which could hold the wrong lot.
     if incident.lot_id:
         lot = graph.lots.get(incident.lot_id)
         if lot is None:
-            return None, _unmatched_note(incident)
-        return lot, f"Chose lot {lot['lot_id']} because the incident names that lot."
+            return [], _unmatched_note(incident)
+        return [lot], f"Chose lot {lot['lot_id']} because the incident names that lot."
 
+    # Without a lot id, a window search needs part, plant and both dates, or it is too broad.
     if not (incident.part_id and incident.plant_id and incident.build_start and incident.build_end):
-        return None, (
+        return [], (
             "Quality hold is missing a part, plant, or build window, and it names no lot. "
             "No hold was placed."
         )
@@ -85,33 +101,31 @@ def _select_lot(graph: WorldGraph, incident: Incident) -> tuple[dict | None, str
         build_end=incident.build_end,
     )
     if not hits:
-        return None, _unmatched_note(incident)
-
+        return [], _unmatched_note(incident)
     if len(hits) == 1:
-        lot = hits[0]
-        return lot, f"Chose lot {lot['lot_id']}, the only lot matching the incident."
+        return hits, f"Chose lot {hits[0]['lot_id']}, the only lot matching the incident."
 
+    # Several candidates overlap the window. A single lot whose dates match exactly wins.
     exact = [lot for lot in hits if _exact_window(lot, incident)]
     if len(exact) == 1:
         lot = exact[0]
         others = ", ".join(item["lot_id"] for item in hits if item["lot_id"] != lot["lot_id"])
-        return lot, (
+        return exact, (
             f"Chose lot {lot['lot_id']} because its build dates "
             f"{lot['first_build_date']} through {lot['last_build_date']} "
             f"match the incident window exactly, ahead of {others}."
         )
 
-    pool = exact or hits
-    lot, detail = _tie_break(pool, incident)
-    if exact:
-        detail = (
-            f"Several lots share the exact window {incident.build_start} through {incident.build_end}. "
-            + detail
-        )
-    return lot, detail
+    # Still ambiguous: containment errs on the safe side and holds every overlapping lot.
+    listed = ", ".join(lot["lot_id"] for lot in hits)
+    return hits, (
+        f"Held lots {listed}: their build dates overlap the stated window "
+        f"{incident.build_start} through {incident.build_end}, so each may contain suspect parts."
+    )
 
 
 def _exact_window(lot: dict, incident: Incident) -> bool:
+    """The lot's first and last build dates equal the message's window."""
     return bool(
         incident.build_start
         and incident.build_end
@@ -120,48 +134,8 @@ def _exact_window(lot: dict, incident: Incident) -> bool:
     )
 
 
-def _overlap_days(lot: dict, build_start: str, build_end: str) -> int:
-    start = max(lot["first_build_date"], build_start)
-    end = min(lot["last_build_date"], build_end)
-    if start > end:
-        return 0
-    return (date.fromisoformat(end) - date.fromisoformat(start)).days + 1
-
-
-def _tie_break(pool: list[dict], incident: Incident) -> tuple[dict, str]:
-    """Greatest inclusive date overlap, then the lowest lot id."""
-    listed = ", ".join(lot["lot_id"] for lot in sorted(pool, key=lambda item: item["lot_id"]))
-    if incident.build_start and incident.build_end:
-        build_start = incident.build_start
-        build_end = incident.build_end
-        ranked = sorted(
-            pool,
-            key=lambda lot: (-_overlap_days(lot, build_start, build_end), lot["lot_id"]),
-        )
-        lot = ranked[0]
-        days = _overlap_days(lot, build_start, build_end)
-        day_word = "day" if days == 1 else "days"
-        tied = [item for item in ranked if _overlap_days(item, build_start, build_end) == days]
-        if len(tied) > 1:
-            detail = (
-                f"Tie-break among {listed}: {len(tied)} lots share the greatest inclusive overlap "
-                f"of {days} {day_word}; chose {lot['lot_id']}, the lowest lot id."
-            )
-        else:
-            detail = (
-                f"Tie-break among {listed}: chose {lot['lot_id']} "
-                f"with the greatest inclusive overlap ({days} {day_word}), then the lowest lot id."
-            )
-        return lot, detail
-
-    lot = min(pool, key=lambda item: item["lot_id"])
-    return lot, (
-        f"Tie-break among {listed}: the incident has no build window, "
-        f"so chose {lot['lot_id']}, the lowest lot id."
-    )
-
-
 def _unmatched_note(incident: Incident) -> str:
+    """Explain, for the trace, which filters found no lot. The coordinator then escalates."""
     filters = []
     if incident.supplier_id:
         filters.append(f"supplier {incident.supplier_id}")
@@ -180,7 +154,9 @@ def _unmatched_note(incident: Incident) -> str:
     return f"No lot matched {target}. No hold was placed."
 
 
-def _stop_sale_calls(lot: dict, vehicles: list[dict]) -> list[ToolCall]:
+# Group unsold VINs by dealer so each dealer gets a single stop_sale call (fewest calls).
+def _stop_sale_calls(lot_ids: list[str], vehicles: list[dict]) -> list[ToolCall]:
+    label = _lot_label(lot_ids)
     by_dealer: dict[str, list[str]] = {}
     for vehicle in vehicles:
         if vehicle["status"] != "in_stock":
@@ -193,18 +169,17 @@ def _stop_sale_calls(lot: dict, vehicles: list[dict]) -> list[ToolCall]:
             ToolCall(
                 tool="dealer.stop_sale",
                 args={"dealer_id": dealer_id, "vins": vins},
-                reason=(
-                    f"Stop sale of {len(vins)} in-stock vehicle(s) at {dealer_id} "
-                    f"built with lot {lot['lot_id']}."
-                ),
+                reason=f"Stop sale of {len(vins)} in-stock vehicle(s) at {dealer_id} built with {label}.",
             )
         )
     return calls
 
 
-def _notify_calls(graph: WorldGraph, lot: dict, vehicles: list[dict]) -> list[ToolCall]:
-    part_name = graph.parts[lot["part_id"]]["name"]
-    message = f"The {part_name} from lot {lot['lot_id']} is on quality hold."
+# One notice per distinct owner, even if they own several affected cars. All selected lots are
+# the same part, so the first lot's part names it.
+def _notify_calls(graph: WorldGraph, part_id: str, lot_ids: list[str], vehicles: list[dict]) -> list[ToolCall]:
+    label = _lot_label(lot_ids)
+    message = f"The {graph.parts[part_id]['name']} from {label} is on quality hold."
     customer_ids = sorted({
         vehicle["customer_id"]
         for vehicle in vehicles
@@ -214,7 +189,14 @@ def _notify_calls(graph: WorldGraph, lot: dict, vehicles: list[dict]) -> list[To
         ToolCall(
             tool="crm.notify_customer",
             args={"customer_id": customer_id, "message": message},
-            reason=f"Notify customer {customer_id} that lot {lot['lot_id']} is on quality hold.",
+            reason=f"Notify customer {customer_id} that {label} is on quality hold.",
         )
         for customer_id in customer_ids
     ]
+
+
+def _lot_label(lot_ids: list[str]) -> str:
+    """"lot LOT-0130" or "lots LOT-0130, LOT-0131 and LOT-0132", for reasons and messages."""
+    if len(lot_ids) == 1:
+        return f"lot {lot_ids[0]}"
+    return "lots " + ", ".join(lot_ids[:-1]) + " and " + lot_ids[-1]

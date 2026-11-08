@@ -14,6 +14,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> None:
+    """Replay runs/run1 against handbook rules 1-6 and print every mismatch.
+
+    This checks the actions given the reader's incidents. It cannot catch a misread message;
+    tests/run_cases.py checks that against hand-written ground truth.
+    """
     graph = WorldGraph()
     traces = json.loads((ROOT / "runs" / "run1" / "traces.json").read_text(encoding="utf-8"))
     rows_by_event = defaultdict(list)
@@ -24,13 +29,17 @@ def main() -> None:
 
     problems = []
 
+    # Collect every problem instead of stopping at the first, so one run shows them all.
     def add(event_id: str, message: str) -> None:
         problems.append(f"{event_id}: {message}")
 
+    # For each event, recompute the handbook answer from its incidents and compare it with the
+    # logged calls.
     for trace in traces:
         event_id = trace["event_id"]
         rows = rows_by_event[event_id]
         kinds = [incident["kind"] for incident in trace["incidents"]]
+        # Rules 7-8: noise writes nothing; unconfirmed is a single escalate and nothing else.
         if kinds and all(kind == "noise" for kind in kinds):
             if rows:
                 add(event_id, "noise has calls")
@@ -41,6 +50,7 @@ def main() -> None:
                 add(event_id, f"unconfirmed tools {tools}")
             continue
 
+        # Rules 1-3: which production orders must move, and the earliest day each may move to.
         expected: dict[str, int] = {}
         for incident in trace["incidents"]:
             if incident["kind"] == "supplier_delay":
@@ -55,10 +65,12 @@ def main() -> None:
                 )
             else:
                 continue
+            # An order hit by two incidents in one message must clear the later constraint.
             for order in orders:
                 order_id = order["production_order_id"]
                 expected[order_id] = max(expected.get(order_id, 0), earliest)
 
+        # What the log actually did with each order: (kind, new date, target plant or None).
         moved = {}
         for row in rows:
             if row["tool"] == "mes.reschedule":
@@ -79,9 +91,12 @@ def main() -> None:
             new_idx = date_to_idx(date.fromisoformat(info[1]))
             if info[0] == "reschedule" and new_idx < expected[order_id]:
                 add(event_id, f"{order_id} rescheduled to {info[1]} before the constraint")
+            # NOTE: no-op. This compares an order's plant with itself, so it is always False.
+            # A transfer's target plant and date are not audited here yet.
             if info[0] == "reschedule" and graph.orders[order_id]["plant_id"] != graph.orders[order_id]["plant_id"]:
                 pass
 
+        # Rules 4-5: dealer notices and loaners.
         customer_orders = graph.customer_orders_for(expected)
         by_dealer = defaultdict(set)
         for order in customer_orders:
@@ -100,6 +115,8 @@ def main() -> None:
         if len(seen) != len(set(seen)):
             add(event_id, "duplicate dealer notify")
 
+        # Loaners: one per order at most, only Platinum/Gold, never more than the dealer's pool.
+        # Priority order inside the pool is checked in tests/run_cases.py, not here.
         loaners = [row["args"]["customer_order_id"] for row in rows if row["tool"] == "crm.assign_loaner"]
         if len(loaners) != len(set(loaners)):
             add(event_id, "duplicate loaner")
@@ -118,6 +135,8 @@ def main() -> None:
             if count > graph.loaners[dealer_id]:
                 add(event_id, f"loaners {count} exceed pool {graph.loaners[dealer_id]} at {dealer_id}")
 
+        # Rule 6: exactly one hold, stop-sale for every in-stock affected vehicle at its dealer,
+        # and a notice to every owner of a sold one.
         for incident in trace["incidents"]:
             if incident["kind"] != "quality_hold":
                 continue
@@ -158,6 +177,7 @@ def main() -> None:
             if notified != owners:
                 add(event_id, f"owners got {len(notified)} expected {len(owners)}")
 
+        # A quality hold has no reschedules, dealer notices or loaners (rule 6 does not call for them).
         supply = any(kind in ("supplier_delay", "plant_outage") for kind in kinds)
         if not supply and any(row["tool"] in ("dealer.notify", "crm.assign_loaner", "mes.reschedule", "mes.transfer") for row in rows):
             add(event_id, "quality-only event has a supply action")

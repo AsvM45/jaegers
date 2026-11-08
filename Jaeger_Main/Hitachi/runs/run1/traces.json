@@ -21,11 +21,14 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
+          "qwen3:0.6b read 'plant_outage': A plant outage is expected from next Friday through Monday, and the line will restart on the working day.",
+          "model output failed verification (start_date 'next Friday through Monday Mar 22' is not one calendar date); used the rule reader.",
           "outage language: outage, we're dark",
           "dates: 'next Friday' = 2027-03-19, 'Monday Mar 22' = 2027-03-22",
           "ignored trailing wording 'restarts the following working day'; it is not an extra outage day",
           "plant: 'San Antonio' -> P_TX"
-        ]
+        ],
+        "reader": "rules"
       },
       {
         "kind": "supplier_delay",
@@ -42,13 +45,16 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: can't make it, carrier says",
+          "qwen3:0.6b read 'supplier_delay': A supplier says a part shipment will arrive late with an old and a new date.",
+          "delay language: supplier_delay (model)",
           "dates: 'next Monday' = 2027-03-15, 'next Friday' = 2027-03-19",
           "supplier: 'Quanta' -> SUP-12",
           "part: 'infotainment chip' -> CHIP-IVI",
           "plant: 'Princeton' -> P_IN",
-          "find_shipments(SUP-12, CHIP-IVI, P_IN, eta=2027-03-15) returned SH-0190"
-        ]
+          "find_shipments(SUP-12, CHIP-IVI, P_IN, eta=2027-03-15) returned SH-0190",
+          "rule check agrees on every field"
+        ],
+        "reader": "qwen3:0.6b"
       }
     ],
     "results": [
@@ -3595,8 +3601,10 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
+          "qwen3:0.6b read 'unconfirmed': something may be off with a seat material coming up.",
           "rumor language: rumor, nothing confirmed, no dates, may be off"
-        ]
+        ],
+        "reader": "qwen3:0.6b"
       }
     ],
     "results": [],
@@ -3635,12 +3643,15 @@
         "build_start": "2027-02-25",
         "build_end": "2027-03-01",
         "evidence": [
+          "qwen3:0.6b read 'quality_hold': A part or lot is defective for vehicles built in a stated date range.",
+          "model output failed verification (plant 'Kestrel' does not resolve to a known plant); used the rule reader.",
           "quality language: quality alert, faulty, suspect",
           "dates: 'Thursday Feb 25' = 2027-02-25, 'last Monday' = 2027-03-01",
           "plant: 'Jackson' -> P_MS",
           "part: 'infotainment chip' -> CHIP-IVI",
           "supplier: 'Kestrel' -> SUP-06"
-        ]
+        ],
+        "reader": "rules"
       }
     ],
     "results": [
@@ -9187,11 +9198,14 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "outage language: outage, we're dark",
+          "qwen3:0.6b read 'plant_outage': A plant outage is affecting the line.",
+          "outage language: plant_outage (model)",
           "dates: 'next Tuesday' = 2027-03-16, 'next Thursday' = 2027-03-18",
-          "ignored trailing wording 'restarts the following working day'; it is not an extra outage day",
-          "plant: 'The Kentucky plant' -> P_KY"
-        ]
+          "plant: 'The Kentucky plant' -> P_KY",
+          "dropped optional model field: part 'software' does not resolve to a known part; supplier 'Acme' is not in the message",
+          "rule check agrees on every field"
+        ],
+        "reader": "qwen3:0.6b"
       }
     ],
     "results": [
@@ -11514,8 +11528,10 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
+          "qwen3:0.6b read 'noise': Dealer Amarillo, TX asks where to find the new brochure PDF.",
           "no confirmed supplier delay, plant outage, or quality hold"
-        ]
+        ],
+        "reader": "qwen3:0.6b"
       }
     ],
     "results": [],
@@ -11545,8 +11561,10 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
+          "qwen3:0.6b read 'noise': Dealer Little Rock, AR asks where to find the new brochure PDF.",
           "no confirmed supplier delay, plant outage, or quality hold"
-        ]
+        ],
+        "reader": "qwen3:0.6b"
       }
     ],
     "results": [],
@@ -11576,8 +11594,10 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
+          "qwen3:0.6b read 'noise': Dealer Pensacola, FL asks where to find the new brochure PDF.",
           "no confirmed supplier delay, plant outage, or quality hold"
-        ]
+        ],
+        "reader": "qwen3:0.6b"
       }
     ],
     "results": [],
@@ -11607,10 +11627,13 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "outage language: power failure, production is stopped, lost production",
+          "qwen3:0.6b read 'plant_outage': A power failure caused a plant to halt operations from 2027-03-24 through 2027-03-25.",
+          "outage language: plant_outage (model)",
           "dates: '2027-03-24' = 2027-03-24, '2027-03-25' = 2027-03-25",
-          "plant: 'Wacky Wheels Lexington', 'P_KY' -> P_KY"
-        ]
+          "plant: 'Wacky Wheels Lexington' -> P_KY",
+          "rule check agrees on every field"
+        ],
+        "reader": "qwen3:0.6b"
       }
     ],
     "results": [
@@ -13352,13 +13375,16 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
+          "qwen3:0.6b read 'plant_outage': A carrier says a part shipment will arrive with an old and a new date.",
+          "rule check reads 'supplier_delay', which wins: a kind disagreement is never acted on from the model alone.",
           "delay language: can't make it, carrier says",
           "dates: 'Monday Mar 29' = 2027-03-29, 'Thursday Apr 1' = 2027-04-01",
           "supplier: 'Orbit' -> SUP-11",
           "part: 'surround-view cameras' -> CAM-360",
           "plant: 'Huntsville' -> P_AL",
           "find_shipments(SUP-11, CAM-360, P_AL, eta=2027-03-29) returned SH-0256"
-        ]
+        ],
+        "reader": "rules"
       }
     ],
     "results": [
@@ -15180,13 +15206,16 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
+          "qwen3:0.6b read 'unconfirmed': A truck breakdown caused a new ETA for the shipment.",
+          "rule check reads 'supplier_delay', which wins: a kind disagreement is never acted on from the model alone.",
           "delay language: new eta, original drop, waiting on",
           "dates: 'Monday Mar 29' = 2027-03-29, 'Thursday Apr 1' = 2027-04-01",
           "supplier: 'Lumen' -> SUP-18",
           "part: '60 kWh battery packs' -> BATT-60",
           "plant: 'Huntsville' -> P_AL",
           "find_shipments(SUP-18, BATT-60, P_AL, eta=2027-03-29) returned SH-0248"
-        ]
+        ],
+        "reader": "rules"
       }
     ],
     "results": [
@@ -16298,11 +16327,14 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
+          "qwen3:0.6b read 'plant_outage': A power failure caused a line outage.",
+          "model output failed verification (plant 'Friday Mar 26 through Tuesday Mar 30' does not resolve to a known plant); used the rule reader.",
           "outage language: power failure, we're dark",
           "dates: 'Friday Mar 26' = 2027-03-26, 'Tuesday Mar 30' = 2027-03-30",
           "ignored trailing wording 'restarts the following working day'; it is not an extra outage day",
           "plant: 'Jackson' -> P_MS"
-        ]
+        ],
+        "reader": "rules"
       }
     ],
     "results": [
@@ -18690,7 +18722,7 @@
     "incidents": [
       {
         "kind": "supplier_delay",
-        "summary": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA.",
+        "summary": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA.",
         "supplier_id": "SUP-11",
         "part_id": "CAM-360",
         "plant_id": "P_IN",
@@ -18703,14 +18735,18 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
-          "delay language: delayed, will now arrive",
+          "qwen3:0.6b read 'supplier_delay': port congestion",
+          "delay language: supplier_delay (model)",
           "dates: '2027-03-15' = 2027-03-15, '2027-03-18' = 2027-03-18",
           "shipment: 'SH-0182' -> SH-0182",
-          "supplier: 'orbit' -> SUP-11",
-          "part: 'CAM-360', 'surround-view camera kit' -> CAM-360",
-          "plant: 'Wacky Wheels Princeton', 'P_IN' -> P_IN",
-          "text dates 2027-03-15 until 2027-03-18 win over stored ETA 2027-03-15 on SH-0182"
-        ]
+          "part: 'CAM-360' -> CAM-360",
+          "plant: 'Wacky Wheels Princeton' -> P_IN",
+          "filled supplier SUP-11 from shipment SH-0182",
+          "text dates 2027-03-15 until 2027-03-18 win over stored ETA 2027-03-15 on SH-0182",
+          "dropped optional model field: supplier 'Wacky Wheels Co.' is not in the message",
+          "rule check agrees on every field"
+        ],
+        "reader": "qwen3:0.6b"
       }
     ],
     "results": [
@@ -19158,7 +19194,7 @@
               "customer_order_ids": [
                 "CO-01812"
               ],
-              "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+              "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
             },
             "reason": "One notice to D01 for 1 affected customer order.",
             "writes": true
@@ -19179,7 +19215,7 @@
                 "CO-01759",
                 "CO-01811"
               ],
-              "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+              "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
             },
             "reason": "One notice to D02 for 2 affected customer orders.",
             "writes": true
@@ -19193,7 +19229,7 @@
                 "CO-01758",
                 "CO-01781"
               ],
-              "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+              "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
             },
             "reason": "One notice to D06 for 3 affected customer orders.",
             "writes": true
@@ -19213,7 +19249,7 @@
               "customer_order_ids": [
                 "CO-01756"
               ],
-              "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+              "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
             },
             "reason": "One notice to D07 for 1 affected customer order.",
             "writes": true
@@ -19226,7 +19262,7 @@
                 "CO-01761",
                 "CO-01780"
               ],
-              "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+              "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
             },
             "reason": "One notice to D08 for 2 affected customer orders.",
             "writes": true
@@ -19254,7 +19290,7 @@
               "customer_order_ids": [
                 "CO-01762"
               ],
-              "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+              "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
             },
             "reason": "One notice to D14 for 1 affected customer order.",
             "writes": true
@@ -19266,7 +19302,7 @@
               "customer_order_ids": [
                 "CO-01786"
               ],
-              "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+              "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
             },
             "reason": "One notice to D20 for 1 affected customer order.",
             "writes": true
@@ -19287,7 +19323,7 @@
                 "CO-01783",
                 "CO-01808"
               ],
-              "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+              "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
             },
             "reason": "One notice to D21 for 2 affected customer orders.",
             "writes": true
@@ -19316,7 +19352,7 @@
                 "CO-01782",
                 "CO-01789"
               ],
-              "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+              "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
             },
             "reason": "One notice to D25 for 2 affected customer orders.",
             "writes": true
@@ -19328,7 +19364,7 @@
               "customer_order_ids": [
                 "CO-01806"
               ],
-              "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+              "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
             },
             "reason": "One notice to D30 for 1 affected customer order.",
             "writes": true
@@ -19341,7 +19377,7 @@
                 "CO-01784",
                 "CO-01807"
               ],
-              "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+              "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
             },
             "reason": "One notice to D31 for 2 affected customer orders.",
             "writes": true
@@ -19353,7 +19389,7 @@
               "customer_order_ids": [
                 "CO-01813"
               ],
-              "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+              "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
             },
             "reason": "One notice to D42 for 1 affected customer order.",
             "writes": true
@@ -19368,7 +19404,7 @@
                 "CO-01809",
                 "CO-01814"
               ],
-              "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+              "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
             },
             "reason": "One notice to D44 for 4 affected customer orders.",
             "writes": true
@@ -19398,7 +19434,7 @@
                 "CO-01788",
                 "CO-01810"
               ],
-              "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+              "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
             },
             "reason": "One notice to D45 for 3 affected customer orders.",
             "writes": true
@@ -19452,7 +19488,7 @@
           "customer_order_ids": [
             "CO-01812"
           ],
-          "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+          "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
         },
         "reason": "One notice to D01 for 1 affected customer order.",
         "writes": true
@@ -19473,7 +19509,7 @@
             "CO-01759",
             "CO-01811"
           ],
-          "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+          "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
         },
         "reason": "One notice to D02 for 2 affected customer orders.",
         "writes": true
@@ -19487,7 +19523,7 @@
             "CO-01758",
             "CO-01781"
           ],
-          "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+          "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
         },
         "reason": "One notice to D06 for 3 affected customer orders.",
         "writes": true
@@ -19507,7 +19543,7 @@
           "customer_order_ids": [
             "CO-01756"
           ],
-          "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+          "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
         },
         "reason": "One notice to D07 for 1 affected customer order.",
         "writes": true
@@ -19520,7 +19556,7 @@
             "CO-01761",
             "CO-01780"
           ],
-          "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+          "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
         },
         "reason": "One notice to D08 for 2 affected customer orders.",
         "writes": true
@@ -19548,7 +19584,7 @@
           "customer_order_ids": [
             "CO-01762"
           ],
-          "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+          "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
         },
         "reason": "One notice to D14 for 1 affected customer order.",
         "writes": true
@@ -19560,7 +19596,7 @@
           "customer_order_ids": [
             "CO-01786"
           ],
-          "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+          "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
         },
         "reason": "One notice to D20 for 1 affected customer order.",
         "writes": true
@@ -19581,7 +19617,7 @@
             "CO-01783",
             "CO-01808"
           ],
-          "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+          "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
         },
         "reason": "One notice to D21 for 2 affected customer orders.",
         "writes": true
@@ -19610,7 +19646,7 @@
             "CO-01782",
             "CO-01789"
           ],
-          "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+          "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
         },
         "reason": "One notice to D25 for 2 affected customer orders.",
         "writes": true
@@ -19622,7 +19658,7 @@
           "customer_order_ids": [
             "CO-01806"
           ],
-          "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+          "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
         },
         "reason": "One notice to D30 for 1 affected customer order.",
         "writes": true
@@ -19635,7 +19671,7 @@
             "CO-01784",
             "CO-01807"
           ],
-          "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+          "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
         },
         "reason": "One notice to D31 for 2 affected customer orders.",
         "writes": true
@@ -19647,7 +19683,7 @@
           "customer_order_ids": [
             "CO-01813"
           ],
-          "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+          "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
         },
         "reason": "One notice to D42 for 1 affected customer order.",
         "writes": true
@@ -19662,7 +19698,7 @@
             "CO-01809",
             "CO-01814"
           ],
-          "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+          "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
         },
         "reason": "One notice to D44 for 4 affected customer orders.",
         "writes": true
@@ -19692,7 +19728,7 @@
             "CO-01788",
             "CO-01810"
           ],
-          "message": "orbit (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
+          "message": "Orbit Optics (SUP-11) will deliver surround-view camera kit (CAM-360) to Wacky Wheels Princeton (P_IN) late, blocking builds from 2027-03-15 until 2027-03-18. Shipment SH-0182 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."
         },
         "reason": "One notice to D45 for 3 affected customer orders.",
         "writes": true
@@ -19731,8 +19767,10 @@
         "build_start": null,
         "build_end": null,
         "evidence": [
+          "qwen3:0.6b read 'unconfirmed': Someone mentioned a possible shortage of something electronic sometime soon.",
           "rumor language: not confirmed, possible, someone on the floor"
-        ]
+        ],
+        "reader": "qwen3:0.6b"
       }
     ],
     "results": [],
@@ -19771,12 +19809,16 @@
         "build_start": "2027-02-22",
         "build_end": "2027-02-24",
         "evidence": [
-          "quality language: quality alert, contamination, suspect",
+          "qwen3:0.6b read 'quality_hold': A part or lot is defective for vehicles built in a stated date range.",
+          "quality language: quality_hold (model)",
           "dates: 'Monday Feb 22' = 2027-02-22, 'Wednesday Feb 24' = 2027-02-24",
           "plant: 'the Texas plant' -> P_TX",
           "part: 'heavy-duty wiring harness' -> HARN-B",
-          "supplier: 'Atlas' -> SUP-07"
-        ]
+          "supplier: 'Atlas' -> SUP-07",
+          "dropped optional model field: lot_id 'LOT-0001' is not in the message; shipment_id 'SH-0001' is not in the message",
+          "rule check agrees on every field"
+        ],
+        "reader": "qwen3:0.6b"
       }
     ],
     "results": [
@@ -23687,13 +23729,17 @@
         "build_start": "2027-03-02",
         "build_end": "2027-03-03",
         "evidence": [
-          "quality language: quality bulletin, faulty, on hold",
+          "qwen3:0.6b read 'quality_hold': a part or lot is defective for vehicles built in a stated date range.",
+          "quality language: quality_hold (model)",
           "dates: '2027-03-02' = 2027-03-02, '2027-03-03' = 2027-03-03",
           "plant: 'P_IN' -> P_IN",
           "part: 'CHIP-IVI' -> CHIP-IVI",
           "lot: 'LOT-0191' -> LOT-0191",
-          "supplier: 'SUP-12' -> SUP-12"
-        ]
+          "copied supplier SUP-12 from lot LOT-0191",
+          "dropped optional model field: supplier 'Acme' is not in the message",
+          "rule check agrees on every field"
+        ],
+        "reader": "qwen3:0.6b"
       }
     ],
     "results": [

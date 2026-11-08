@@ -13,6 +13,7 @@ from tower.contracts import SpecialistResult, ToolCall
 from tower.graph import WorldGraph
 from tower.schedule import LoanerPools
 
+# Name recorded in the trace, and the tiers rule 5 allows a loaner (Standard never gets one).
 _AGENT = "dealer_customer"
 _LOANER_TIERS = frozenset({"Platinum", "Gold"})
 
@@ -23,7 +24,12 @@ def plan_dealer_customer(
     customer_orders: list[dict],
     reason: str,
 ) -> SpecialistResult:
-    """Plan one dealer.notify per dealer, then loaners until each pool is empty."""
+    """Plan one dealer.notify per dealer, then loaners until each pool is empty.
+
+    pools is shared with every other incident in the same event, so a compound message can
+    never hand out the same loaner twice. reason is the incident summary; it becomes the
+    dealer message text.
+    """
     if not customer_orders:
         return SpecialistResult(
             agent=_AGENT,
@@ -33,6 +39,7 @@ def plan_dealer_customer(
             notes=["No affected customer orders. No dealer notices or loaners."],
         )
 
+    # De-duplicate (a compound event can reach the same order twice), then group by dealer.
     unique: dict[str, dict] = {}
     for order in customer_orders:
         unique.setdefault(order["customer_order_id"], order)
@@ -47,6 +54,7 @@ def plan_dealer_customer(
     skipped = 0
     message = _dealer_message(reason)
 
+    # Rule 4: one notice per dealer listing exactly that dealer's affected orders.
     for dealer_id in sorted(by_dealer):
         dealer_orders = by_dealer[dealer_id]
         order_ids = [order["customer_order_id"] for order in dealer_orders]
@@ -65,6 +73,8 @@ def plan_dealer_customer(
             )
         )
 
+        # Rule 5: loaners for Platinum and Gold only, in priority order, until the dealer's pool
+        # is empty.
         eligible = [
             order
             for order in dealer_orders
@@ -72,6 +82,7 @@ def plan_dealer_customer(
         ]
         eligible.sort(key=lambda order: _loaner_key(graph, order))
         for index, order in enumerate(eligible):
+            # Pool empty: everyone left in the priority list goes without. Count them for the note.
             if not pools.take(dealer_id):
                 skipped += len(eligible) - index
                 break
@@ -98,16 +109,20 @@ def plan_dealer_customer(
 
 
 def _tier(graph: WorldGraph, customer_id: str) -> str:
+    """Customer tier, or "Unknown" for a missing record (never loaner-eligible)."""
     customer = graph.customers.get(customer_id) or {}
     return str(customer.get("tier") or "Unknown")
 
 
+# Sort key: Platinum (0) before Gold (1), then earlier promised date, then lower order id.
 def _loaner_key(graph: WorldGraph, order: dict) -> tuple[int, str, str]:
     platinum_first = 0 if _tier(graph, order["customer_id"]) == "Platinum" else 1
     return (platinum_first, order["promised_date"], order["customer_order_id"])
 
 
 def _path(graph: WorldGraph, order: dict) -> list[str]:
+    """The tail of the graph path (CustomerOrder → Dealer → Customer), with the tier that
+    decided the loaner."""
     tier = _tier(graph, order["customer_id"])
     return [
         f"CustomerOrder {order['customer_order_id']}",
@@ -117,6 +132,8 @@ def _path(graph: WorldGraph, order: dict) -> list[str]:
 
 
 def _dealer_message(reason: str) -> str:
+    """Dealer notice text: the incident summary, cleaned up, plus the loaner policy line."""
+    # Collapse whitespace and newlines from the original message into one sentence.
     text = " ".join(reason.split())
     if text and text[-1] not in ".!?":
         text += "."
@@ -129,10 +146,12 @@ def _dealer_message(reason: str) -> str:
 
 
 def _counted(n: int, one: str, many: str) -> str:
+    """"1 loaner" / "3 loaners"."""
     return f"{n} {one if n == 1 else many}"
 
 
 def _summary(notices: int, loaners: int, skipped: int) -> str:
+    """Plain-English note for the trace."""
     return (
         f"Sent {_counted(notices, 'dealer notice', 'dealer notices')} and assigned "
         f"{_counted(loaners, 'loaner', 'loaners')}. "

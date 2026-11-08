@@ -16,12 +16,16 @@ from tower.agents.understand import understand
 from tower.contracts import EventTrace, ToolCall
 from tower.schedule import LoanerPools, PlantSchedule
 
+# Kinds that change records, and the two that go to the supply planner. Quality holds go to the
+# quality agent; noise and unconfirmed never reach a specialist.
 _REAL = frozenset({"supplier_delay", "plant_outage", "quality_hold"})
 _SUPPLY = frozenset({"supplier_delay", "plant_outage"})
 _GUARDRAIL = (
     "Noise writes nothing; an unconfirmed report is escalate only; "
     "confirmed incidents change only the affected records."
 )
+# Singular/plural wording for the plain-English event summary. Only write tools are listed;
+# reads and escalate are not counted as "completed" work.
 _WRITE_WORDS = {
     "mes.reschedule": ("reschedule", "reschedules"),
     "mes.transfer": ("transfer", "transfers"),
@@ -33,14 +37,22 @@ _WRITE_WORDS = {
 }
 
 
-def handle_event(graph, enterprise, event: dict) -> EventTrace:
-    """Classify one event, plan it, and execute the accepted tool calls."""
-    incidents = understand(graph, event["text"])
+# THE PIPELINE. run.py calls this once per event.
+def handle_event(graph, enterprise, event: dict, llm=None) -> EventTrace:
+    """Classify one event, plan it, and execute the accepted tool calls.
+
+    enterprise is anything with call(event_id, tool, args): Enterprise itself, run._CallLog,
+    or a test fake. llm is an LLMReader, or None for the rule reader only.
+    Specialists only plan. Every call that reaches Enterprise is made here, in _execute.
+    """
+    # Step 1 - understand: read the message into incidents.
+    incidents = understand(graph, event["text"], llm)
     real = [incident for incident in incidents if incident.kind in _REAL]
     classification = "+".join(incident.kind for incident in incidents)
     results = []
     executed: list[tuple[ToolCall, bool]] = []
 
+    # Quiet path: noise -> no calls; unconfirmed -> exactly one escalate to a human.
     if not real:
         if any(incident.kind == "unconfirmed" for incident in incidents):
             reason = " ".join(
@@ -54,6 +66,7 @@ def handle_event(graph, enterprise, event: dict) -> EventTrace:
             )
         summary = _quiet_summary(incidents, escalated=bool(executed))
     else:
+        # Real path. A fresh slot board and loaner pools, shared by every incident in this event.
         schedule = PlantSchedule(graph)
         pools = LoanerPools(graph)
         supply_incidents = [incident for incident in incidents if incident.kind in _SUPPLY]
@@ -62,6 +75,8 @@ def handle_event(graph, enterprise, event: dict) -> EventTrace:
         quality_result = None
         dealer_result = None
 
+        # Steps 2-3 - find impact and plan: each specialist queries the graph and returns planned
+        # calls.
         if supply_incidents:
             supply_result = plan_supply(graph, schedule, supply_incidents)
             results.append(supply_result)
@@ -69,6 +84,8 @@ def handle_event(graph, enterprise, event: dict) -> EventTrace:
             quality_result = plan_quality(graph, quality_incidents)
             results.append(quality_result)
 
+        # Dealer and Customer Care only sees customer orders behind the production orders the
+        # supply planner moved. Quality holds skip it (rule 6 has no dealer notice or loaner).
         orders = []
         if supply_result is not None:
             orders = graph.customer_orders_for(supply_result.affected_ids)
@@ -77,6 +94,8 @@ def handle_event(graph, enterprise, event: dict) -> EventTrace:
             dealer_result = plan_dealer_customer(graph, pools, orders, reason)
             results.append(dealer_result)
 
+        # Step 4 - act, in a fixed order: production moves, then quality, then dealers and
+        # loaners.
         planned: list[ToolCall] = []
         if supply_result is not None:
             planned.extend(supply_result.calls)
@@ -89,8 +108,22 @@ def handle_event(graph, enterprise, event: dict) -> EventTrace:
         for call in planned:
             if _execute(enterprise, event["event_id"], call, executed) and call.writes:
                 successful_writes += 1
+        # Failed calls are not retried: the tools reject only invalid moves (full slot, empty pool),
+        # and retrying the same args would fail the same way and cost efficiency points.
         if successful_writes == 0:
+            # Guardrail: a confirmed incident that changed nothing goes to a human instead of
+            # disappearing.
             reason = _failed_write_reason(real, executed)
+            _execute(
+                enterprise,
+                event["event_id"],
+                ToolCall(tool="escalate", args={"reason": reason}, reason=reason),
+                executed,
+            )
+        # Rule 8 still applies inside a real event: a rumor section goes to a human.
+        rumors = [incident.summary for incident in incidents if incident.kind == "unconfirmed"]
+        if rumors and successful_writes > 0:
+            reason = " ".join(rumors)
             _execute(
                 enterprise,
                 event["event_id"],
@@ -107,6 +140,7 @@ def handle_event(graph, enterprise, event: dict) -> EventTrace:
             successful_writes,
         )
 
+    # Step 5 - record everything the UI and the audit need for this event.
     return EventTrace(
         event_id=event["event_id"],
         source=event["source"],
@@ -133,6 +167,8 @@ def _execute(enterprise, event_id: str, call: ToolCall, executed: list[tuple[Too
 
 
 def _failed_write_reason(real, executed: list[tuple[ToolCall, bool]]) -> str:
+    """Escalation text for a confirmed incident that changed nothing. It says whether writes
+    were tried and rejected, or none were planned at all."""
     summaries = " ".join(incident.summary for incident in real)
     attempted = any(call.writes for call, _ok in executed)
     if attempted:
@@ -149,6 +185,7 @@ def _failed_write_reason(real, executed: list[tuple[ToolCall, bool]]) -> str:
 
 
 def _quiet_summary(incidents, escalated: bool) -> str:
+    """Summary for noise and unconfirmed events: what was read and that nothing was written."""
     said = " ".join(incident.summary for incident in incidents)
     if escalated:
         return (
@@ -163,7 +200,9 @@ def _quiet_summary(incidents, escalated: bool) -> str:
     )
 
 
+# --- Plain-English summary helpers for the trace and UI.
 def _real_summary(graph, incidents, supply_result, quality_result, dealer_result, executed, successful_writes) -> str:
+    """Three sentences for the UI: what was reported, what it touched, what the tower did."""
     headlines = [_headline(graph, incident) for incident in incidents]
     what = "The message reports " + _join(headlines) + "."
     affected = _affected_sentence(supply_result, quality_result, dealer_result)
@@ -172,6 +211,7 @@ def _real_summary(graph, incidents, supply_result, quality_result, dealer_result
 
 
 def _headline(graph, incident) -> str:
+    """One noun phrase per incident, e.g. "a plant outage at Wacky Wheels Lexington (P_KY) ..."."""
     if incident.kind == "plant_outage":
         return (
             f"a plant outage at {_named(graph.plants, incident.plant_id)} "
@@ -197,6 +237,7 @@ def _headline(graph, incident) -> str:
 
 
 def _affected_sentence(supply_result, quality_result, dealer_result) -> str:
+    """Counts of affected records per specialist that ran."""
     bits = []
     if supply_result is not None:
         bits.append(_count(len(supply_result.affected_ids), "production order"))
@@ -210,6 +251,7 @@ def _affected_sentence(supply_result, quality_result, dealer_result) -> str:
 
 
 def _done_sentence(executed: list[tuple[ToolCall, bool]], successful_writes: int) -> str:
+    """Successful writes counted by tool, in first-seen order, plus a count of failed calls."""
     if successful_writes == 0:
         return (
             "No operational write succeeded, so the tower escalated the incident "
@@ -240,6 +282,7 @@ def _done_sentence(executed: list[tuple[ToolCall, bool]], successful_writes: int
 
 
 def _named(table: dict, entity_id: str | None) -> str:
+    """"Name (ID)" when the table has a name, else the bare id."""
     if not entity_id:
         return "an unnamed record"
     row = table.get(entity_id)
@@ -249,11 +292,13 @@ def _named(table: dict, entity_id: str | None) -> str:
 
 
 def _count(n: int, singular: str, plural: str | None = None) -> str:
+    """"1 reschedule" / "3 reschedules"; plural defaults to singular + "s"."""
     word = singular if n == 1 else (plural or singular + "s")
     return f"{n} {word}"
 
 
 def _join(items: list[str]) -> str:
+    """English list: "a", "a and b", "a, b, and c"."""
     if not items:
         return ""
     if len(items) == 1:

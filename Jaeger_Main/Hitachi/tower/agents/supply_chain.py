@@ -28,6 +28,7 @@ _HORIZON = LAST_IDX + 1
 _Slot = tuple[int, str, str]
 
 
+# Called by the coordinator with one event's delay and outage incidents.
 def plan_supply(
     graph: WorldGraph,
     schedule: PlantSchedule,
@@ -36,8 +37,10 @@ def plan_supply(
     """Return reschedule and transfer calls for one event's supply incidents."""
     notes: list[str] = []
     graph_paths: list[list[str]] = []
+    # Affected orders, keyed by id, so an order hit by two incidents is placed only once.
     pending: dict[str, _Slot] = {}
 
+    # Collect every affected order and the earliest day it may run again.
     for incident in incidents:
         if incident.kind == "supplier_delay":
             _take_delay(graph, incident, pending, graph_paths, notes)
@@ -46,6 +49,8 @@ def plan_supply(
 
     calls: list[ToolCall] = []
     # Original build day, then id, so earlier orders take earlier free slots.
+    # Free all affected slots first, then place each order, so the orders can reuse each other's
+    # old days.
     place_order = sorted(pending, key=lambda po_id: (graph.orders[po_id]["idx"], po_id))
     for po_id in place_order:
         schedule.release(po_id)
@@ -76,6 +81,7 @@ def _take_delay(
     graph_paths: list[list[str]],
     notes: list[str],
 ) -> None:
+    """Add a supplier delay's affected orders to pending; earliest day = the new ETA (rule 1)."""
     plant_id = incident.plant_id
     part_id = incident.part_id
     blocked_from = incident.blocked_from
@@ -87,6 +93,8 @@ def _take_delay(
             f"blocked_from={blocked_from!r}, blocked_until={blocked_until!r})."
         )
         return
+    # Both ends must be working days. blocked_from is parsed only to validate it; the new ETA
+    # (blocked_until) is the first day the part is on hand, so it is the earliest rebuild day.
     try:
         date_to_idx(date.fromisoformat(blocked_from))
         earliest = date_to_idx(date.fromisoformat(blocked_until))
@@ -110,6 +118,7 @@ def _take_outage(
     graph_paths: list[list[str]],
     notes: list[str],
 ) -> None:
+    """Add a plant outage's affected orders to pending; earliest day = the restart day (rule 2)."""
     plant_id = incident.plant_id
     outage_start = incident.outage_start
     outage_end = incident.outage_end
@@ -119,6 +128,7 @@ def _take_outage(
             f"(plant_id={plant_id!r}, outage_start={outage_start!r}, outage_end={outage_end!r})."
         )
         return
+    # The restart day is the first working day after the inclusive outage end.
     try:
         date.fromisoformat(outage_start)
         earliest = restart_index(outage_end)
@@ -146,6 +156,7 @@ def _cite_delay(
     graph_paths: list[list[str]],
     notes: list[str],
 ) -> None:
+    """Add the delay's evidence paths. Cite the shipment when it is known, else start at part/plant."""
     customer_orders = graph.customer_orders_for([po["production_order_id"] for po in orders])
     if incident.shipment_id and incident.shipment_id in graph.shipments:
         graph_paths.extend(graph.delay_paths(graph.shipments[incident.shipment_id], orders, customer_orders))
@@ -198,6 +209,7 @@ def _paths_from_part_and_plant(
 
 
 def _reason(kind: str, constraint: str, new_date: str, to_plant: str | None) -> str:
+    """Plain-English reason for one move; to_plant is None for a same-plant reschedule."""
     if kind == "delay":
         why = f"supplier delay blocks this build until the new ETA {constraint}"
     else:
@@ -210,6 +222,9 @@ def _reason(kind: str, constraint: str, new_date: str, to_plant: str | None) -> 
     )
 
 
+# Same plant first: scan from the earliest allowed day to the end of the window. If the home plant
+# is full, look at every other plant that builds the model from day 0 and take the earliest (day,
+# plant id).
 def _place(
     graph: WorldGraph,
     schedule: PlantSchedule,
@@ -220,8 +235,14 @@ def _place(
     calls: list[ToolCall],
     notes: list[str],
 ) -> None:
+    """Book one released order and plan the matching mes.reschedule or mes.transfer call.
+
+    If no plant has room, nothing is planned and a note explains why. The order then stays
+    released in this scratch schedule, but Enterprise still has it on its original day.
+    """
     home = graph.orders[po_id]["plant_id"]
     model = graph.orders[po_id]["model"]
+    # max(..., 0): a constraint already in the past means "any day from today".
     for idx in range(max(earliest, 0), _HORIZON):
         if schedule.free_count(home, idx) > 0:
             schedule.commit(po_id, home, idx)
@@ -233,6 +254,9 @@ def _place(
             ))
             return
 
+    # Transfer search. The constraint does not apply at another plant (see the module docstring),
+    # so each plant is scanned from today. Its first free day is its candidate, and the best
+    # candidate is the earliest day, ties going to the lower plant id (tuple comparison).
     best: tuple[int, str] | None = None
     for plant_id in graph.plants_for_model(model):
         if plant_id == home:

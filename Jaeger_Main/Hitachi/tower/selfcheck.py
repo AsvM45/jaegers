@@ -14,9 +14,11 @@ from tower.graph import WorldGraph
 
 
 def main() -> None:
+    """Run every check and print the evidence. A failed assert names what broke."""
     graph = WorldGraph()
     counts = graph.counts()
     print("COUNTS", counts)
+    # Sanity checks: table sizes, the calendar mapping, date phrases and alias resolution.
     assert counts["plants"] == 6
     assert counts["production_orders"] == 540
     assert counts["vehicles"] == 5348
@@ -29,6 +31,8 @@ def main() -> None:
             assert idx_to_date(idx).isoformat() == row["date"], row
             assert date_to_idx(date.fromisoformat(row["date"])) == idx
 
+    # The relative-date readings locked in PROGRESS.md ("next" means next calendar week), plus
+    # every named-date shape that appears in the 15 events.
     phrases = {
         "next Monday": "2027-03-15",
         "next Friday": "2027-03-19",
@@ -47,11 +51,13 @@ def main() -> None:
         assert got is not None and got.isoformat() == expected, (phrase, got)
     assert parse_phrase("next Monday").isoformat() < parse_phrase("next Friday").isoformat()
 
+    # Printed rather than asserted: shows how a message with repeated phrases is split up.
     sample = extract_dates(
         "We're dark from next Friday through Monday Mar 22. Can't make it next Monday. Carrier says next Friday."
     )
     print("SAMPLE DATES", sample)
 
+    # Spot-check the records the structured events name, so a bad data path fails here first.
     shipment = graph.shipments["SH-0182"]
     assert shipment["part_id"] == "CAM-360"
     assert shipment["plant_id"] == "P_IN"
@@ -60,6 +66,8 @@ def main() -> None:
     lot = graph.lots["LOT-0191"]
     print("LOT-0191", lot)
 
+    # Alias resolution: a nickname (Quanta), a part name, a city, a lot id and a phrase
+    # ("the Texas plant") must all resolve.
     mentions = graph.resolve_mentions(
         "Quanta says the infotainment chip for Princeton is late. Lot LOT-0191 at P_IN. the Texas plant."
     )

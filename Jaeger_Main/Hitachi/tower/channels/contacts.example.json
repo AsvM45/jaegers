@@ -1,0 +1,10 @@
+{
+  "_comment": "Copy to contacts.json (gitignored). The company tables have no email addresses, so per-recipient email goes only to ids listed here. Keys are dealer_id / customer_id; values are one address or a list.",
+  "dealers": {
+    "D01": ["service@lonestar-ww.example"],
+    "D02": "orders@bayou-ww.example"
+  },
+  "customers": {
+    "C0001": "ivy.moore@example.com"
+  }
+}

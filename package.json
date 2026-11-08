@@ -1,0 +1,10 @@
+{
+  "name": "jaegers",
+  "private": true,
+  "description": "Repo-level shortcuts. The web app lives in Jaeger_Main/Hitachi/web.",
+  "scripts": {
+    "start": "npm --prefix Jaeger_Main/Hitachi/web start",
+    "web": "npm --prefix Jaeger_Main/Hitachi/web start",
+    "bundle": "npm --prefix Jaeger_Main/Hitachi/web run bundle"
+  }
+}

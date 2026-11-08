@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
+# The five kinds of message the handbook defines. A compound message becomes several Incidents,
+# one per section.
 IncidentKind = Literal[
     "supplier_delay",
     "plant_outage",
@@ -29,6 +31,7 @@ WRITE_TOOLS = frozenset({
 })
 
 
+# Produced by WorldGraph.resolve_mentions(). start/end are character offsets in the text.
 @dataclass
 class Mention:
     """One entity spotted in event text, resolved through aliases or an id."""
@@ -40,6 +43,7 @@ class Mention:
     end: int
 
 
+# Output of step 1 (understand.py). Each kind fills only the fields it needs; the rest stay None.
 @dataclass
 class Incident:
     """One incident inside an event. A compound message yields several."""
@@ -61,27 +65,42 @@ class Incident:
     build_start: str | None = None
     build_end: str | None = None
     evidence: list[str] = field(default_factory=list)
+    # Who produced this reading: the model name when its output was verified,
+    # or "rules" when the deterministic reader was used.
+    reader: str = "rules"
 
     def to_dict(self) -> dict[str, Any]:
+        """Plain dict for traces.json; every field is already JSON-safe."""
         return asdict(self)
 
 
+# One planned enterprise tool call plus a plain-English reason. Specialists create these; only the
+# coordinator executes them.
 @dataclass
 class ToolCall:
+    """A planned call: tool name and args exactly as POST /act takes them, plus the reason
+    shown in the trace and UI."""
+
     tool: str
     args: dict[str, Any]
     reason: str
 
     @property
     def writes(self) -> bool:
+        """True for calls that change the world. The coordinator counts these to decide
+        whether a confirmed incident did anything, or must be escalated."""
         return self.tool in WRITE_TOOLS
 
     def to_dict(self) -> dict[str, Any]:
         return {"tool": self.tool, "args": self.args, "reason": self.reason, "writes": self.writes}
 
 
+# What a specialist hands back to the coordinator: the affected records, the graph paths that
+# prove it, and its planned calls.
 @dataclass
 class SpecialistResult:
+    """One specialist's answer: affected ids, the graph paths that cite them, and planned calls."""
+
     agent: str
     affected_ids: list[str]
     graph_paths: list[list[str]]
@@ -98,6 +117,7 @@ class SpecialistResult:
         }
 
 
+# One per event. run.py writes the list to runs/run1/traces.json and the UI reads it.
 @dataclass
 class EventTrace:
     """What the control tower shows for one event, and what we keep for audit."""

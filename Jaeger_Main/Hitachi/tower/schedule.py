@@ -13,10 +13,17 @@ from tower.calendar_util import LAST_IDX, date_to_idx, idx_to_date, next_working
 from tower.graph import WorldGraph
 
 
+# A scratch copy of the production calendar for one event: which orders sit in which (plant, day)
+# slot. The supply planner books moves here first, so two incidents in one message cannot take the
+# same slot.
 class PlantSchedule:
+    """Mutable (plant, day) slot board for one event. Mirrors the bookkeeping in enterprise.py."""
+
     def __init__(self, graph: WorldGraph):
         self.graph = graph
         self.capacity = {plant_id: plant["slots_per_day"] for plant_id, plant in graph.plants.items()}
+        # loc: order -> (plant, day index). slots: (plant, day index) -> orders that day. Past
+        # orders (idx < 0) are left out because they cannot move.
         self.loc: dict[str, tuple[str, int]] = {}
         self.slots: dict[tuple[str, int], set[str]] = defaultdict(set)
         for po_id, po in graph.orders.items():
@@ -26,6 +33,7 @@ class PlantSchedule:
             self.slots[(po["plant_id"], po["idx"])].add(po_id)
 
     def free_count(self, plant_id: str, idx: int) -> int:
+        """Open slots at a plant on a working-day index (slots_per_day minus orders booked)."""
         return self.capacity[plant_id] - len(self.slots[(plant_id, idx)])
 
     def release(self, po_id: str) -> None:
@@ -36,20 +44,31 @@ class PlantSchedule:
         self.slots[(plant_id, idx)].discard(po_id)
 
     def commit(self, po_id: str, plant_id: str, idx: int) -> None:
+        """Book an order into a slot. Call release() first; a full day raises instead of overbooking.
+
+        The RuntimeError is a planner bug, not a business condition: the planner checks
+        free_count before committing, so this guard should never fire in a run.
+        """
         if self.free_count(plant_id, idx) <= 0:
             raise RuntimeError(f"no free slot at {plant_id} on {idx_to_date(idx).isoformat()}")
         self.slots[(plant_id, idx)].add(po_id)
         self.loc[po_id] = (plant_id, idx)
 
 
+# Loaners left at each dealer for this event. take() spends one and returns False once the pool is
+# empty.
 class LoanerPools:
+    """Per-event loaner counts, copied from loaners.csv, shared by every incident in the event."""
+
     def __init__(self, graph: WorldGraph):
         self.left = dict(graph.loaners)
 
     def available(self, dealer_id: str) -> int:
+        """Loaners still free at a dealer. A dealer missing from loaners.csv has none."""
         return self.left.get(dealer_id, 0)
 
     def take(self, dealer_id: str) -> bool:
+        """Spend one loaner. Returns False, and changes nothing, when the pool is empty."""
         if self.left.get(dealer_id, 0) <= 0:
             return False
         self.left[dealer_id] -= 1
@@ -64,4 +83,5 @@ def restart_index(outage_end_iso: str) -> int:
 
 
 def window_indexes() -> range:
+    """Every bookable working-day index: today (0) through the end of the window (2027-04-02)."""
     return range(0, LAST_IDX + 1)

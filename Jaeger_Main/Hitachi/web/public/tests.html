@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tower Test Viewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f6f8;--panel:#ffffff;--panel-2:#f3f4f7;--panel-3:#eceef2;--line:#e4e7ec;--line-2:#d6dae1;
+  --text:#14171c;--muted:#5c6573;--faint:#8c94a1;
+  --accent:#4263eb;--accent-soft:#eef1ff;--accent-line:#c5d0ff;
+  --pass:#16884a;--pass-soft:#e6f6ec;--fail:#d6336c;--fail-soft:#fdebf1;--warn:#c27400;--warn-soft:#fff4e0;
+  --edge:#7048e8;--edge-soft:#f1ecff;
+  --t-src:#5b6b8c;--t-part:#3b7ddd;--t-plant:#0c8f8f;--t-po:#2f9e44;--t-co:#e8590c;--t-veh:#c2255c;--t-dealer:#7048e8;--t-cust:#ae3ec9;
+  --wire:#c9ced8;--wire-hi:#4263eb;
+  --font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:12px;--shadow:0 1px 2px rgba(16,24,40,.04),0 2px 8px rgba(16,24,40,.05);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0c0e12;--panel:#14171d;--panel-2:#1b1f27;--panel-3:#222731;--line:#262b35;--line-2:#323845;
+  --text:#e8ebf1;--muted:#9aa3b2;--faint:#687182;
+  --accent:#7d95ff;--accent-soft:#1c2340;--accent-line:#34407a;
+  --pass:#4fcf8a;--pass-soft:#12291c;--fail:#ff6b9a;--fail-soft:#35131f;--warn:#f2a93b;--warn-soft:#33240e;
+  --edge:#a891ff;--edge-soft:#221b3d;
+  --t-src:#8b9bbd;--t-part:#6ea8ff;--t-plant:#3cc7c7;--t-po:#5fd27a;--t-co:#ff9a5c;--t-veh:#ff6b9a;--t-dealer:#a891ff;--t-cust:#d77ef0;
+  --wire:#343a47;--wire-hi:#7d95ff;--shadow:none;}}
+:root[data-theme="dark"]{
+  --bg:#0c0e12;--panel:#14171d;--panel-2:#1b1f27;--panel-3:#222731;--line:#262b35;--line-2:#323845;
+  --text:#e8ebf1;--muted:#9aa3b2;--faint:#687182;
+  --accent:#7d95ff;--accent-soft:#1c2340;--accent-line:#34407a;
+  --pass:#4fcf8a;--pass-soft:#12291c;--fail:#ff6b9a;--fail-soft:#35131f;--warn:#f2a93b;--warn-soft:#33240e;
+  --edge:#a891ff;--edge-soft:#221b3d;
+  --t-src:#8b9bbd;--t-part:#6ea8ff;--t-plant:#3cc7c7;--t-po:#5fd27a;--t-co:#ff9a5c;--t-veh:#ff6b9a;--t-dealer:#a891ff;--t-cust:#d77ef0;
+  --wire:#343a47;--wire-hi:#7d95ff;--shadow:none;}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:14px/1.5 var(--font);-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+.mono{font-family:var(--mono);font-size:12.5px}
+.app{display:grid;grid-template-columns:300px 1fr;height:100vh}
+
+/* sidebar */
+aside{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.brand{padding:18px 18px 4px;display:flex;align-items:center;gap:10px}
+.logo{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--edge));display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px}
+.brand h1{font-size:14px;margin:0;font-weight:650;letter-spacing:-.01em}
+.brand .sub{font-size:12px;color:var(--faint)}
+.ring{display:flex;align-items:center;gap:14px;padding:14px 18px}
+.ring svg{flex:none}
+.ring .big{font-size:22px;font-weight:700;letter-spacing:-.03em}
+.ring .small{font-size:12px;color:var(--muted)}
+.vf{display:flex;gap:6px;padding:0 18px 10px}
+.vf button{flex:1;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:5px 0;font-size:12px;cursor:pointer;color:var(--muted)}
+.vf button.on{border-color:var(--accent-line);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.searchbox{margin:0 18px 10px;position:relative}
+.searchbox input{width:100%;padding:8px 10px 8px 30px;border:1px solid var(--line);border-radius:9px;background:var(--panel-2);outline:none}
+.searchbox input:focus{border-color:var(--accent-line);background:var(--panel)}
+.searchbox span{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:13px}
+.list{overflow:auto;flex:1;padding:4px 10px 16px}
+.grp{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:600;padding:12px 8px 4px}
+.item{display:grid;grid-template-columns:44px 1fr auto;gap:8px;align-items:center;padding:7px 8px;border-radius:8px;cursor:pointer;border:1px solid transparent}
+.item:hover{background:var(--panel-2)}
+.item.sel{background:var(--accent-soft);border-color:var(--accent-line)}
+.item .id{font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--muted)}
+.item.sel .id{color:var(--accent)}
+.item .t{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dots{display:flex;gap:3px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--line-2)}
+.dot.PASS{background:var(--pass)}.dot.FAIL{background:var(--fail)}
+.dot.cur{box-shadow:0 0 0 2px var(--panel),0 0 0 3.5px var(--accent)}
+.foot{border-top:1px solid var(--line);padding:10px 18px;font-size:11.5px;color:var(--faint);display:flex;gap:10px;align-items:center}
+.kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--line-2);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--muted)}
+
+/* main */
+main{display:flex;flex-direction:column;min-width:0;min-height:0}
+.top{display:flex;align-items:center;gap:12px;padding:14px 28px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+.top h2{margin:0;font-size:18px;font-family:var(--mono);letter-spacing:-.02em}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.badge.PASS{background:var(--pass-soft);color:var(--pass)}.badge.FAIL{background:var(--fail-soft);color:var(--fail)}
+.badge.cat{background:var(--panel-2);color:var(--muted);font-weight:500}
+.badge.edge{background:var(--edge-soft);color:var(--edge)}
+.spacer{flex:1}
+.seg{display:inline-flex;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:5px 12px;border-radius:7px;cursor:pointer;color:var(--muted);font-size:12.5px;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.seg button.on{background:var(--panel);color:var(--text);box-shadow:var(--shadow);font-weight:600}
+.iconbtn{border:1px solid var(--line);background:var(--panel);border-radius:9px;width:32px;height:32px;cursor:pointer;color:var(--muted)}
+.tabs{display:flex;gap:4px;padding:0 28px;border-bottom:1px solid var(--line);background:var(--panel)}
+.tabs button{border:0;background:none;padding:11px 12px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;gap:6px;align-items:center}
+.tabs button.on{color:var(--text);border-bottom-color:var(--accent)}
+.tabs .n{font-size:11px;background:var(--panel-2);border-radius:999px;padding:0 7px;color:var(--muted)}
+.content{overflow:auto;flex:1;padding:24px 28px 60px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.card>h3{margin:0;padding:12px 16px;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.card>h3 .c{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:500;color:var(--faint)}
+.body{padding:14px 16px}
+.msg{font-size:15.5px;line-height:1.65;white-space:pre-wrap;margin:0}
+.meta{color:var(--faint);font-size:12.5px;margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.edgebox{background:var(--edge-soft);border-radius:9px;padding:10px 12px;font-size:13px;margin-top:12px}
+.edgebox b{color:var(--edge)}
+.issues{display:flex;flex-direction:column;gap:6px}
+.issue{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border-radius:9px;font-size:13px}
+.issue.f{background:var(--fail-soft)}.issue.w{background:var(--warn-soft)}
+.issue .k{font-weight:700;font-size:10.5px;padding-top:2px;min-width:36px;letter-spacing:.03em}
+.issue.f .k{color:var(--fail)}.issue.w .k{color:var(--warn)}
+.okline{display:flex;gap:8px;align-items:center;color:var(--pass);font-weight:600;font-size:13px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px}
+.stat{background:var(--panel-2);border-radius:10px;padding:10px 12px}
+.stat .n{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.stat .l{font-size:11.5px;color:var(--muted)}
+.stat.alert .n{color:var(--fail)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:600;color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;padding:7px 10px;border-bottom:1px solid var(--line)}
+td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.bad{color:var(--fail);font-weight:600}td.good{color:var(--pass)}
+.sect td{background:var(--panel-2);font-weight:600}
+.schema{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.schema .s{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:9px;padding:5px 9px;font-size:12.5px;background:var(--panel);cursor:pointer}
+.schema .s:hover{border-color:var(--accent-line)}
+.schema .s b{font-weight:700}
+.schema .arr{color:var(--faint)}
+.sw{width:8px;height:8px;border-radius:3px;flex:none}
+.link{color:var(--accent);cursor:pointer;font-weight:500;font-size:13px;background:none;border:0;padding:0}
+.summary{font-size:13.5px;line-height:1.6}
+
+/* reader */
+.inc{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.inc:last-child{margin-bottom:0}
+.inc .h{display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
+.kind{font-weight:650}
+.reader{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+.reader.rules{background:var(--panel-2);color:var(--muted)}
+.kv{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.kv span{font-family:var(--mono);font-size:11.5px;background:var(--panel-2);border-radius:6px;padding:2px 7px}
+.ev{margin:6px 0 0;padding-left:18px;color:var(--muted);font-size:12.5px}
+.ev li{margin:2px 0}
+
+/* actions */
+.toolgrp{border-top:1px solid var(--line)}
+.toolgrp:first-child{border-top:0}
+.toolhead{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;user-select:none}
+.toolhead:hover{background:var(--panel-2)}
+.toolhead .name{font-family:var(--mono);font-size:12.5px;font-weight:600}
+.toolhead .cnt{margin-left:auto;color:var(--muted);font-size:12.5px}
+.caret{color:var(--faint);transition:transform .15s;font-size:10px}
+.toolgrp.open .caret{transform:rotate(90deg)}
+.toolbody{display:none;padding:0 16px 12px;overflow-x:auto}
+.toolgrp.open .toolbody{display:block}
+.pill{display:inline-block;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px}
+.pill.ok{background:var(--pass-soft);color:var(--pass)}.pill.no{background:var(--fail-soft);color:var(--fail)}
+.empty{color:var(--faint);font-size:13px}
+
+/* graph explorer */
+.gx{display:grid;grid-template-columns:1fr 270px;min-height:600px}
+.gx-main{display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--line)}
+.gx-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.gx-bar .searchbox{margin:0;width:220px}
+.focus-chip{display:flex;align-items:center;gap:6px;background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);border-radius:999px;padding:3px 6px 3px 10px;font-size:12px;font-weight:600}
+.focus-chip button{border:0;background:transparent;color:inherit;cursor:pointer;font-size:14px;line-height:1;padding:0 4px}
+.hint{font-size:12px;color:var(--faint)}
+.gx-canvas{position:relative;overflow:auto;flex:1;max-height:68vh;background:
+  radial-gradient(circle,var(--line) 1px,transparent 1px) 0 0/18px 18px;}
+.gx-inner{position:relative}
+.gx-inner svg{position:absolute;inset:0;overflow:visible;pointer-events:none}
+.wire{fill:none;stroke:var(--wire);stroke-width:1.3;transition:stroke .12s,opacity .12s}
+.wire.hi{stroke:var(--wire-hi);stroke-width:2}
+.dimmed .wire:not(.hi){opacity:.18}
+.colhead{position:absolute;top:10px;display:flex;align-items:center;gap:6px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;white-space:nowrap}
+.colhead .cn{color:var(--faint);font-weight:500}
+.gn{position:absolute;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:0 10px 0 12px;border-radius:9px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow);cursor:pointer;transition:opacity .12s,border-color .12s,transform .12s;overflow:hidden}
+.zoom button{padding:3px 9px;min-width:30px;justify-content:center}
+.gn::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c)}
+.gn:hover{border-color:var(--c)}
+.gn .r1{display:flex;align-items:center;gap:6px;min-width:0}
+.gn .nid{font-family:var(--mono);font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gn .nsub{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gn .tg{margin-left:auto;font-size:10px;font-weight:600;padding:0 5px;border-radius:4px;white-space:nowrap;flex:none}
+.tg.move,.tg.loaner{background:var(--pass-soft);color:var(--pass)}
+.tg.transfer{background:var(--warn-soft);color:var(--warn)}
+.tg.notify{background:var(--accent-soft);color:var(--accent)}
+.tg.stop{background:var(--fail-soft);color:var(--fail)}
+.dimmed .gn:not(.hi){opacity:.28}
+.gn.hi{border-color:var(--c)}
+.gn.focus{box-shadow:0 0 0 2px var(--c)}
+.gmore{position:absolute;border:1px dashed var(--line-2);border-radius:9px;background:var(--panel-2);color:var(--muted);font-size:12px;cursor:pointer;display:grid;place-items:center}
+.gmore:hover{border-color:var(--accent-line);color:var(--accent)}
+.gx-side{display:flex;flex-direction:column;min-width:0;max-height:calc(68vh + 52px);overflow:auto}
+.insp{padding:16px}
+.insp .ty{display:flex;align-items:center;gap:6px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.insp h4{margin:4px 0 2px;font-family:var(--mono);font-size:17px;letter-spacing:-.01em}
+.insp .s2{color:var(--muted);font-size:13px;margin-bottom:12px}
+.insp dl{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;margin:0 0 14px;font-size:12.5px}
+.insp dt{color:var(--faint)}
+.insp dd{margin:0;font-weight:500;word-break:break-word}
+.insp .sec{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:600;margin:14px 0 6px}
+.insp .tags{display:flex;flex-wrap:wrap;gap:4px}
+.insp .tags .tg{font-size:11px;padding:2px 7px;border-radius:5px;font-weight:600}
+.reach{display:flex;flex-direction:column;gap:4px}
+.reach div{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.reach b{margin-left:auto;font-weight:600}
+.act{border:1px solid var(--line);border-radius:8px;padding:7px 9px;margin-bottom:6px;font-size:12px}
+.act .an{font-family:var(--mono);font-weight:600;font-size:11.5px;display:flex;gap:6px;align-items:center}
+.act .ar{color:var(--muted);margin-top:2px}
+.legend{display:flex;flex-direction:column;gap:6px}
+.legend div{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.legend b{margin-left:auto}
+.legend .x{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.gnotes{padding:10px 14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+@media (max-width:1100px){.gx{grid-template-columns:1fr}.gx-main{border-right:0;border-bottom:1px solid var(--line)}.gx-side{max-height:none}}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr;height:auto;min-height:100vh}
+  aside{border-right:0;border-bottom:1px solid var(--line);max-height:42vh}
+  .top,.tabs{padding-left:16px;padding-right:16px}.content{padding:16px}
+  .grid2{grid-template-columns:1fr}
+  .tabs{overflow-x:auto}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand"><div class="logo">T</div><div><h1>Control Tower Tests</h1><div class="sub" id="sub"></div></div></div>
+    <div class="ring" id="ring"></div>
+    <div class="vf" id="vf"></div>
+    <div class="searchbox"><span>⌕</span><input id="q" placeholder="Search cases…"></div>
+    <div class="list" id="list"></div>
+    <div class="foot"><span class="kbd">↑</span><span class="kbd">↓</span> cases <span class="kbd">1</span>–<span class="kbd">4</span> tabs <span class="kbd">esc</span> unfocus</div>
+  </aside>
+  <main>
+    <div class="top" id="top"></div>
+    <div class="tabs" id="tabs"></div>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+<script type="application/json" id="data">__DATA__</script>
+<script>
+let D, S;
+const store = {get(k,d){try{return localStorage.getItem('tv2.'+k)??d}catch(e){return d}},set(k,v){try{localStorage.setItem('tv2.'+k,v)}catch(e){}}};
+function initState(){
+S = {run: store.get('run', D.runs[0]?.key), sel: store.get('sel', D.cases[0]?.id), tab: store.get('tab','overview'), verdict:'all', q:'',
+           focus:null, expanded:{}, gq:'', zoom:null, scale:1};
+if(!D.runs.find(r=>r.key===S.run)) S.run = D.runs[0]?.key;
+if(!['overview','graph','actions','reader'].includes(S.tab)) S.tab='overview';
+}
+const $ = id => document.getElementById(id);
+const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const run = () => D.runs.find(r=>r.key===S.run);
+const res = (cid, r=run()) => r?.cases[cid];
+const cur = () => D.cases.find(x=>x.id===S.sel) || D.cases[0];
+const CAT = {supplier_delay:'Supplier delay',plant_outage:'Plant outage',quality_hold:'Quality hold',noise:'Noise',unconfirmed:'Unconfirmed',compound:'Compound'};
+const TYPES = ['Shipment','Lot','Part','Supplier','Model','Plant','ProductionOrder','CustomerOrder','Vehicle','Dealer','Customer'];
+const TNAME = {Shipment:'Shipment',Lot:'Lot',Part:'Part',Supplier:'Supplier',Model:'Model',Plant:'Plant',ProductionOrder:'Production orders',CustomerOrder:'Customer orders',Vehicle:'Vehicles',Dealer:'Dealers',Customer:'Customers'};
+const TSHORT = {ProductionOrder:'Prod. order',CustomerOrder:'Cust. order'};
+const TCOL = {Shipment:'--t-src',Lot:'--t-src',Supplier:'--t-src',Part:'--t-part',Model:'--t-part',Plant:'--t-plant',ProductionOrder:'--t-po',CustomerOrder:'--t-co',Vehicle:'--t-veh',Dealer:'--t-dealer',Customer:'--t-cust'};
+const col = t => `var(${TCOL[t]})`;
+const hasEsc = r => r.calls.some(c=>c.tool==='escalate');
+
+/* ---------- sidebar ---------- */
+function renderSide(){
+  const rs = D.cases.map(c=>res(c.id)).filter(Boolean), pass = rs.filter(x=>x.verdict==='PASS').length;
+  $('sub').textContent = `${D.cases.length} cases · ${D.runs.length} runs`;
+  const pct = rs.length? pass/rs.length : 0, R=22, C=2*Math.PI*R;
+  $('ring').innerHTML = `<svg width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="${R}" fill="none" stroke="var(--fail-soft)" stroke-width="7"/>
+    <circle cx="28" cy="28" r="${R}" fill="none" stroke="var(--pass)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${C*pct} ${C}" transform="rotate(-90 28 28)"/></svg>
+    <div><div class="big">${pass}<span style="color:var(--faint);font-weight:500">/${rs.length}</span></div><div class="small">passing on <b>${esc(run().label)}</b></div></div>`;
+  const edge = D.cases.filter(c=>c.edge).length;
+  $('vf').innerHTML = [['all','All'],['PASS',`Pass ${pass}`],['FAIL',`Fail ${rs.length-pass}`],['edge',`Edge ${edge}`]]
+    .map(([k,l])=>`<button class="${S.verdict===k?'on':''}" data-v="${k}">${l}</button>`).join('');
+  $('vf').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.verdict=b.dataset.v;renderSide()});
+  const v = visible(); let html='', last=null;
+  v.forEach(c=>{
+    if(c.category!==last){ html+=`<div class="grp">${CAT[c.category]||c.category}</div>`; last=c.category; }
+    const dots = D.runs.map(r=>{const x=res(c.id,r);return `<span class="dot ${x?x.verdict:''} ${r.key===S.run?'cur':''}" title="${esc(r.label)}: ${x?x.verdict:'not run'}"></span>`}).join('');
+    html += `<div class="item ${c.id===S.sel?'sel':''}" data-id="${c.id}"><span class="id">${c.id}</span><span class="t">${esc(c.text.split('\n')[0].replace(/^Subject:\s*/,''))}</span><span class="dots">${dots}</span></div>`;
+  });
+  $('list').innerHTML = html || '<div class="empty" style="padding:14px">No cases match.</div>';
+  $('list').querySelectorAll('.item').forEach(el=>el.onclick=()=>selectCase(el.dataset.id));
+}
+function visible(){
+  const order = Object.keys(CAT);
+  return D.cases.filter(c=>{
+    const r = res(c.id);
+    if((S.verdict==='PASS'||S.verdict==='FAIL') && (!r||r.verdict!==S.verdict)) return false;
+    if(S.verdict==='edge' && !c.edge) return false;
+    if(S.q){const q=S.q.toLowerCase(); if(!(c.id.toLowerCase().includes(q)||c.text.toLowerCase().includes(q))) return false;}
+    return true;
+  }).sort((a,b)=>order.indexOf(a.category)-order.indexOf(b.category) || a.id.localeCompare(b.id));
+}
+function selectCase(id){ S.sel=id; S.focus=null; S.expanded={}; S.gq=''; store.set('sel',id); renderSide(); renderMain(); }
+
+/* ---------- header + tabs ---------- */
+function renderMain(){
+  const c = cur(), r = res(c.id);
+  const runs = D.runs.map(x=>{const y=res(c.id,x);return `<button class="${x.key===S.run?'on':''}" data-k="${esc(x.key)}"><span class="dot ${y?y.verdict:''}"></span>${esc(x.label)}</button>`}).join('');
+  $('top').innerHTML = `<h2>${c.id}</h2>${r?`<span class="badge ${r.verdict}">${r.verdict==='PASS'?'✓ Pass':'✕ Fail'}</span>`:''}
+    <span class="badge cat">${CAT[c.category]||c.category}</span>${c.edge?'<span class="badge edge">Edge case</span>':''}
+    <span class="spacer"></span><div class="seg">${runs}</div><button class="iconbtn" id="theme" title="Toggle theme">◐</button>`;
+  $('top').querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{S.run=b.dataset.k;S.focus=null;store.set('run',S.run);renderSide();renderMain()});
+  $('theme').onclick = toggleTheme;
+  const g = r?.graph, nCalls = r?.calls.length||0;
+  const tabs = [['overview','Overview'],['graph','Graph',g?g.nodes.length:0],['actions','Actions',nCalls],['reader','Reader',r?.incidents.length||0]];
+  $('tabs').innerHTML = tabs.map(([k,l,n])=>`<button class="${S.tab===k?'on':''}" data-t="${k}">${l}${n!==undefined?`<span class="n">${n}</span>`:''}</button>`).join('');
+  $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
+  if(!r){ $('content').innerHTML = `<div class="wrap"><div class="card"><div class="body empty">${c.id} was not run with ${esc(run().label)}.</div></div></div>`; return; }
+  ({overview, graph:graphTab, actions, reader})[S.tab](c, r);
+  $('content').scrollTop = 0;
+}
+function setTab(t){ S.tab=t; store.set('tab',t); renderMain(); }
+
+/* ---------- overview ---------- */
+const FIELDS = ['supplier_id','part_id','plant_id','shipment_id','lot_id','blocked_from','blocked_until','outage_start','outage_end','build_start','build_end'];
+const KIND = {supplier_delay:'Supplier delay',plant_outage:'Plant outage',quality_hold:'Quality hold',noise:'Noise',unconfirmed:'Unconfirmed'};
+function overview(c, r){
+  const issues = r.fails.length||r.warnings.length
+    ? `<div class="issues">${r.fails.map(f=>`<div class="issue f"><span class="k">FAIL</span><span>${esc(f)}</span></div>`).join('')}${r.warnings.map(f=>`<div class="issue w"><span class="k">WARN</span><span>${esc(f)}</span></div>`).join('')}</div>`
+    : '<div class="okline">✓ Every check passed</div>';
+  const g = r.graph, counts = typeCounts(g, null);
+  const schema = TYPES.filter(t=>counts[t]).map(t=>`<span class="s" data-t="${t}"><span class="sw" style="background:${col(t)}"></span>${TSHORT[t]||t} <b>${counts[t]}</b></span>`).join('<span class="arr">→</span>');
+  $('content').innerHTML = `<div class="wrap">
+    <div class="card"><h3>Message</h3><div class="body"><p class="msg">${esc(c.text)}</p>
+      <div class="meta"><span>${esc(c.source)}</span>·<span>read as</span><span class="mono">${esc(r.classification)}</span></div>
+      ${c.edge?`<div class="edgebox"><b>Edge case.</b> ${esc(c.edge)}</div>`:''}</div></div>
+    <div class="card"><h3>Grader findings<span class="c">${r.fails.length} fail · ${r.warnings.length} warn</span></h3><div class="body">${issues}</div></div>
+    <div class="card"><h3>Effects</h3><div class="body">${statTiles(r)}</div></div>
+    ${g.nodes.length?`<div class="card"><h3>Knowledge-graph trace<span class="c"><button class="link" id="opengraph">Open graph explorer →</button></span></h3><div class="body"><div class="schema">${schema}</div></div></div>`:''}
+    <div class="grid2">
+      <div class="card"><h3>Expected vs. parsed</h3><div class="body" style="padding:4px 6px">${compareTable(c,r)}</div></div>
+      <div class="card"><h3>Tower summary</h3><div class="body summary">${esc(r.summary)}</div></div>
+    </div></div>`;
+  const og = $('opengraph'); if(og) og.onclick = ()=>setTab('graph');
+  $('content').querySelectorAll('.schema .s').forEach(s=>s.onclick=()=>setTab('graph'));
+}
+function statTiles(r){
+  const s = r.stats, items = [['Tool calls',s.calls],['Writes',s.writes]];
+  if('moved' in s){
+    items.push(['Orders moved',`${s.moved}/${s.expected_moves}`,s.moved!==s.expected_moves],['Rescheduled',s.rescheduled],['Transferred',s.transferred],['Dealers notified',s.dealers],['Loaners',s.loaners]);
+    if(s.lots.length) items.push(['Lots held',s.lots.join(', ')],['Stop-sale VINs',s.stop_sale_vins],['Owners contacted',s.owners]);
+  }
+  const failed = r.calls.filter(c=>!c.ok).length; items.push(['Failed calls',failed,failed>0],['Seconds',r.seconds]);
+  return `<div class="stats">${items.map(([l,n,a])=>`<div class="stat ${a?'alert':''}"><div class="n">${esc(n)}</div><div class="l">${l}</div></div>`).join('')}</div>`;
+}
+function compareTable(c, r){
+  const want = c.expect.incidents, got = r.incidents.filter(i=>KIND[i.kind] && !['noise','unconfirmed'].includes(i.kind));
+  const escRow = `<tr><td>Escalate</td><td class="mono">${c.expect.escalate?'yes':'no'}</td><td class="mono ${hasEsc(r)===c.expect.escalate?'good':'bad'}">${hasEsc(r)?'yes':'no'}</td></tr>`;
+  let rows = '';
+  if(!want.length) rows = `<tr><td>Incidents</td><td class="mono">none</td><td class="mono ${got.length?'bad':'good'}">${got.length?got.map(g=>KIND[g.kind]).join(', '):'none'}</td></tr>`;
+  want.forEach(w=>{
+    const g = got.find(x=>x.kind===w.kind) || {};
+    rows += `<tr class="sect"><td colspan="3">${KIND[w.kind]}${g.kind?'':' <span style="color:var(--fail)">— not detected</span>'}</td></tr>`;
+    if(w.kind==='quality_hold'){
+      const held = r.calls.filter(x=>x.tool==='quality.hold_lot'&&x.ok).map(x=>x.args.lot_id).sort();
+      const ok = JSON.stringify(held)===JSON.stringify([...w.lots].sort());
+      rows += `<tr><td>Lots held</td><td class="mono">${w.lots.join(', ')}</td><td class="mono ${ok?'good':'bad'}">${held.join(', ')||'—'}</td></tr>`;
+    } else Object.keys(w).filter(k=>k!=='kind').forEach(k=>{
+      rows += `<tr><td>${k}</td><td class="mono">${esc(w[k])}</td><td class="mono ${g[k]===w[k]?'good':'bad'}">${esc(g[k]??'—')}</td></tr>`;
+    });
+  });
+  return `<table><tr><th>Field</th><th>Expected</th><th>Got</th></tr>${rows}${escRow}</table>`;
+}
+
+/* ---------- graph explorer ---------- */
+const NW = 168, NH = 42, VG = 8, HG = 46, TOP = 40, PAD = 18, CAP = 10;
+function lineage(g, i){
+  const set = new Set([i]);
+  g.paths.forEach(p=>{ if(p.includes(i)) p.forEach(x=>set.add(x)); });
+  return set;
+}
+function typeCounts(g, set){
+  const c = {}; g.nodes.forEach((n,i)=>{ if(!set||set.has(i)) c[n.t]=(c[n.t]||0)+1; }); return c;
+}
+function graphTab(c, r){
+  const g = r.graph;
+  if(!g.nodes.length){
+    $('content').innerHTML = `<div class="wrap"><div class="card"><div class="body empty" style="padding:40px;text-align:center">
+      No graph for this event — the tower found nothing operational to trace.<br>${g.notes.length?esc(g.notes.join(' ')):''}</div></div></div>`;
+    return;
+  }
+  $('content').innerHTML = `<div class="wrap" style="max-width:none"><div class="card gx">
+    <div class="gx-main">
+      <div class="gx-bar">
+        <div class="searchbox"><span>⌕</span><input id="gq" placeholder="Find a record (e.g. PO-0137)" value="${esc(S.gq)}" list="gqlist"></div>
+        <datalist id="gqlist">${g.nodes.slice(0,600).map(n=>`<option value="${esc(n.id)}">`).join('')}</datalist>
+        <span id="focuschip"></span><span class="spacer"></span>
+        <span class="hint">Hover to trace · click to focus</span>
+        <div class="seg zoom"><button data-z="-">−</button><button data-z="fit" id="zfit">Fit</button><button data-z="+">+</button></div>
+      </div>
+      <div class="gx-canvas" id="canvas"><div id="sizer"><div class="gx-inner" id="inner"></div></div></div>
+      ${g.notes.length?`<div class="gnotes">${g.notes.map(esc).join('<br>')}</div>`:''}
+    </div>
+    <div class="gx-side" id="side"></div></div></div>`;
+  $('gq').oninput = e=>{
+    S.gq = e.target.value.trim();
+    const i = g.nodes.findIndex(n=>n.id.toLowerCase()===S.gq.toLowerCase());
+    if(i>=0){ S.focus=i; drawGraph(g, r); }
+  };
+  $('content').querySelectorAll('.zoom button').forEach(b=>b.onclick=()=>{
+    const z=b.dataset.z, curz = S.scale||1;
+    S.zoom = z==='fit'? null : Math.min(1.5, Math.max(0.35, curz + (z==='+'?0.15:-0.15)));
+    applyZoom();
+  });
+  drawGraph(g, r);
+}
+function applyZoom(){
+  const inner=$('inner'), sizer=$('sizer'), canvas=$('canvas'); if(!inner) return;
+  const W=+inner.dataset.w, H=+inner.dataset.h;
+  const fit = Math.max(0.6, Math.min(1, (canvas.clientWidth-4)/W));
+  const s = S.zoom ?? fit; S.scale = s;
+  inner.style.transform = `scale(${s})`; inner.style.transformOrigin = '0 0';
+  sizer.style.width = W*s+'px'; sizer.style.height = H*s+'px';
+  const zf=$('zfit'); if(zf){ zf.classList.toggle('on', S.zoom==null); zf.textContent = Math.round(s*100)+'%'; }
+}
+function drawGraph(g, r){
+  const focusSet = S.focus!=null ? lineage(g, S.focus) : null;
+  // columns of node indices
+  const cols = {};
+  g.nodes.forEach((n,i)=>{ if(!focusSet||focusSet.has(i)) (cols[n.t] ||= []).push(i); });
+  const types = TYPES.filter(t=>cols[t]);
+  // order each column by the mean position of its parents (barycenter), left to right
+  const parents = {}; g.edges.forEach(([a,b])=>(parents[b] ||= []).push(a));
+  const pos = {};
+  types.forEach((t,ci)=>{
+    let list = cols[t];
+    if(ci>0){
+      list = list.map(i=>{const ps=(parents[i]||[]).filter(p=>p in pos); return [i, ps.length? ps.reduce((s,p)=>s+pos[p],0)/ps.length : 1e9];})
+                 .sort((a,b)=>a[1]-b[1] || g.nodes[a[0]].id.localeCompare(g.nodes[b[0]].id)).map(x=>x[0]);
+    }
+    if(S.focus!=null && list.includes(S.focus)){ list = [S.focus, ...list.filter(x=>x!==S.focus)]; }
+    cols[t] = list; list.forEach((i,k)=>pos[i]=k);
+  });
+  // visible slice per column
+  const shown = {}, more = {};
+  types.forEach(t=>{ const L = cols[t]; const cap = S.expanded[t]? L.length : CAP;
+    shown[t] = L.slice(0,cap); more[t] = L.length - shown[t].length; });
+  // consecutive single-record types share one stacked "chain" column
+  const groups = [];
+  types.forEach(t=>{
+    const last = groups[groups.length-1];
+    if(cols[t].length===1 && last && last.every(u=>cols[u].length===1)) last.push(t); else groups.push([t]);
+  });
+  const SG = 26; // gap between stacked chain nodes (room for the connector)
+  const gHeight = grp => grp.length>1 ? grp.length*NH + (grp.length-1)*SG
+                                      : (shown[grp[0]].length + (more[grp[0]]?1:0))*(NH+VG) - VG;
+  const contentH = Math.max(...groups.map(gHeight));
+  const H = TOP + contentH + PAD, W = PAD*2 + groups.length*NW + (groups.length-1)*HG;
+  const xy = {};
+  let html = '';
+  const nodeHtml = (i, x, y, typed) => {
+    const n = g.nodes[i], tag = n.tags[0]; xy[i] = [x,y];
+    const sub = typed ? `${TSHORT[n.t]||n.t}${n.sub?' · '+n.sub:''}` : n.sub;
+    return `<div class="gn ${S.focus===i?'focus':''}" data-i="${i}" style="left:${x}px;top:${y}px;width:${NW}px;height:${NH}px;--c:${col(n.t)}">
+      <div class="r1"><span class="nid">${esc(n.id)}</span>${tag?`<span class="tg ${tag[1]}">${esc(tag[0])}</span>`:''}</div>
+      ${sub?`<div class="nsub">${esc(sub)}</div>`:''}</div>`;
+  };
+  groups.forEach((grp,ci)=>{
+    const x = PAD + ci*(NW+HG), y0 = TOP + (contentH - gHeight(grp))/2;
+    if(grp.length>1){
+      html += `<div class="colhead" style="left:${x}px"><span class="sw" style="background:${col(grp[0])}"></span>Chain <span class="cn">${grp.length}</span></div>`;
+      grp.forEach((t,k)=>{ html += nodeHtml(cols[t][0], x, y0 + k*(NH+SG), true); });
+      return;
+    }
+    const t = grp[0];
+    html += `<div class="colhead" style="left:${x}px"><span class="sw" style="background:${col(t)}"></span>${TNAME[t]} <span class="cn">${cols[t].length}</span>
+      ${S.expanded[t]&&cols[t].length>CAP?`<button class="link" data-collapse="${t}" style="font-size:11px;text-transform:none;letter-spacing:0;pointer-events:auto">collapse</button>`:''}</div>`;
+    shown[t].forEach((i,k)=>{ html += nodeHtml(i, x, y0 + k*(NH+VG), false); });
+    if(more[t]){
+      const y = y0 + shown[t].length*(NH+VG);
+      html += `<div class="gmore" data-more="${t}" style="left:${x}px;top:${y}px;width:${NW}px;height:${NH}px">+ ${more[t]} more ${TNAME[t].toLowerCase()}</div>`;
+    }
+  });
+  let wires = '';
+  g.edges.forEach(([a,b])=>{
+    if(!(a in xy && b in xy)) return;
+    const [x1,y1] = xy[a], [x2,y2] = xy[b];
+    let d;
+    if(x1===x2){ // stacked chain: straight vertical connector
+      const cx = x1+NW/2, top = Math.min(y1,y2), bot = Math.max(y1,y2);
+      d = `M${cx},${top+NH} L${cx},${bot}`;
+    } else {
+      const sx = x1+NW, sy = y1+NH/2, tx = x2, ty = y2+NH/2, dx = Math.max(24,(tx-sx)/2);
+      d = `M${sx},${sy} C${sx+dx},${sy} ${tx-dx},${ty} ${tx},${ty}`;
+    }
+    wires += `<path class="wire" data-a="${a}" data-b="${b}" d="${d}"/>`;
+  });
+  const inner = $('inner');
+  inner.style.width = W+'px'; inner.style.height = H+'px'; inner.dataset.w = W; inner.dataset.h = H;
+  inner.innerHTML = `<svg width="${W}" height="${H}">${wires}</svg>${html}`;
+  applyZoom();
+  // focus chip
+  $('focuschip').innerHTML = S.focus!=null ? `<span class="focus-chip">Focused: ${esc(g.nodes[S.focus].id)}<button id="clearf" title="Clear (Esc)">×</button></span>` : '';
+  const cf = $('clearf'); if(cf) cf.onclick = ()=>{S.focus=null;S.gq='';$('gq').value='';drawGraph(g,r)};
+  // interactions
+  inner.querySelectorAll('.gn').forEach(el=>{
+    const i = +el.dataset.i;
+    el.onmouseenter = ()=>highlight(g, lineage(g,i));
+    el.onmouseleave = ()=>highlight(g, null);
+    el.onclick = ()=>{ S.focus = S.focus===i? null : i; S.expanded={}; drawGraph(g, r); };
+  });
+  inner.querySelectorAll('.gmore').forEach(el=>el.onclick=()=>{S.expanded[el.dataset.more]=true;drawGraph(g,r)});
+  inner.querySelectorAll('[data-collapse]').forEach(el=>el.onclick=()=>{delete S.expanded[el.dataset.collapse];drawGraph(g,r)});
+  renderSidePanel(g, r, focusSet);
+}
+function highlight(g, set){
+  const inner = $('inner'); if(!inner) return;
+  inner.classList.toggle('dimmed', !!set);
+  inner.querySelectorAll('.gn').forEach(el=>el.classList.toggle('hi', !!set && set.has(+el.dataset.i)));
+  inner.querySelectorAll('.wire').forEach(el=>el.classList.toggle('hi', !!set && set.has(+el.dataset.a) && set.has(+el.dataset.b)));
+}
+function callsFor(r, id){
+  return r.calls.filter(c=>Object.values(c.args).some(v=>v===id || (Array.isArray(v)&&v.includes(id))));
+}
+function renderSidePanel(g, r, focusSet){
+  const side = $('side');
+  if(S.focus==null){
+    const counts = typeCounts(g, null);
+    const acted = g.nodes.filter(n=>n.tags.length).length;
+    side.innerHTML = `<div class="insp"><div class="ty">Graph overview</div><h4 style="font-family:var(--font)">${g.nodes.length} records</h4>
+      <div class="s2">${g.paths.length} traced paths · ${acted} records acted on</div>
+      <div class="sec">Entity types</div>
+      <div class="legend">${TYPES.filter(t=>counts[t]).map(t=>`<div><span class="sw" style="background:${col(t)}"></span>${TNAME[t]}<b>${counts[t]}</b></div>`).join('')}</div>
+      <div class="sec">Action tags</div>
+      <div class="legend">
+        <div class="x"><span class="tg move" style="padding:1px 6px;border-radius:4px;font-weight:600;font-size:10.5px">moved</span> rescheduled at the same plant</div>
+        <div class="x"><span class="tg transfer" style="padding:1px 6px;border-radius:4px;font-weight:600;font-size:10.5px">→ P_XX</span> transferred to another plant</div>
+        <div class="x"><span class="tg notify" style="padding:1px 6px;border-radius:4px;font-weight:600;font-size:10.5px">notified</span> dealer / owner told</div>
+        <div class="x"><span class="tg loaner" style="padding:1px 6px;border-radius:4px;font-weight:600;font-size:10.5px">loaner</span> loaner assigned</div>
+        <div class="x"><span class="tg stop" style="padding:1px 6px;border-radius:4px;font-weight:600;font-size:10.5px">held</span> lot held / stop-sale</div>
+      </div>
+      <div class="sec">Specialists</div>
+      <div class="legend">${r.agents.map(a=>`<div>${esc(a.agent.replace('_',' '))}<b>${a.affected} affected</b></div>`).join('')}</div>
+      <p class="hint" style="margin-top:16px">Click any record to see only its chain, its details and every tool call that touched it.</p></div>`;
+    return;
+  }
+  const n = g.nodes[S.focus], info = D.entities[`${n.t}:${n.id}`] || {rows:[]};
+  const counts = typeCounts(g, focusSet), calls = callsFor(r, n.id);
+  side.innerHTML = `<div class="insp">
+    <div class="ty"><span class="sw" style="background:${col(n.t)}"></span>${TNAME[n.t]}</div>
+    <h4>${esc(n.id)}</h4><div class="s2">${esc(n.sub)}</div>
+    ${n.tags.length?`<div class="tags" style="margin-bottom:12px">${n.tags.map(t=>`<span class="tg ${t[1]}">${esc(t[0])}</span>`).join('')}</div>`:''}
+    ${info.rows.length?`<dl>${info.rows.map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`:''}
+    <div class="sec">Connected in this event</div>
+    <div class="reach">${TYPES.filter(t=>counts[t] && t!==n.t).map(t=>`<div><span class="sw" style="background:${col(t)}"></span>${TNAME[t]}<b>${counts[t]}</b></div>`).join('') || '<div class="empty">Nothing else.</div>'}</div>
+    <div class="sec">Tool calls on this record · ${calls.length}</div>
+    ${calls.length? calls.slice(0,30).map(c=>`<div class="act"><div class="an"><span class="pill ${c.ok?'ok':'no'}">${c.ok?'OK':'ERR'}</span>${esc(c.tool)}</div><div class="ar">${esc(c.reason||argStr(c.args))}</div></div>`).join('') + (calls.length>30?`<div class="hint">+ ${calls.length-30} more</div>`:'') : '<div class="empty">No tool call names this record directly.</div>'}
+  </div>`;
+}
+
+/* ---------- actions ---------- */
+function argStr(a){ return Object.entries(a).map(([k,v])=>`${k}=${Array.isArray(v)?`[${v.length>4?v.slice(0,4).join(', ')+` … +${v.length-4}`:v.join(', ')}]`:v}`).join('  '); }
+function actions(c, r){
+  if(!r.calls.length){ $('content').innerHTML = `<div class="wrap"><div class="card"><div class="body empty" style="padding:40px;text-align:center">No tool calls — nothing was written.</div></div></div>`; return; }
+  const groups = {}; r.calls.forEach(x=>(groups[x.tool] ||= []).push(x));
+  const body = Object.entries(groups).map(([t,cs])=>{
+    const bad = cs.filter(x=>!x.ok).length;
+    return `<div class="toolgrp"><div class="toolhead"><span class="caret">▶</span><span class="name">${esc(t)}</span><span class="cnt">${cs.length} call${cs.length>1?'s':''}${bad?` · <span style="color:var(--fail)">${bad} failed</span>`:''}</span></div>
+      <div class="toolbody"><table><tr><th style="width:44px"></th><th>Args</th><th>Reason</th></tr>${cs.map(x=>`<tr><td><span class="pill ${x.ok?'ok':'no'}">${x.ok?'OK':'ERR'}</span></td><td class="mono">${esc(argStr(x.args))}${x.error?`<div style="color:var(--fail)">${esc(x.error)}</div>`:''}</td><td style="color:var(--muted)">${esc(x.reason)}</td></tr>`).join('')}</table></div></div>`;
+  }).join('');
+  $('content').innerHTML = `<div class="wrap"><div class="card"><h3>Tool calls<span class="c">${r.calls.length} total · click a tool to expand</span></h3>${body}</div></div>`;
+  $('content').querySelectorAll('.toolhead').forEach(h=>h.onclick=()=>h.parentElement.classList.toggle('open'));
+}
+
+/* ---------- reader ---------- */
+function reader(c, r){
+  const inc = r.incidents.length ? r.incidents.map(i=>{
+    const kv = FIELDS.filter(f=>i[f]).map(f=>`<span>${f}: ${esc(i[f])}</span>`).join('');
+    return `<div class="inc"><div class="h"><span class="kind">${KIND[i.kind]||i.kind}</span><span class="reader ${i.reader==='rules'?'rules':''}">${esc(i.reader)}</span></div>
+      <div class="summary">${esc(i.summary)}</div>${kv?`<div class="kv">${kv}</div>`:''}
+      ${i.evidence?`<ul class="ev">${i.evidence.map(e=>`<li>${esc(e)}</li>`).join('')}</ul>`:''}</div>`;
+  }).join('') : '<div class="empty">No incidents.</div>';
+  $('content').innerHTML = `<div class="wrap">
+    <div class="card"><h3>Message</h3><div class="body"><p class="msg">${esc(c.text)}</p></div></div>
+    <div class="card"><h3>Reader output<span class="c">${r.incidents.length} section${r.incidents.length===1?'':'s'}</span></h3><div class="body">${inc}</div></div></div>`;
+}
+
+/* ---------- global ---------- */
+function toggleTheme(){ const d=document.documentElement; const dark = d.dataset.theme ? d.dataset.theme==='dark' : matchMedia('(prefers-color-scheme: dark)').matches; d.dataset.theme = dark?'light':'dark'; store.set('theme',d.dataset.theme); }
+{const t=store.get('theme',null); if(t) document.documentElement.dataset.theme=t;}
+$('q').oninput = e=>{S.q=e.target.value;renderSide()};
+document.addEventListener('keydown', e=>{
+  if(!S || !D?.runs.length) return;
+  if(e.target.tagName==='INPUT') { if(e.key==='Escape') e.target.blur(); return; }
+  const v = visible(), i = v.findIndex(c=>c.id===S.sel);
+  if(e.key==='ArrowDown'||e.key==='j'){ if(i<v.length-1){selectCase(v[i+1].id);e.preventDefault()} }
+  else if(e.key==='ArrowUp'||e.key==='k'){ if(i>0){selectCase(v[i-1].id);e.preventDefault()} }
+  else if(['1','2','3','4'].includes(e.key)){ setTab(['overview','graph','actions','reader'][+e.key-1]); }
+  else if(e.key==='Escape' && S.focus!=null){ S.focus=null; S.gq=''; renderMain(); }
+});
+function boot(){
+  initState();
+  if(!D.runs.length){
+    document.querySelector('.app').innerHTML = '<div style="padding:60px;text-align:center;color:var(--muted)">No test runs found. Run <code>python3 tests/run_cases.py</code> first.</div>';
+    return;
+  }
+  { // deep links: #case=T-21&tab=graph&run=rules&focus=PO-0409
+    const h = new URLSearchParams(location.hash.slice(1));
+    if(h.get('run') && D.runs.find(r=>r.key===h.get('run'))) S.run = h.get('run');
+    if(h.get('case') && D.cases.find(c=>c.id===h.get('case'))) S.sel = h.get('case');
+    if(['overview','graph','actions','reader'].includes(h.get('tab'))) S.tab = h.get('tab');
+    if(h.get('focus')){ const g = res(S.sel)?.graph; const i = g? g.nodes.findIndex(n=>n.id===h.get('focus')) : -1; if(i>=0) S.focus = i; }
+  }
+  window.addEventListener('resize', ()=>{ if(S.tab==='graph' && S.zoom==null) applyZoom(); });
+  renderSide(); renderMain();
+}
+(async () => {
+  const raw = document.getElementById('data').textContent.trim();
+  try {
+    D = raw.startsWith('{') ? JSON.parse(raw) : await fetch('/api/tests', {cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); });
+  } catch(e) {
+    document.querySelector('.app').innerHTML = '<div style="padding:60px;text-align:center;color:var(--muted)">Could not load test results ('+e.message+'). Run <code>python3 tests/run_cases.py</code>, then reload.</div>';
+    return;
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
