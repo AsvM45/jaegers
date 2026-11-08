@@ -34,6 +34,8 @@ if "joblib" not in sys.modules:
 # Add repository root and Databricks src directory to path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DATABRICKS_DIR = REPO_ROOT / "Jaeger_Main" / "House_Edge" / "databricks"
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 if str(DATABRICKS_DIR) not in sys.path:
     sys.path.insert(0, str(DATABRICKS_DIR))
 

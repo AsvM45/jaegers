@@ -3,27 +3,12 @@
 Enforces strict temporal boundary: for any query with cutoff T, only observations
 strictly where tick < cutoff are joined and transformed (zero future records).
 Transforms Silver queries and spins into curated Gold features matching the
-authoritative 471-feature manifest from `research/features.py`:
-- 10 Historical Groups:
-  1. type (3)
-  2. lags (48)
-  3. pairs (280)
-  4. windows (18)
-  5. decays (18)
-  6. transitions (48)
-  7. missingness (11)
-  8. changes (7)
-  9. peers (11)
-  10. type_lag (24)
-  Subtotal: 468 features
-- 1 Query-only Group:
-  11. current_signal (3)
-  Total: 471 features
+authoritative 471-feature manifest from `research/feature_api.py`:
+- 10 Historical Groups (468 features) + 1 Query-only Group (3 features) = 471 features.
 
 Supports distributed execution via episode-grouped Map Pandas UDF (`applyInPandas`)
-partitioned by `episode_id` for zero-shuffle parallel execution, as well as native
-PySpark SQL expressions.
-Seamlessly works on native Databricks clusters and offline with `mock_engine`.
+partitioned by `episode_id` for zero-shuffle parallel execution on Databricks Serverless
+Spark as well as offline execution with `mock_engine`.
 Saves output to `gold_features` Delta table.
 """
 
@@ -31,13 +16,14 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import inspect
 from itertools import combinations
 import logging
 import os
 import sys
 import time
 import types
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence
 
 import numpy as np
 import pandas as pd
@@ -49,8 +35,37 @@ if "joblib" not in sys.modules:
     except ImportError:
         sys.modules["joblib"] = types.ModuleType("joblib")
 
-# Support both relative package imports and direct script execution
-_SRC_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def _resolve_src_dir() -> str:
+    """Safely resolves `databricks/src` directory even when `__file__` is undefined (Serverless exec)."""
+    for candidate in (globals().get("__file__"), globals().get("filename")):
+        if isinstance(candidate, str) and candidate and not candidate.startswith("<"):
+            return os.path.dirname(os.path.abspath(candidate))
+    frame = inspect.currentframe()
+    try:
+        cur = frame
+        while cur is not None:
+            co_file = cur.f_code.co_filename
+            if isinstance(co_file, str) and co_file and not co_file.startswith("<"):
+                cand_dir = os.path.dirname(os.path.abspath(co_file))
+                if os.path.isfile(os.path.join(cand_dir, "session.py")) or os.path.isfile(os.path.join(cand_dir, "gold.py")):
+                    return cand_dir
+            cur = cur.f_back
+    finally:
+        del frame
+    if sys.argv and sys.argv[0] and not sys.argv[0].startswith("-"):
+        cand_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+        if os.path.isdir(cand_dir):
+            return cand_dir
+    cwd = os.getcwd()
+    for rel in ("", "src", os.path.join("Jaeger_Main", "House_Edge", "databricks", "src")):
+        cand = os.path.abspath(os.path.join(cwd, rel))
+        if os.path.isfile(os.path.join(cand, "session.py")):
+            return cand
+    return cwd
+
+
+_SRC_DIR = _resolve_src_dir()
 if _SRC_DIR not in sys.path:
     sys.path.insert(0, _SRC_DIR)
 
@@ -68,7 +83,7 @@ try:
         lit,
         when,
     )
-    from .session import get_spark_session
+    from .session import assert_real_spark, get_spark_session, is_live_required, is_mock_spark
 except ImportError:
     from mock_engine import (
         FloatType,
@@ -83,7 +98,7 @@ except ImportError:
         lit,
         when,
     )
-    from session import get_spark_session
+    from session import assert_real_spark, get_spark_session, is_live_required, is_mock_spark
 
 
 logger = logging.getLogger("jaegers.databricks.gold")
@@ -108,6 +123,7 @@ MACHINE_TYPES = ("steady", "balanced", "jackpot")
 PAYOUTS = (0, 1, 2, 5, 20)
 OUTPUT_CLASSES = (0, 1, 2, 5, 20)
 PAYOUT_TO_INDEX = {0: 0, 1: 1, 2: 2, 5: 3, 20: 4}
+METADATA_COLS = ["query_id", "episode_id", "machine_id", "cutoff", "split", "condition"]
 
 
 def generate_feature_manifest() -> List[str]:
@@ -165,6 +181,7 @@ def generate_feature_manifest() -> List[str]:
 FEATURE_NAMES = generate_feature_manifest()
 HISTORICAL_FEATURE_NAMES = FEATURE_NAMES[:468]
 QUERY_FEATURE_NAMES = FEATURE_NAMES[468:]
+_SAFE_FEATURE_NAMES = [f"f_{i}" for i in range(len(FEATURE_NAMES))]
 
 
 def get_feature_names() -> List[str]:
@@ -177,8 +194,23 @@ def get_historical_feature_names() -> List[str]:
     return list(HISTORICAL_FEATURE_NAMES)
 
 
-def get_gold_feature_schema() -> StructType:
-    """Builds and returns the PySpark StructType schema for the Gold features table."""
+def get_gold_feature_schema(use_native: bool = False, safe_names: bool = False) -> Any:
+    """Builds and returns the StructType schema for the Gold features table."""
+    feat_cols = _SAFE_FEATURE_NAMES if safe_names else FEATURE_NAMES
+    if use_native:
+        from pyspark.sql import types as T  # type: ignore
+        fields = [
+            T.StructField("query_id", T.StringType(), False),
+            T.StructField("episode_id", T.StringType(), False),
+            T.StructField("machine_id", T.StringType(), False),
+            T.StructField("cutoff", T.IntegerType(), False),
+            T.StructField("split", T.StringType(), False),
+            T.StructField("condition", T.StringType(), True),
+        ]
+        for col_name in feat_cols:
+            fields.append(T.StructField(col_name, T.FloatType(), False))
+        return T.StructType(fields)
+
     st = StructType([
         StructField("query_id", StringType(), False),
         StructField("episode_id", StringType(), False),
@@ -187,7 +219,7 @@ def get_gold_feature_schema() -> StructType:
         StructField("split", StringType(), False),
         StructField("condition", StringType(), True),
     ])
-    for col_name in FEATURE_NAMES:
+    for col_name in feat_cols:
         st.add(StructField(col_name, FloatType(), False))
     return st
 
@@ -199,10 +231,7 @@ def get_qualified_table_name(table_base: str, catalog: Optional[str] = None, sch
 
 
 def _distribution_smoothed(values: np.ndarray, weights: Optional[np.ndarray] = None) -> np.ndarray:
-    """Computes Dirichlet-smoothed 5-class distribution with +0.5 Laplace prior.
-
-    When values is empty, smoothly falls back to exact uniform prior [0.2, 0.2, 0.2, 0.2, 0.2].
-    """
+    """Computes Dirichlet-smoothed 5-class distribution with +0.5 Laplace prior."""
     counts = np.bincount(values.astype(np.int64), weights=weights, minlength=5).astype(np.float64) + 0.5
     return counts / counts.sum()
 
@@ -211,24 +240,9 @@ def compute_query_features(
     query: Dict[str, Any],
     history_by_machine: Dict[str, Dict[int, int]],
     all_episode_machines: Sequence[str],
-    groups: Sequence[str] = ALL_FEATURE_GROUPS
+    groups: Sequence[str] = ALL_FEATURE_GROUPS,
 ) -> np.ndarray:
-    """Extracts the exact feature vector for a single query from past-only spins.
-
-    Strict Temporal Invariant:
-        Only observations strictly before query cutoff (tick < cutoff) are used.
-        Any spin at tick >= cutoff is ignored.
-
-    Args:
-        query: Dict with keys 'query_id', 'episode_id', 'machine_id', 'machine_type',
-               'cutoff', 'signal', and optionally 'split', 'condition'.
-        history_by_machine: Dict mapping machine_id -> {tick: payout} for all machines in episode.
-        all_episode_machines: List/set of all machine IDs in this episode.
-        groups: Feature groups to compute (defaults to ALL_FEATURE_GROUPS, 471 features).
-
-    Returns:
-        np.ndarray of shape (num_features,) with dtype float32.
-    """
+    """Extracts the exact feature vector for a single query from past-only spins (tick < cutoff)."""
     cutoff = int(query["cutoff"])
     machine = str(query["machine_id"])
     machine_type = str(query["machine_type"])
@@ -254,18 +268,15 @@ def compute_query_features(
 
     for group in groups:
         if group == "type":
-            # 3 features: one-hot of machine_type
             eye3 = np.eye(3, dtype=np.float32)
             output.extend(eye3[type_index].tolist())
 
         elif group == "lags":
-            # 48 features: 8 lags * 6 categories (value + 1)
             eye6 = np.eye(6, dtype=np.float32)
             for val in lag:
                 output.extend(eye6[val + 1].tolist())
 
         elif group == "pairs":
-            # 280 features: 28 combinations * 10 categories
             eye10 = np.eye(10, dtype=np.float32)
             for a, b in combinations(range(8), 2):
                 ca = -1 if lag[a] < 0 else min(lag[a], 2)
@@ -274,7 +285,6 @@ def compute_query_features(
                 output.extend(eye10[idx].tolist())
 
         elif group == "windows":
-            # 18 features: for widths in (8, 24, 64)
             for width in (8, 24, 64):
                 mask = ticks >= (cutoff - width)
                 w_labels = labels[mask]
@@ -283,7 +293,6 @@ def compute_query_features(
                 output.append(float(np.log1p(len(w_labels))))
 
         elif group == "decays":
-            # 18 features: for decays in (0.9, 0.97, 0.995)
             for decay in (0.9, 0.97, 0.995):
                 if len(ticks) > 0:
                     weights = decay ** (cutoff - 1 - ticks)
@@ -296,7 +305,6 @@ def compute_query_features(
                 output.append(mass)
 
         elif group == "transitions":
-            # 48 features: 8 lags * (5 conditional + 1 count)
             for k in range(1, 9):
                 target_val = lag[k - 1]
                 if target_val >= 0:
@@ -312,7 +320,6 @@ def compute_query_features(
                 output.append(float(np.log1p(len(matched))))
 
         elif group == "missingness":
-            # 11 features: 3 coverage + 8 lag_known
             n_ticks = len(ticks)
             coverage_0 = float(n_ticks / max(cutoff, 1))
             coverage_1 = float(np.log1p(n_ticks))
@@ -321,7 +328,6 @@ def compute_query_features(
             output.extend([1.0 if v >= 0 else 0.0 for v in lag])
 
         elif group == "changes":
-            # 7 features: recent - earlier drift, L1 distance, entropy
             recent_mask = ticks >= (cutoff - 24)
             earlier_mask = (ticks >= (cutoff - 64)) & (ticks < (cutoff - 24))
             recent = _distribution_smoothed(labels[recent_mask])
@@ -333,7 +339,6 @@ def compute_query_features(
             output.extend([l1_dist, entropy])
 
         elif group == "peers":
-            # 11 features: 5 freq + 5 recent + 1 mass across sibling machines (m' != machine)
             peer_counts = np.zeros(5, dtype=np.float64)
             peer_recent = np.zeros(5, dtype=np.float64)
             for other_m in all_episode_machines:
@@ -355,14 +360,12 @@ def compute_query_features(
             output.append(mass)
 
         elif group == "type_lag":
-            # 24 features: machine type one-hot tensor product with lag win indicators
             wins = np.array([0.0 if x < 0 else (1.0 if x > 0 else 0.0) for x in lag], dtype=np.float32)
             onehot = np.eye(3, dtype=np.float32)[type_index]
             interaction = (onehot[:, None] * wins[None, :]).ravel()
             output.extend(interaction.tolist())
 
         elif group == "current_signal":
-            # 3 features: one-hot of signal + 1 (-1 -> 0, 0 -> 1, 1 -> 2)
             sig_idx = max(0, min(2, signal + 1))
             eye3 = np.eye(3, dtype=np.float32)
             output.extend(eye3[sig_idx].tolist())
@@ -373,59 +376,65 @@ def compute_query_features(
     return np.asarray(output, dtype=np.float32)
 
 
-def extract_episode_features_udf(episode_pdf: pd.DataFrame) -> pd.DataFrame:
-    """Grouped Map Pandas UDF partitioned by `episode_id`.
-
-    Processes all queries for an episode in zero-shuffle parallel execution.
-    Reconstructs history for all machines and computes the 471 Gold features.
-    """
+def _extract_episode_records(episode_pdf: pd.DataFrame, feature_col_names: Sequence[str]) -> pd.DataFrame:
+    """Internal helper computing episode feature rows with configurable feature column names."""
+    out_cols = list(METADATA_COLS) + list(feature_col_names)
     if len(episode_pdf) == 0:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=out_cols)
 
     queries = episode_pdf[episode_pdf["record_type"] == "query"]
     spins = episode_pdf[episode_pdf["record_type"] == "spin"]
 
     if len(queries) == 0:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=out_cols)
 
-    # Reconstruct history by machine for this episode
     history_by_machine: Dict[str, Dict[int, int]] = {}
-    for (m_id,), group in spins.groupby(["machine_id"], as_index=False):
-        history_by_machine[str(m_id)] = dict(
-            zip(group["tick"].astype(int), group["payout"].astype(int))
-        )
+    if len(spins) > 0:
+        for m_id, group in spins.groupby("machine_id"):
+            m_key = str(m_id[0] if isinstance(m_id, tuple) else m_id)
+            history_by_machine[m_key] = dict(
+                zip(group["tick"].astype(int), group["payout"].astype(int))
+            )
 
-    # Determine all distinct machines in the episode
     all_machines = sorted(list(
-        set(queries["machine_id"].unique()).union(set(spins["machine_id"].unique()))
+        set(queries["machine_id"].astype(str).unique()).union(
+            set(spins["machine_id"].astype(str).unique()) if len(spins) > 0 else set()
+        )
     ))
 
-    # Compute features for each query in the episode
     records: List[Dict[str, Any]] = []
-    manifest = FEATURE_NAMES
-
     for _, q_row in queries.iterrows():
         q_dict = q_row.to_dict()
         vec = compute_query_features(
             query=q_dict,
             history_by_machine=history_by_machine,
             all_episode_machines=all_machines,
-            groups=ALL_FEATURE_GROUPS
+            groups=ALL_FEATURE_GROUPS,
         )
 
         rec: Dict[str, Any] = {
             "query_id": str(q_dict["query_id"]),
             "episode_id": str(q_dict["episode_id"]),
             "machine_id": str(q_dict["machine_id"]),
-            "cutoff": int(q_dict["cutoff"]),
+            "cutoff": np.int32(int(q_dict["cutoff"])),
             "split": str(q_dict.get("split", "train")),
             "condition": str(q_dict.get("condition", "unknown")),
         }
-        for name, val in zip(manifest, vec):
-            rec[name] = float(val)
+        for name, val in zip(feature_col_names, vec):
+            rec[name] = np.float32(val)
         records.append(rec)
 
-    return pd.DataFrame(records)
+    return pd.DataFrame(records, columns=out_cols)
+
+
+def extract_episode_features_udf(episode_pdf: pd.DataFrame) -> pd.DataFrame:
+    """Grouped Map Pandas UDF partitioned by `episode_id` returning canonical FEATURE_NAMES."""
+    return _extract_episode_records(episode_pdf, FEATURE_NAMES)
+
+
+def _extract_episode_features_safe_udf(episode_pdf: pd.DataFrame) -> pd.DataFrame:
+    """Grouped Map Pandas UDF using punctuation-free column identifiers for Catalyst unpacking."""
+    return _extract_episode_records(episode_pdf, _SAFE_FEATURE_NAMES)
 
 
 def compute_gold_features(
@@ -433,55 +442,89 @@ def compute_gold_features(
     df_queries: Any,
     df_spins: Any,
     catalog: Optional[str] = None,
-    schema: Optional[str] = None
+    schema: Optional[str] = None,
 ) -> Any:
     """Transforms Silver queries and spins DataFrames into Gold features DataFrame.
 
-    Partitions by episode_id and executes `extract_episode_features_udf` via `applyInPandas`.
+    Partitions by `episode_id` and executes `applyInPandas`.
+    On live PySpark, uses punctuation-safe intermediate identifiers inside `applyInPandas`
+    (so Catalyst struct unpacking does not misinterpret `.` in `decays/freq0.9_0` as nested fields)
+    and immediately restores the exact 471 canonical `FEATURE_NAMES` via `.toDF(...)`.
     """
-    gold_schema = get_gold_feature_schema()
+    if is_mock_spark(spark):
+        gold_schema = get_gold_feature_schema(use_native=False, safe_names=False)
+        df_q_prep = df_queries.select(
+            col("episode_id"),
+            col("query_id"),
+            col("machine_id"),
+            col("machine_type"),
+            col("signal"),
+            col("cutoff"),
+            col("split"),
+            (col("condition") if "condition" in df_queries.columns else lit("unknown")).alias("condition"),
+            lit("query").alias("record_type"),
+            lit(-1).alias("tick"),
+            lit(-1).alias("payout"),
+        )
+        df_s_prep = df_spins.select(
+            col("episode_id"),
+            lit("").alias("query_id"),
+            col("machine_id"),
+            lit("").alias("machine_type"),
+            lit(0).alias("signal"),
+            lit(-1).alias("cutoff"),
+            col("split"),
+            lit("unknown").alias("condition"),
+            lit("spin").alias("record_type"),
+            col("tick"),
+            col("payout"),
+        )
+        df_combined = df_q_prep.unionByName(df_s_prep)
+        return (
+            df_combined
+            .groupBy("episode_id")
+            .applyInPandas(extract_episode_features_udf, schema=gold_schema)
+        )
 
-    # Prepare queries DataFrame with standardized schema
+    # Real PySpark / Spark Connect path
+    from pyspark.sql import functions as F  # type: ignore
+
+    safe_schema = get_gold_feature_schema(use_native=True, safe_names=True)
     df_q_prep = df_queries.select(
-        col("episode_id"),
-        col("query_id"),
-        col("machine_id"),
-        col("machine_type"),
-        col("signal"),
-        col("cutoff"),
-        col("split"),
-        (col("condition") if "condition" in df_queries.columns else lit("unknown")).alias("condition"),
-        lit("query").alias("record_type"),
-        lit(-1).alias("tick"),
-        lit(-1).alias("payout")
+        F.col("episode_id").cast("string").alias("episode_id"),
+        F.col("query_id").cast("string").alias("query_id"),
+        F.col("machine_id").cast("string").alias("machine_id"),
+        F.col("machine_type").cast("string").alias("machine_type"),
+        F.col("signal").cast("int").alias("signal"),
+        F.col("cutoff").cast("int").alias("cutoff"),
+        F.col("split").cast("string").alias("split"),
+        (F.col("condition").cast("string") if "condition" in df_queries.columns else F.lit("unknown")).alias("condition"),
+        F.lit("query").alias("record_type"),
+        F.lit(-1).cast("int").alias("tick"),
+        F.lit(-1).cast("int").alias("payout"),
     )
-
-    # Prepare spins DataFrame with standardized schema
     df_s_prep = df_spins.select(
-        col("episode_id"),
-        lit("").alias("query_id"),
-        col("machine_id"),
-        lit("").alias("machine_type"),
-        lit(0).alias("signal"),
-        lit(-1).alias("cutoff"),
-        col("split"),
-        lit("unknown").alias("condition"),
-        lit("spin").alias("record_type"),
-        col("tick"),
-        col("payout")
+        F.col("episode_id").cast("string").alias("episode_id"),
+        F.lit("").alias("query_id"),
+        F.col("machine_id").cast("string").alias("machine_id"),
+        F.lit("").alias("machine_type"),
+        F.lit(0).cast("int").alias("signal"),
+        F.lit(-1).cast("int").alias("cutoff"),
+        F.col("split").cast("string").alias("split"),
+        F.lit("unknown").alias("condition"),
+        F.lit("spin").alias("record_type"),
+        F.col("tick").cast("int").alias("tick"),
+        F.col("payout").cast("int").alias("payout"),
     )
 
-    # Union into single episode-partitioned DataFrame
     df_combined = df_q_prep.unionByName(df_s_prep)
-
-    # Distributed Grouped Map Pandas UDF execution
-    df_gold = (
+    df_safe_gold = (
         df_combined
         .groupBy("episode_id")
-        .applyInPandas(extract_episode_features_udf, schema=gold_schema)
+        .applyInPandas(_extract_episode_features_safe_udf, schema=safe_schema)
     )
-
-    return df_gold
+    canonical_cols = list(METADATA_COLS) + list(FEATURE_NAMES)
+    return df_safe_gold.toDF(*canonical_cols)
 
 
 def get_native_feature_expressions() -> Dict[str, MockColumn]:
@@ -504,25 +547,21 @@ def run_gold_pipeline(
     queries_table: Optional[str] = None,
     spins_table: Optional[str] = None,
     target_table: Optional[str] = None,
-    force_mock: bool = False
+    force_mock: bool = False,
+    require_live: bool = False,
 ) -> Dict[str, Any]:
-    """Executes the Gold feature pipeline, saving output to the Gold Delta table.
-
-    Args:
-        spark: Active SparkSession or MockSparkSession.
-        catalog: Unity Catalog catalog name.
-        schema: Unity Catalog schema name.
-        queries_table: Source Silver queries table name.
-        spins_table: Source Silver spins table name.
-        target_table: Destination Gold features Delta table name.
-        force_mock: If True, forces MockSparkSession.
-
-    Returns:
-        Summary dictionary with query count, feature count, table names, and status.
-    """
+    """Executes the Gold feature pipeline, saving output to the Gold Delta table."""
     start_time = time.time()
+    live_needed = is_live_required(require_live) and not force_mock
     if spark is None:
-        spark = get_spark_session(catalog=catalog, schema=schema, force_mock=force_mock)
+        spark = get_spark_session(
+            catalog=catalog,
+            schema=schema,
+            force_mock=force_mock,
+            require_live=live_needed,
+        )
+    elif live_needed:
+        assert_real_spark(spark)
 
     q_name = queries_table or get_qualified_table_name("silver_queries", catalog, schema)
     s_name = spins_table or get_qualified_table_name("silver_spins", catalog, schema)
@@ -538,14 +577,17 @@ def run_gold_pipeline(
         df_queries=df_queries,
         df_spins=df_spins,
         catalog=catalog,
-        schema=schema
+        schema=schema,
     )
 
-    # Save to Gold Delta Lake table
-    df_gold.write.format("delta").mode("overwrite").saveAsTable(t_name)
+    # Save to Gold Delta Lake table (overwriteSchema enabled for full 477-column schema)
+    writer = df_gold.write.format("delta").mode("overwrite")
+    if not is_mock_spark(spark):
+        writer = writer.option("overwriteSchema", "true")
+    writer.saveAsTable(t_name)
 
     elapsed = time.time() - start_time
-    total_queries = df_gold.count()
+    total_queries = int(df_gold.count())
     feature_count = len(FEATURE_NAMES)
 
     summary = {
@@ -556,7 +598,7 @@ def run_gold_pipeline(
         "historical_features": len(HISTORICAL_FEATURE_NAMES),
         "query_features": len(QUERY_FEATURE_NAMES),
         "elapsed_seconds": round(elapsed, 3),
-        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
     }
 
     logger.info("Gold Feature Pipeline completed successfully: %s", summary)
@@ -575,6 +617,7 @@ def main() -> None:
     parser.add_argument("--spins-table", type=str, default=None, help="Source silver spins table")
     parser.add_argument("--target-table", type=str, default=None, help="Destination gold features table")
     parser.add_argument("--force-mock", action="store_true", help="Force offline mock engine")
+    parser.add_argument("--require-live", action="store_true", help="Reject mock engine fallback")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -584,7 +627,8 @@ def main() -> None:
         queries_table=args.queries_table,
         spins_table=args.spins_table,
         target_table=args.target_table,
-        force_mock=args.force_mock
+        force_mock=args.force_mock,
+        require_live=args.require_live,
     )
     print(f"Gold Pipeline Result: {summary}")
 

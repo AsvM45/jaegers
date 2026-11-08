@@ -30,7 +30,9 @@ _DATABRICKS_DIR = os.path.join(_REPO_ROOT, "Jaeger_Main", "House_Edge", "databri
 _SRC_DIR = os.path.join(_DATABRICKS_DIR, "src")
 _SQL_DIR = os.path.join(_DATABRICKS_DIR, "sql")
 _NOTEBOOKS_DIR = os.path.join(_DATABRICKS_DIR, "notebooks")
-_REPORTS_DIR = os.path.join(_REPO_ROOT, "research", "reports")
+_REPORTS_DIR = os.path.join(_REPO_ROOT, "Jaeger_Main", "House_Edge", "research", "reports")
+if not os.path.isdir(_REPORTS_DIR):
+    _REPORTS_DIR = os.path.join(_REPO_ROOT, "research", "reports")
 
 
 class TestDatabricksSQLMonitoring(unittest.TestCase):
