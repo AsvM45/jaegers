@@ -91,11 +91,70 @@
   .help code { display: block; font-family: var(--mono); font-size: 10.5px; background: rgba(6, 11, 40, 0.55); border-radius: 8px; padding: 6px 8px; margin-top: 4px; color: #dbe6ff; }
 
   .main { min-width: 0; display: flex; flex-direction: column; gap: 20px; }
-  .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-top: 4px; }
-  .crumbs { font-size: 12px; color: var(--muted); }
-  .crumbs b { color: var(--text-2); font-weight: 600; }
-  .top h1 { margin: 2px 0 0; font-size: 18px; font-weight: 700; }
-  .top-right { display: flex; align-items: center; gap: 10px; }
+  /* ---------- motion (off for prefers-reduced-motion) ---------- */
+  .entering .card { animation: rise 0.5s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 45ms); }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .card { transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+  .card.stat:hover, .g-hero > .card:hover, .g-agents .agent:hover { transform: translateY(-2px); border-color: var(--line-2);
+    box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35); }
+  .draw { stroke-dashoffset: var(--off); }
+  .entering .draw { animation: draw 1.1s cubic-bezier(.2, .8, .2, 1) both 0.15s; }
+  @keyframes draw { from { stroke-dashoffset: var(--len); } to { stroke-dashoffset: var(--off); } }
+  .chart .bar { transform-box: fill-box; transform-origin: bottom; }
+  .entering .chart .bar { animation: grow 0.6s cubic-bezier(.2, .8, .2, 1) both; }
+  @keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  [hidden] { display: none !important; }
+  /* The network fades out toward the left, so the card's text always sits on a clean background. */
+  .hero-canvas { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 1.2s ease;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 30%, #000 72%);
+            mask-image: linear-gradient(to right, transparent 0%, transparent 30%, #000 72%); }
+  .hero-canvas.on { opacity: 1; }
+  .hero > * { position: relative; }
+  .hero > .hero-canvas { position: absolute; }
+  @media (prefers-reduced-motion: reduce) {
+    .entering .card, .entering .draw, .entering .chart .bar, .pulse::after { animation: none !important; }
+    .card { transition: none; }
+  }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    position: sticky; top: 12px; z-index: 20; display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap; padding: 14px 18px; border-radius: var(--radius);
+    background: rgba(11, 17, 46, 0.72); border: 1px solid var(--line);
+    backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%);
+    transition: box-shadow 0.25s, border-color 0.25s, background 0.25s;
+  }
+  .topbar.scrolled { box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45); border-color: var(--line-2); background: rgba(11, 17, 46, 0.88); }
+  .tb-left { min-width: 0; display: grid; gap: 2px; }
+  .tb-left h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.2; }
+  .tb-sub { font-size: 13.5px; color: var(--text-2); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+  .tb-sub span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .tb-sub b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .tb-sub .ok { color: var(--good-text); } .tb-sub .bad { color: var(--bad-text); }
+  .trail { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .trail a { color: var(--text-2); } .trail a:hover { color: var(--accent-2); }
+  .trail .sep { opacity: 0.5; }
+  .tb-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .live { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; font-size: 12.5px;
+    color: var(--text-2); background: rgba(6, 11, 40, 0.6); border: 1px solid var(--line); white-space: nowrap; }
+  .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--good); position: relative; flex: none; }
+  .pulse::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--good);
+    opacity: 0; animation: pulse 2.2s ease-out infinite; }
+  .live.stale .pulse { background: var(--warn); } .live.stale .pulse::after { border-color: var(--warn); }
+  .live.down .pulse { background: var(--bad); } .live.down .pulse::after { animation: none; }
+  @keyframes pulse { 0% { transform: scale(0.6); opacity: 0.8; } 100% { transform: scale(1.8); opacity: 0; } }
+  .search kbd { font-family: var(--mono); font-size: 11px; color: var(--muted); border: 1px solid var(--line-2);
+    border-radius: 6px; padding: 1px 6px; }
+  .search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0, 117, 255, 0.18); }
+  .search:focus-within kbd { display: none; }
+  .icon-btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 14px; cursor: pointer;
+    font-size: 13px; font-weight: 700; color: #fff; border: 1px solid transparent;
+    background: linear-gradient(135deg, #0075ff, #4318ff); box-shadow: 0 8px 20px rgba(0, 117, 255, 0.3);
+    transition: transform 0.15s, box-shadow 0.15s; }
+  .icon-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(0, 117, 255, 0.45); }
+  .icon-btn svg { width: 15px; height: 15px; }
+  .icon-btn.busy svg { animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .search {
     display: flex; align-items: center; gap: 8px; padding: 9px 14px; min-width: 240px;
     border-radius: 14px; border: 1px solid var(--line-2); background: rgba(15, 23, 57, 0.8); color: var(--text-2);
@@ -123,12 +182,19 @@
   .g-chart { grid-template-columns: 1.7fr 1fr; }
   .g-table { grid-template-columns: 1.7fr 1fr; }
 
-  .stat { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; }
-  .stat .k { font-size: 11px; color: var(--muted); font-weight: 600; }
-  .stat .v { font-size: 20px; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; }
-  .stat .v small { font-size: 12px; font-weight: 700; margin-left: 6px; }
-  .stat .badge-ico { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; background: var(--accent); flex: none; box-shadow: 0 8px 20px rgba(0, 117, 255, 0.35); }
-  .stat .badge-ico svg { width: 20px; height: 20px; }
+  .stat { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 20px; overflow: hidden; }
+  .stat .stat-body { min-width: 0; }
+  .stat .k { font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .stat .v { font-size: 30px; line-height: 1; font-weight: 800; margin-top: 8px; letter-spacing: -0.015em; font-variant-numeric: tabular-nums; }
+  .stat .delta { display: inline-flex; align-items: center; gap: 4px; margin-top: 12px; padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; max-width: 100%; }
+  .stat .delta .arr { font-size: 8px; line-height: 1; }
+  .stat .delta .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stat .delta.up { color: var(--good-text); background: rgba(61, 220, 132, 0.12); }
+  .stat .delta.down { color: var(--bad-text); background: rgba(255, 122, 122, 0.12); }
+  .stat .delta.warn { color: var(--warn); background: rgba(250, 178, 25, 0.13); }
+  .stat .delta.flat { color: var(--text-2); background: rgba(255, 255, 255, 0.06); }
+  .stat .badge-ico { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: linear-gradient(135deg, var(--accent-2), var(--accent)); color: #fff; flex: none; box-shadow: 0 10px 22px rgba(0, 117, 255, 0.35); }
+  .stat .badge-ico svg { width: 21px; height: 21px; }
   .up { color: var(--good-text); }
   .down { color: var(--bad-text); }
 
@@ -429,16 +495,20 @@
   </aside>
 
   <main class="main">
-    <div class="top">
-      <div>
-        <div class="crumbs">Pages / <b id="crumb">Overview</b></div>
+    <header class="topbar" id="topbar">
+      <div class="tb-left">
+        <nav class="trail" id="crumb" aria-label="Breadcrumb" hidden></nav>
         <h1 id="title">Overview</h1>
+        <div class="tb-sub" id="subtitle"></div>
       </div>
-      <div class="top-right">
-        <label class="search"><span data-icon="search"></span><input id="q" placeholder="Search events or tests" autocomplete="off"></label>
-        <button class="chip-btn" id="refresh">Refresh</button>
+      <div class="tb-right">
+        <div class="live" id="live" title="Reader model and when the data was last loaded">
+          <span class="pulse"></span><span id="live-text">Loading…</span>
+        </div>
+        <label class="search"><span data-icon="search"></span><input id="q" placeholder="Search events or tests" autocomplete="off"><kbd>/</kbd></label>
+        <button class="icon-btn" id="refresh" title="Reload the run and test results"><span data-icon="refresh"></span><span>Refresh</span></button>
       </div>
-    </div>
+    </header>
     <div id="view"></div>
   </main>
 </div>
@@ -468,6 +538,7 @@ const ICONS = {
   eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   doc: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>',
   mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+  refresh: '<path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>',
   cpu: '<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>',
 };
 function icon(name) {
@@ -527,7 +598,9 @@ async function getJSON(url, fallback) {
     return await r.json();
   } catch (e) { return fallback; }
 }
-async function load() {
+async function load(manual = false) {
+  const btn = $("#refresh");
+  btn.classList.add("busy");
   const [events, traces, log, onto, reports, outbox, agents] = await Promise.all([
     getJSON("/api/events", []), getJSON("/api/traces", []), getJSON("/api/log", []),
     getJSON("/api/ontology_export", null), getJSON("/api/test_reports", null), getJSON("/api/outbox", []),
@@ -539,7 +612,52 @@ async function load() {
   for (const row of log) (S.byEvent[row.event_id] ||= []).push(row);
   S.traceById = Object.fromEntries(traces.map((t) => [t.event_id, t]));
   if (!S.sel && traces.length) S.sel = traces[0].event_id;
+  S.loadedAt = Date.now();
+  btn.classList.remove("busy");
+  updateLive();
   route();
+  if (manual) toast(`Reloaded: ${fmt(traces.length)} events, ${fmt(log.length)} tool calls`);
+}
+
+/* ---------------- top bar ---------------- */
+function updateLive() {
+  const el = $("#live"), text = $("#live-text");
+  if (!S.loadedAt) return;
+  const secs = Math.round((Date.now() - S.loadedAt) / 1000);
+  const ago = secs < 10 ? "just now" : secs < 60 ? `${secs}s ago` : secs < 3600 ? `${Math.floor(secs / 60)}m ago` : `${Math.floor(secs / 3600)}h ago`;
+  const reader = modelName() || "rule reader";
+  el.classList.toggle("down", !S.traces.length);
+  el.classList.toggle("stale", !!S.traces.length && secs > 600);
+  text.innerHTML = S.traces.length ? `<b>${esc(reader)}</b> · updated ${ago}` : "No run loaded";
+}
+setInterval(updateLive, 15000);
+// One line under the title that says what is on the page, from the loaded data.
+function pageSubtitle(p) {
+  const n = (v) => `<b>${fmt(v)}</b>`;
+  const failed = S.log.filter((r) => !r.ok).length;
+  if (p === "overview") {
+    const acted = S.traces.filter((t) => outcome(t.event_id) === "acted").length;
+    return `<span>${icon("check")}Monday 8 March 2027</span><span>${n(S.traces.length)} events, ${n(acted)} acted on</span>
+      <span>${n(S.log.length)} tool calls</span><span class="${failed ? "bad" : "ok"}">${n(failed)} failed</span>`;
+  }
+  if (p === "events") return `<span>${n(S.traces.length)} events</span><span>Selected <b>${esc(S.sel || "—")}</b></span>`;
+  if (p === "tests") {
+    const all = (S.reports?.suites || []).flatMap((x) => x.readers);
+    const passed = all.reduce((a, r) => a + r.passed, 0), total = all.reduce((a, r) => a + r.total, 0);
+    return `<span>${n((S.reports?.suites || []).length)} test sets</span><span>${n(all.length)} saved runs</span>
+      <span>${n(passed)} of ${n(total)} cases passed</span>`;
+  }
+  if (p === "ontology") return `<span>${n(S.onto?.nodes?.length || 0)} node types</span><span>${n(S.onto?.edges?.length || 0)} edge types</span><span>from the company tables</span>`;
+  if (p === "logs") return `<span>Run output, every tool call, and the test-run history</span>`;
+  if (p === "guide") return `<span>From the Jaeger_Main/Hitachi folder: <b>python start.py</b></span>`;
+  return "";
+}
+// A clickable trail for pages inside a page (a test set, a test case). It replaces the subtitle.
+function setTrail(parts) {
+  const nav = $("#crumb");
+  nav.innerHTML = parts.map(([label, href]) => href ? `<a href="${esc(href)}">${esc(label)}</a>` : `<span>${esc(label)}</span>`).join('<span class="sep">›</span>');
+  nav.hidden = false;
+  $("#subtitle").hidden = true;
 }
 function outcome(eventId) {
   const rows = S.byEvent[eventId] || [];
@@ -577,14 +695,49 @@ function route() {
   const page = segs[0] || "overview";
   const p = PAGES[page] ? page : "overview";
   document.querySelectorAll(".nav a[data-page]").forEach((a) => a.classList.toggle("on", a.dataset.page === p));
-  $("#crumb").textContent = PAGES[p];
+  $("#crumb").hidden = true;
+  $("#subtitle").hidden = false;
+  $("#subtitle").innerHTML = pageSubtitle(p);
   $("#title").textContent = PAGES[p];
   const view = $("#view");
   ({ overview: renderOverview, events: renderEvents, tests: (v) => renderTests(v, segs), ontology: renderOntology, logs: renderLogs, guide: renderGuide })[p](view);
   paintIcons(view);
+  // Entrance motion only when arriving on a page, not when a filter re-renders it.
+  const key = location.hash.split("?")[0];
+  if (key !== S.lastView) {
+    S.lastView = key;
+    view.classList.remove("entering");
+    void view.offsetWidth;   // restart the animation
+    view.classList.add("entering");
+    view.querySelectorAll(".card").forEach((card, i) => card.style.setProperty("--i", Math.min(i, 12)));
+    countUp(view);
+  } else {
+    view.classList.remove("entering");
+  }
+  if (p === "overview") window.mountHero?.(view.querySelector(".hero"));
+}
+// Numbers marked data-count rise from 0 to their value over ~0.8 s.
+function countUp(root) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  root.querySelectorAll("[data-count]").forEach((el) => {
+    const target = Number(el.dataset.count), t0 = performance.now(), dur = 800;
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / dur), eased = 1 - Math.pow(1 - k, 3);
+      el.textContent = fmt(Math.round(target * eased));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
 }
 window.addEventListener("hashchange", route);
-$("#refresh").addEventListener("click", load);
+$("#refresh").addEventListener("click", () => load(true));
+// "/" jumps to search from anywhere; Esc clears it.
+document.addEventListener("keydown", (e) => {
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || "");
+  if (e.key === "/" && !typing) { e.preventDefault(); $("#q").focus(); }
+  if (e.key === "Escape" && document.activeElement === $("#q")) { $("#q").value = ""; $("#q").dispatchEvent(new Event("input")); $("#q").blur(); }
+});
+window.addEventListener("scroll", () => $("#topbar").classList.toggle("scrolled", window.scrollY > 8), { passive: true });
 // Search filters the overview, event and report lists; other pages ignore it (re-rendering the
 // knowledge graph page would reload the orb graph on every keystroke).
 $("#q").addEventListener("input", (e) => {
@@ -615,10 +768,10 @@ function renderOverview(view) {
 
   view.innerHTML = `
   <div class="grid g4">
-    ${statCard("Events handled", fmt(traces.length), `${acted} acted`, "up", "feed")}
-    ${statCard("Tool calls", fmt(calls), failed ? `${failed} failed` : "0 failed", failed ? "down" : "up", "bolt")}
-    ${statCard("Escalated to a human", fmt(escal), "rumors & unclear", "", "alert")}
-    ${statCard("Test cases passed", total ? `${passed}/${total}` : "—", total ? `${pct}%` : "no reports", pct === 100 ? "up" : "down", "shield")}
+    ${statCard("Events handled", fmt(traces.length), `${acted} acted on`, "up", "feed")}
+    ${statCard("Tool calls", fmt(calls), failed ? `${failed} failed` : "None failed", failed ? "down" : "up", "bolt")}
+    ${statCard("Escalated to a human", fmt(escal), "Rumors & unclear reports", "flat", "alert")}
+    ${statCard("Test cases passed", total ? `${passed} / ${total}` : "—", total ? `${pct}% pass rate` : "No reports yet", total ? (pct === 100 ? "up" : pct >= 80 ? "warn" : "down") : "flat", "shield")}
   </div>
 
   <div class="grid g-hero" style="margin-top:20px">
@@ -642,7 +795,7 @@ function renderOverview(view) {
     </div>
 
     <div class="card">
-      <div class="card-head"><div><h3>Who read the messages</h3><p class="sub">Whose reading the tower acted on, across the 15 events</p></div></div>
+      <div class="card-head"><div><h3>Who read the messages</h3><p class="sub">Which reader's interpretation the tower acted on, across ${fmt(traces.length)} events</p></div></div>
       <div class="reader">
         ${ringSvg(incidents.length ? viaModel / incidents.length : 0, `${incidents.length ? Math.round((viaModel / incidents.length) * 100) : 0}%`, "model")}
         <div class="mini">
@@ -724,7 +877,15 @@ function handoffsHtml(t) {
   </div>`).join("")}</div>`;
 }
 function statCard(k, v, delta, cls, ic) {
-  return `<div class="card stat"><div><div class="k">${esc(k)}</div><div class="v">${v}<small class="${cls}">${esc(delta)}</small></div></div><div class="badge-ico">${icon(ic)}</div></div>`;
+  // delta renders as a pill under the value: up/down show a trend arrow; warn/flat are plain.
+  const dcls = cls === "up" || cls === "down" || cls === "warn" ? cls : "flat";
+  const arr = cls === "up" ? "▲" : cls === "down" ? "▼" : "";
+  const pill = delta
+    ? `<div class="delta ${dcls}">${arr ? `<span class="arr">${arr}</span>` : ""}<span class="txt">${esc(delta)}</span></div>`
+    : "";
+  // The leading number counts up when the page opens (see countUp).
+  const value = String(v).replace(/^([\d,]+)/, (m) => `<span data-count="${m.replace(/,/g, "")}">${m}</span>`);
+  return `<div class="card stat"><div class="stat-body"><div class="k">${esc(k)}</div><div class="v">${value}</div>${pill}</div><div class="badge-ico">${icon(ic)}</div></div>`;
 }
 function gaugeSvg(pct, passed, total) {
   // A half ring with the percentage inside it and the count underneath; nothing overlaps the arc.
@@ -733,7 +894,7 @@ function gaugeSvg(pct, passed, total) {
   const color = pct === 100 ? "var(--good)" : pct >= 80 ? "var(--warn)" : "var(--bad)";
   return `<svg viewBox="0 0 200 118" width="240" role="img" aria-label="${pct}% of test cases passed">
     <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="14" stroke-linecap="round"/>
-    <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="${color}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${filled} ${len}"/>
+    <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="${color}" stroke-width="14" stroke-linecap="round" class="draw" stroke-dasharray="${len}" style="--len:${len};--off:${len - filled}"/>
     <text x="100" y="86" text-anchor="middle" fill="#fff" font-size="34" font-weight="800">${pct}%</text>
     <text x="100" y="106" text-anchor="middle" fill="var(--muted)" font-size="11">passed</text>
     <text x="20" y="117" text-anchor="middle" fill="var(--muted)" font-size="9">0%</text>
@@ -745,7 +906,7 @@ function ringSvg(frac, label, caption) {
   return `<svg viewBox="0 0 140 140" width="140" role="img" aria-label="${esc(label)} ${esc(caption)}">
     <circle cx="70" cy="70" r="${r}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10"/>
     <circle cx="70" cy="70" r="${r}" fill="none" stroke="var(--s3)" stroke-width="10" stroke-linecap="round"
-      stroke-dasharray="${f} ${c}" transform="rotate(-90 70 70)"/>
+      class="draw" stroke-dasharray="${c}" style="--len:${c};--off:${c - f}" transform="rotate(-90 70 70)"/>
     <text x="70" y="64" text-anchor="middle" class="ring-center">${esc(caption)}</text>
     <text x="70" y="88" text-anchor="middle" fill="#fff" font-size="24" font-weight="800">${esc(label)}</text>
   </svg>`;
@@ -813,7 +974,7 @@ function drawCallsChart(host) {
       const yy = y1 + 0;
       const isTop = si === segs.length - 1;
       const rr = isTop ? Math.min(4, h / 2, bw / 2) : 0;
-      svg += `<path d="${roundTopRect(x, yy + (isTop ? 0 : gap * 0), bw, h, rr)}" fill="${GROUPS[s.gi].color}"/>`;
+      svg += `<path class="bar" style="animation-delay:${i * 35}ms" d="${roundTopRect(x, yy + (isTop ? 0 : gap * 0), bw, h, rr)}" fill="${GROUPS[s.gi].color}"/>`;
     });
     svg += `<rect x="${pad.l + slot * i}" y="${pad.t}" width="${slot}" height="${ih}" fill="transparent" data-i="${i}" class="hit"/>`;
   });
@@ -941,30 +1102,6 @@ function argText(args) {
 
 /* ================= REPORTS ================= */
 function suiteRuns(id) { return ({ given: "given", generated: "tests", holdout: "holdout", holdout2: "holdout2" })[id] || id; }
-// tests/run_model.py: a model on its own, no rule check, scored against the expected graphs.
-function modelEvalCard() {
-  const runs = S.reports?.model_eval || [];
-  if (!runs.length) return `<div class="card" style="margin-top:20px"><div class="card-head"><div><h3>How good is the model itself?</h3>
-    <p class="sub">Not measured yet. Run <span class="mono">python tests/run_model.py</span> to score the LLM reader on its own against the expected graphs.</p></div></div></div>`;
-  const SUITE_NAME = { holdout2: "Held-out set 2 (100, blind)", holdout: "Held-out set 1 (100, used for diagnosis)", given: "Given events (15)" };
-  return runs.map((m) => `<div class="card" style="margin-top:20px">
-    <div class="card-head"><div><h3>How good is ${esc(m.model)} on its own?</h3>
-      <p class="sub">No rule check, no fallback: the model reads each message, code only looks up the records and dates it named, and the reading is traced through the company graph and compared with the expected graph. Run ${esc(m.run)}.</p></div></div>
-    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
-      ${Object.entries(m.suites).map(([suite, x]) => `<div class="panel">
-        <h4>${esc(SUITE_NAME[suite] || suite)}</h4>
-        ${predictionScores({ ...x, output_ok: x.output_ok })}
-        <table style="margin-top:12px"><thead><tr><th>Kind</th><th class="num">Full output right</th></tr></thead><tbody>
-          ${Object.entries(x.by_kind).sort().map(([k, v]) => `<tr><td>${kindTag(k)}</td><td class="num">${v.output_ok}/${v.total}</td></tr>`).join("")}
-        </tbody></table></div>`).join("")}
-    </div>
-    ${m.misses.length ? `<details style="margin-top:14px"><summary>${m.misses.length} misses: message, expected, and what the model read</summary>
-      <div class="scroll-x"><table style="margin-top:8px"><thead><tr><th>Case</th><th>Message</th><th>What differed</th></tr></thead><tbody>
-      ${m.misses.map((x) => `<tr><td><b>${esc(x.id)}</b><div class="note">${esc(x.suite)} · ${esc(KIND_LABEL[x.category] || x.category)}</div></td>
-        <td><div class="clip">${esc(x.text)}</div></td><td style="color:var(--text-2)">${x.mismatches.map((t) => esc(t)).join("<br>")}</td></tr>`).join("")}
-      </tbody></table></div></details>` : ""}
-  </div>`).join("");
-}
 // How well a reader predicts: its output compared with the answer key traced through the graph.
 function predictionScores(j) {
   const row = (label, n) => {
@@ -1129,7 +1266,6 @@ function renderTests(view, segs) {
     </div>
     <div class="panel" style="margin-top:16px"><h4>By category</h4>${passBars(catRows(byCat))}</div>
   </div>
-  ${modelEvalCard()}
   <div class="card" style="margin-top:20px">
     <div class="card-head"><div><h3>Test run log</h3><p class="sub">Every time a test set was run, newest first. Click a row to open that set's latest results.</p></div>
       <div class="toggle"><button class="${S.logFilter === "all" ? "" : "on"}" data-logf="reader">${esc(readerName(rid))}</button><button class="${S.logFilter === "all" ? "on" : ""}" data-logf="all">All readers</button></div></div>
@@ -1153,7 +1289,7 @@ function renderTests(view, segs) {
 function renderSet(view, sid, rid) {
   const suite = suiteById(sid), reader = readerOf(suite, rid);
   if (!reader) { view.innerHTML = `<div class="card empty">That test set has no results for this reader. <a href="#/tests" style="color:var(--accent-2)">Back to all tests</a></div>`; return; }
-  $("#crumb").innerHTML = `<a href="#/tests">Tests</a> / ${esc(suite.title)}`;
+  setTrail([["Tests", "#/tests"], [suite.title, null]]);
   $("#title").textContent = `${suite.title} · ${readerName(reader.id)}`;
   const f = S.caseFilter;
   const cases = reader.cases.filter((c) => (f.verdict === "all" || (f.verdict === "pass") === (c.verdict === "PASS"))
@@ -1232,7 +1368,7 @@ function renderCase(view, sid, rid, cid) {
   if (idx < 0) { view.innerHTML = `<div class="card empty">Case not found. <a href="#/tests/${esc(sid)}/${esc(rid)}" style="color:var(--accent-2)">Back to the set</a></div>`; return; }
   const c = reader.cases[idx], prev = reader.cases[idx - 1], next = reader.cases[idx + 1];
   const base = `#/tests/${sid}/${rid}`;
-  $("#crumb").innerHTML = `<a href="#/tests">Tests</a> / <a href="${esc(base)}">${esc(suite.title)}</a> / ${esc(c.id)}`;
+  setTrail([["Tests", "#/tests"], [suite.title, base], [c.id, null]]);
   $("#title").textContent = `${c.id} · ${CAT_NAME[c.category] || c.category}`;
   const pass = c.verdict === "PASS";
   const diffs = [...(c.score?.mismatches || []), ...c.fails.filter((f) => !(c.score?.mismatches || []).length)];
@@ -1406,6 +1542,163 @@ function renderGuide(view) {
 
 paintIcons();
 load();
+</script>
+<script type="module">
+// Overview hero: a small, slowly turning 3D network (nodes, links, and pulses travelling along
+// them), echoing the knowledge graph. three.js is the copy the orb graph already serves, so
+// nothing loads from the internet. It pauses when the tab is hidden or the card is off screen,
+// and draws one still frame for prefers-reduced-motion.
+import * as THREE from "/orb/vendor/three/three.module.js";
+
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const COLORS = [0x3987e5, 0x6c63ff, 0x2fd8ff, 0x9b7bff, 0x5cff9d];
+let renderer, scene, camera, group, canvas, host, resizeObs, seenObs, pulses = [], edges = [], running = false, onScreen = true;
+const mouse = { x: 0, y: 0 };
+
+function glow() {
+  const c = document.createElement("canvas"); c.width = c.height = 64;
+  const g = c.getContext("2d"), r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(0.25, "rgba(255,255,255,.75)");
+  r.addColorStop(0.6, "rgba(255,255,255,.12)"); r.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+}
+
+function build() {
+  canvas = document.createElement("canvas");
+  canvas.className = "hero-canvas";
+  canvas.setAttribute("aria-hidden", "true");
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+  camera.position.set(0, 0, 9);
+  group = new THREE.Group();
+  scene.add(group);
+
+  // Nodes: a Fibonacci sphere with a little jitter, fixed seed so it looks the same every load.
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const N = 70, pts = [];
+  for (let i = 0; i < N; i++) {
+    const y = 1 - (i / (N - 1)) * 2, r = Math.sqrt(1 - y * y), th = i * 2.399963;
+    const rad = 2.6 + (rnd() - 0.5) * 0.7;
+    pts.push(new THREE.Vector3(Math.cos(th) * r * rad, y * rad, Math.sin(th) * r * rad));
+  }
+  const pos = new Float32Array(N * 3), col = new Float32Array(N * 3), size = new Float32Array(N);
+  const c = new THREE.Color();
+  pts.forEach((p, i) => {
+    p.toArray(pos, i * 3);
+    c.setHex(COLORS[i % COLORS.length]).toArray(col, i * 3);
+    size[i] = i % 9 === 0 ? 0.55 : 0.28;
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  group.add(new THREE.Points(geo, new THREE.PointsMaterial({
+    size: 0.42, map: glow(), vertexColors: true, transparent: true, depthWrite: false,
+    blending: THREE.AdditiveBlending, opacity: 0.95,
+  })));
+
+  // Links: each node to its two nearest neighbours.
+  const seen = new Set(), lp = [];
+  pts.forEach((p, i) => {
+    pts.map((q, j) => [p.distanceToSquared(q), j]).filter(([, j]) => j !== i).sort((a, b) => a[0] - b[0]).slice(0, 2)
+      .forEach(([, j]) => {
+        const k = i < j ? `${i}-${j}` : `${j}-${i}`;
+        if (seen.has(k)) return;
+        seen.add(k); edges.push([i, j]);
+        lp.push(p.x, p.y, p.z, pts[j].x, pts[j].y, pts[j].z);
+      });
+  });
+  const lg = new THREE.BufferGeometry();
+  lg.setAttribute("position", new THREE.Float32BufferAttribute(lp, 3));
+  group.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({
+    color: 0x5a7dff, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false,
+  })));
+
+  // Pulses: bright points travelling along random links, like messages moving through the tower.
+  const pg = new THREE.BufferGeometry(), pp = new Float32Array(8 * 3);
+  pg.setAttribute("position", new THREE.BufferAttribute(pp, 3));
+  const pulseMesh = new THREE.Points(pg, new THREE.PointsMaterial({
+    size: 0.5, map: glow(), color: 0xbfe3ff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  }));
+  group.add(pulseMesh);
+  for (let i = 0; i < 8; i++) pulses.push({ e: edges[Math.floor(rnd() * edges.length)], t: rnd(), v: 0.25 + rnd() * 0.35 });
+  group.userData = { pts, pg, rnd };
+
+  window.addEventListener("pointermove", (e) => {
+    mouse.x = (e.clientX / innerWidth) * 2 - 1;
+    mouse.y = (e.clientY / innerHeight) * 2 - 1;
+  }, { passive: true });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) start(); });
+  resizeObs = new ResizeObserver(fit);
+  seenObs = new IntersectionObserver(([entry]) => { onScreen = entry.isIntersecting; if (onScreen) start(); });
+}
+
+function fit() {
+  if (!host) return;
+  const w = host.clientWidth, h = host.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  canvas.style.width = `${w}px`; canvas.style.height = `${h}px`;
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  // Sit in the right part of the card, partly past its edge, clear of the text on the left.
+  const halfWidth = Math.tan((camera.fov * Math.PI) / 360) * camera.position.z * camera.aspect;
+  group.position.x = halfWidth * 0.62;
+  group.scale.setScalar(Math.min(1.05, Math.max(0.75, h / 340)));
+  draw(performance.now());
+}
+
+let last = 0;
+function draw(now) {
+  const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
+  const { pts, pg } = group.userData;
+  group.rotation.y += dt * 0.12;
+  group.rotation.x += ((mouse.y * 0.25) - group.rotation.x) * 0.03;
+  group.rotation.z += ((-mouse.x * 0.12) - group.rotation.z) * 0.03;
+  const arr = pg.attributes.position.array;
+  pulses.forEach((p, i) => {
+    p.t += dt * p.v;
+    if (p.t > 1) { p.t = 0; p.e = edges[Math.floor(group.userData.rnd() * edges.length)]; }
+    const a = pts[p.e[0]], b = pts[p.e[1]];
+    arr[i * 3] = a.x + (b.x - a.x) * p.t; arr[i * 3 + 1] = a.y + (b.y - a.y) * p.t; arr[i * 3 + 2] = a.z + (b.z - a.z) * p.t;
+  });
+  pg.attributes.position.needsUpdate = true;
+  renderer.render(scene, camera);
+}
+
+function loop(now) {
+  if (!running) return;
+  if (document.hidden || !onScreen || !host?.isConnected) { running = false; return; }
+  draw(now);
+  requestAnimationFrame(loop);
+}
+function start() {
+  if (reduce || running || !host?.isConnected) return;
+  running = true; last = performance.now();
+  requestAnimationFrame(loop);
+}
+
+// Called by the dashboard each time the Overview renders (its hero card is new each time).
+window.mountHero = (el) => {
+  if (!el) return;
+  try {
+    if (!renderer) build();
+  } catch (err) {   // no WebGL: the card keeps its plain gradient
+    console.warn("hero network disabled:", err);
+    window.mountHero = () => {};
+    return;
+  }
+  if (host) { resizeObs.unobserve(host); seenObs.unobserve(host); }
+  host = el;
+  host.prepend(canvas);
+  resizeObs.observe(host); seenObs.observe(host);
+  fit();
+  requestAnimationFrame(() => canvas.classList.add("on"));
+  start();
+};
+// The Overview may already be on screen when this module finishes loading.
+window.mountHero(document.querySelector(".hero"));
 </script>
 </body>
 </html>
