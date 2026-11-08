@@ -109,7 +109,7 @@ Decide what the message reports, by its meaning (people word things in many diff
 - quality_hold: parts, a part lot or the vehicles built with them over some dates are defective or suspect and must be held.
 - unconfirmed: a possible problem that nobody has confirmed (hearsay, guesses, vague reports without specifics).
 - noise: not about the company's deliveries, plants or part quality (announcements, questions, news elsewhere).
-First write the reason: one or two sentences on what the message says and why that makes it this kind.
+First write the reason: one short sentence on what the message says and why that makes it this kind.
 Answer with JSON only."""
 
 # The same definitions plus the phrasing hints the one-step prompt already had (written before the
@@ -254,6 +254,7 @@ class LLMReader:
 
     def _chat(self, payload: dict) -> dict:
         """One raw /api/chat call; returns the reply message."""
+        payload.setdefault("keep_alive", "30m")
         if self.model.startswith("qwen3"):
             payload["think"] = False
         request = urllib.request.Request(f"{self.url}/api/chat", data=json.dumps(payload).encode("utf-8"),
@@ -271,7 +272,9 @@ class LLMReader:
         """Step 2: pick the records and dates a `kind` needs. options maps a role type ("plant",
         "part", "supplier", "lot", "shipment", "date") to the labels code found. The answer
         format only allows those labels or "". With previous/problem, this is the one retry."""
-        roles = ROLES[kind]
+        # Only fields with candidates are asked for: the rest can only be "none", and every field
+        # the model writes costs time. They come back as "".
+        roles = {name: spec for name, spec in ROLES[kind].items() if options.get(spec[0])}
         props = {name: {"type": "string", "enum": [*(v for v, _ in options.get(rtype, [])), "none"]}
                  for name, (rtype, _) in roles.items()}
         required = list(roles)
@@ -292,11 +295,12 @@ class LLMReader:
             ]
         payload = {"model": self.model, "stream": False, "format": schema,
                    "options": {"temperature": 0, "seed": 7}, "messages": messages}
-        out = self._post(payload, check_kind=False, keys=tuple(required))
-        return {k: ("" if v == "none" else v) for k, v in out.items()}
+        out = self._post(payload, check_kind=False, keys=tuple(required)) if required else {}
+        return {name: ("" if out.get(name, "none") == "none" else out[name]) for name in ROLES[kind]}
 
     def _post(self, payload: dict, check_kind: bool, keys: tuple[str, ...]) -> dict:
         """One call to Ollama; returns the answer's keys as stripped strings ("" if absent)."""
+        payload.setdefault("keep_alive", "30m")  # stay loaded between messages: no reload pause
         if self.model.startswith("qwen3"):
             payload["think"] = False  # Qwen3 thinks by default; extraction does not need it.
         request = urllib.request.Request(

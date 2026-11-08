@@ -44,8 +44,12 @@ _KEEP = 8  # rows returned per call, so answers stay short for a small model
 class Lookups:
     """Executes tool calls against the graph and remembers every record and date it returned."""
 
-    def __init__(self, graph):
+    def __init__(self, graph, section: str = "", grounded: set[str] | None = None):
         self.graph = graph
+        # Only results tied to the message count: a name search for words that are in the message,
+        # or a lookup filtered by a record the message names (or a search of it found).
+        self.section = section.casefold()
+        self.grounded: set[str] = set(grounded or ())
         self.records: dict[str, str] = {}   # entity id -> entity type, for every record a tool returned
         self.dates: set[str] = set()        # ISO dates a tool returned (due dates, build windows)
         self.log: list[str] = []            # one line per call, for the trace
@@ -75,20 +79,27 @@ class Lookups:
     def search_records(self, text: str) -> dict:
         names = self.graph._alias_map
         close = difflib.get_close_matches(text.casefold(), list(names), n=_KEEP, cutoff=0.6)
+        in_message = bool(text.strip()) and text.casefold().strip() in self.section
         rows, seen = [], set()
         for alias in close:
             etype, eid = names[alias]
             if (etype, eid) in seen:
                 continue
             seen.add((etype, eid))
-            self.records[eid] = etype
+            if in_message:
+                self.records[eid] = etype
+                self.grounded.add(eid)
             rows.append({"type": etype, "id": eid, "matched": alias})
+        if not in_message:
+            return {"rows": rows, "note": "the searched text is not in the message, so these are not used"}
         return {"rows": rows}
 
     def lookup(self, what: str, part: str = "", plant: str = "", supplier: str = "",
                date_from: str = "", date_to: str = "") -> dict:
         g = self.graph
         part_id, plant_id, supplier_id = self._id(part, "part"), self._id(plant, "plant"), self._id(supplier, "supplier")
+        if not ({part_id, plant_id, supplier_id} & self.grounded):
+            return {"rows": [], "note": "filter by a plant, part or supplier the message names (search_records finds them)"}
         rows = []
         if what == "shipments":
             for r in g.find_shipments(supplier_id, part_id, plant_id):

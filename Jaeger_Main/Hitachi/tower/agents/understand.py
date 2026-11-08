@@ -347,6 +347,12 @@ def _model_incident(graph, section: str, llm, kind: str, reason: str, said: str,
     options, lookup = model_options(graph, section, anchor)
     notes = [said]
     answer, problem = None, ""
+    named = {value for rtype, items in options.items() if rtype != "date" for value, _ in items}
+    if not named:
+        # No plant, part, supplier, lot or shipment in the message: no pick could check out and
+        # there is nothing to look up, so ask straight away instead of spending model calls.
+        notes.append("the message names no plant, part, supplier, lot or shipment, so there is nothing to pick or look up")
+        return _needs_info(graph, kind, {}, lookup, _NOTHING_NAMED[kind], notes)
     try:
         answer = llm.fill(section, kind, options)
         built, problem = _incident_from_choices(graph, kind, answer, lookup)
@@ -359,7 +365,7 @@ def _model_incident(graph, section: str, llm, kind: str, reason: str, said: str,
     notes.append(f"does not check out: {problem}")
 
     tool = _tool_reader(llm, TOOL_MODEL, LLMReader)
-    lookups = Lookups(graph)
+    lookups = Lookups(graph, section, grounded=named)
     try:
         finding = tool.investigate(section, kind, problem, lookups)
         _add_found(graph, options, lookup, lookups)
@@ -376,6 +382,18 @@ def _model_incident(graph, section: str, llm, kind: str, reason: str, said: str,
         notes.append(f"does not check out: {problem}")
     except (LLMUnavailable, ValueError) as exc:
         notes.append(f"lookup step unavailable ({exc})")
+    return _needs_info(graph, kind, answer, lookup, problem, notes)
+
+
+_NOTHING_NAMED = {
+    "supplier_delay": "a delay needs a shipment, or a part and a plant",
+    "plant_outage": "an outage needs a plant",
+    "quality_hold": "a quality hold needs a known lot, or a plant and a part",
+}
+
+
+def _needs_info(graph, kind: str, answer, lookup: dict, problem: str, notes: list[str]) -> Incident:
+    """Escalate with one question naming everything still missing."""
     question = _question(kind, problem, _missing(graph, kind, answer or {}, lookup))
     understood = _understood(kind, answer or {}, lookup)
     return Incident(
@@ -419,6 +437,10 @@ def _add_found(graph, options: dict, lookup: dict, lookups) -> None:
 # What to ask a person when a reading does not check out, keyed by the failed check. Each names
 # exactly what is missing, so the reply can be added to the message and the event read again.
 _QUESTIONS = {
+    "the new date must be a date the message gives": "What is the new arrival date?",
+    "the first day must be a date the message gives": "What is the first day the plant cannot build, and the last?",
+    "the last day down must be a date the message gives": "What is the last day the plant cannot build?",
+    "the restart day must be a date the message gives": "What is the last day the plant cannot build?",
     "a quality hold needs a known lot, or a plant and a part": "Which part lot is affected, or which part at which plant?",
     "a quality hold needs the first and last build dates": "What are the first and last build dates affected?",
     "the build window ends before it starts": "The build dates look reversed. What are the first and last build dates affected?",
@@ -546,9 +568,19 @@ def _fill_from_tables(graph, kind: str, picked: dict, chosen) -> list[str]:
     return notes
 
 
+def _from_tables(item) -> bool:
+    """A date a lookup returned rather than one the message gives."""
+    return bool(item) and "(from the tables)" in str(item.get("phrase", ""))
+
+
 def _checked_incident(graph, kind: str, picked: dict, chosen, answer: dict, hits: list) -> tuple[Incident | None, str]:
     """The completeness checks and the build, after the table lookups."""
     plant, part, lot, shipment = (picked[t][0] for t in ("plant", "part", "lot", "shipment"))
+    # What happened, and when, must be in the message: a table can fill a stored due date or a
+    # named lot's build window, never the new arrival date or the days a plant is down.
+    for role in ("new_date", "first_day", "last_day_down", "restart_day"):
+        if _from_tables(chosen(role)):
+            return None, f"the {role.replace('_', ' ')} must be a date the message gives"
     if kind == "quality_hold":
         first, last = chosen("first_build_date"), chosen("last_build_date")
         lot_known = lot is not None and lot.entity_id in graph.lots
