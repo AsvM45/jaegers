@@ -62,3 +62,14 @@ The merged [independent Grok witness](../release/GROK_HISTORICAL_FEATURE_COMPLIA
 ## Report outcomes honestly
 
 Use one of: `TESTED`, `AUTHOR-REPORTED`, `DEVELOPMENT-EXPOSED`, `NOT_CERTIFIED`, `BLOCKED`, or `SUBMITTED + receipt`. A local valid CSV/ZIP and a green Actions check are not an organizer receipt. No hidden-test truth or private organizer points should appear in public documentation.
+
+
+## Experiment-factory acceptance protocol (Drive v7 reconciled)
+
+The original v7 research plan proposed three distinct evaluations: (1) **historical rolling-origin sampled-payout** training/test diagnostics, (2) **episode-grouped out-of-fold sampled-label Brier** for transferable mechanisms, and (3) **official public-validation true-vector condition-normalized** scores for final development comparison. These cannot be interchanged. A pseudorow's historical observed payout can be its label, but every feature and any fitted prior used at time t must have the proper information availability; current-query signal is not a known past signal. See the [historical-feature witness](../release/GROK_HISTORICAL_FEATURE_COMPLIANCE.md).
+
+For each trial, record code/data/fold hashes, model+feature signature, actual labels/source, search-selection exposure, seed, package/environment, per-episode losses, timing, artifacts and failure state. Freeze the split manifest before search and preserve negative trials. A paired bootstrap samples **episodes**, not individual spins or correlated pseudorows. Confidence intervals are descriptive when many model variants have been tried on the same exposed validation episodes.
+
+**Falsification controls from the archived design:** permute current query signal, remove sibling-machine context, perturb deliberately future outcomes (predictions must not move), compare true-tick lags vs observed-row positions in sparse histories, test calibration for payout 20×, run no-stacker and train-only-prior alternatives, and measure interaction effect under matched folds. Treat any result as a hypothesis until repeated under the same relevant evaluation.
+
+A "universal experiment factory" is not a license to declare hidden-test gains. Large unbounded Cartesian-product searches are unscientific after repeated validation exposure; enumerate only a bounded grammar, estimate compute before launching, and report invalid/unsupported combinations. 

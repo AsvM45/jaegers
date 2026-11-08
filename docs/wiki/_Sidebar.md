@@ -1,12 +1,12 @@
-# JAEGERS wiki navigation
+# JAEGERS Wiki navigation
 
 - [Home](Home.md)
-- [Current state](../CURRENT_STATE.md)
-- [Architecture](../architecture/SYSTEM_OVERVIEW.md)
-- [Evaluation science](../science/EVALUATION_AND_PROVENANCE.md)
-- [CI and release](../runbooks/CI_AND_RELEASE.md)
-- [Agents and worktrees](../agents/GITHUB_AGENTS_AND_WORKTREES.md)
-- [Governance runbook](../ops/PR_GOVERNANCE_RUNBOOK.md)
-- [GitHub feature decisions](../adr/0001-github-engineering-features.md)
-- [Root README](../../README.md)
-- [Live issue board](https://github.com/AsvM45/jaegers/issues/18)
+- [Live current state](https://github.com/AsvM45/jaegers/blob/main/docs/CURRENT_STATE.md)
+- [Canonical project source](https://github.com/AsvM45/jaegers/blob/main/docs/JAEGERS_PROJECT_CONTEXT_2026-11-08.md)
+- [Research factory](https://github.com/AsvM45/jaegers/blob/main/docs/research/EXPERIMENT_FACTORY_v7.md)
+- [Experiment guide](https://github.com/AsvM45/jaegers/blob/main/docs/research/EXPERIMENT_FACTORY_GUIDE.md)
+- [Architecture](https://github.com/AsvM45/jaegers/blob/main/docs/architecture/SYSTEM_OVERVIEW.md)
+- [Evaluation science](https://github.com/AsvM45/jaegers/blob/main/docs/science/EVALUATION_AND_PROVENANCE.md)
+- [Agents and worktrees](https://github.com/AsvM45/jaegers/blob/main/docs/agents/GITHUB_AGENTS_AND_WORKTREES.md)
+- [CI and release](https://github.com/AsvM45/jaegers/blob/main/docs/runbooks/CI_AND_RELEASE.md)
+- [Issues](https://github.com/AsvM45/jaegers/issues)

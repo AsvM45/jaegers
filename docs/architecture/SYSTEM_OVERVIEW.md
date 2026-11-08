@@ -68,3 +68,14 @@ The `databricks/` subtree contains a Bronze/Silver/Gold, Spark-style feature and
 ## Operational ownership
 
 One issue per agent, explicit claim, exclusive writable paths, own physical checkout/cloud sandbox, and independent PR review. [Governance runbook](../ops/PR_GOVERNANCE_RUNBOOK.md) and [agent guide](../agents/GITHUB_AGENTS_AND_WORKTREES.md) document the execution contract. GitHub Actions verifies some conditions; no automation proves local process ownership or an organizer receipt.
+
+
+## Warehouse and universal experimentation: reconciled design (Nov 8)
+
+The complete Nov 7 v7 design and plain-English Drive source were reconciled into the current [experiment-factory technical specification](../research/EXPERIMENT_FACTORY_v7.md) and [human guide](../research/EXPERIMENT_FACTORY_GUIDE.md). Their immutable source texts are retained as historical design evidence in [Drive research origins](../archive/drive/README.md); separate personal educational material is excluded.
+
+**Implemented in main** (inspect code and checks): Python loaders, as-of/episode-grouped feature and evaluation contracts, the local trial registry/worker tooling, challengers, an offline Databricks mock pipeline/SQL and MLflow logging adapters, read-only dashboard, and several path-scoped Actions checks. **Proposed or not proven live:** a generalized condition-constraint compiler for every model family, durable multi-host leasing or budget scheduler, a production Spark Delta deployment with actual MLflow/SQL job evidence, and an organizer acceptance receipt. Do not represent these as completed services.
+
+The source design separates **data durability** (immutable CSV/Parquet/Delta source + lineage), **trial scheduling** (atomic unique trial IDs, claims/leases, retries, budgets), **scientific evaluation** (episode-grouped and cutoff-safe metrics), and **presentation** (read-only dashboard/MLflow views). This separation is architectural, not evidence each component is production ready.
+
+The Databricks trial workspace is reported available to the team, but authentic jobs/Delta table readback must still be established through issue [#14](https://github.com/AsvM45/jaegers/issues/14). Main inference must run offline independent of Databricks. 
