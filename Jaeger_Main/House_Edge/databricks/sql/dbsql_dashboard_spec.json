@@ -1,0 +1,543 @@
+{
+  "version": 1,
+  "displayName": "JAEGERS House Edge: Lakehouse Experiment & Calibration Dashboard",
+  "description": "Production AI/BI Lakeview dashboard for JAEGERS House Edge model evaluation, calibration curves, regime drift, and Medallion lineage.",
+  "datasets": [
+    {
+      "name": "ds_model_leaderboard",
+      "displayName": "Model Leaderboard & Provenance",
+      "queryLines": [
+        "SELECT \n",
+        "  run_id,\n",
+        "  model_name,\n",
+        "  model_type,\n",
+        "  evaluation_provenance,\n",
+        "  champion_status,\n",
+        "  ROUND(mean_brier, 6) AS mean_brier,\n",
+        "  ROUND(log_loss, 6) AS log_loss,\n",
+        "  ROUND(ece_calibration, 6) AS ece_calibration,\n",
+        "  ROUND(brier_stable, 6) AS brier_stable,\n",
+        "  ROUND(brier_short_history, 6) AS brier_short_history,\n",
+        "  ROUND(brier_drift, 6) AS brier_drift,\n",
+        "  ROUND(brier_shared_change, 6) AS brier_shared_change,\n",
+        "  git_commit,\n",
+        "  created_at,\n",
+        "  ROW_NUMBER() OVER (PARTITION BY evaluation_provenance ORDER BY mean_brier ASC) AS rank_in_provenance\n",
+        "FROM gold_model_evaluations\n",
+        "ORDER BY evaluation_provenance ASC, mean_brier ASC\n"
+      ],
+      "columns": [
+        {
+          "displayName": "Mean Brier Loss",
+          "expression": "MIN(mean_brier)"
+        },
+        {
+          "displayName": "Best Log Loss",
+          "expression": "MIN(log_loss)"
+        },
+        {
+          "displayName": "Total Models",
+          "expression": "COUNT(DISTINCT model_name)"
+        }
+      ]
+    },
+    {
+      "name": "ds_payout_calibration",
+      "displayName": "Payout Calibration Curves",
+      "queryLines": [
+        "WITH unpivoted AS (\n",
+        "  SELECT p.query_id, p.model_name, 0 AS payout_class, p.p_0 AS pred_prob, CASE WHEN q.outcome = 0 THEN 1.0 ELSE 0.0 END AS actual FROM gold_predictions p JOIN silver_queries q ON p.query_id = q.query_id\n",
+        "  UNION ALL SELECT p.query_id, p.model_name, 1 AS payout_class, p.p_1 AS pred_prob, CASE WHEN q.outcome = 1 THEN 1.0 ELSE 0.0 END AS actual FROM gold_predictions p JOIN silver_queries q ON p.query_id = q.query_id\n",
+        "  UNION ALL SELECT p.query_id, p.model_name, 2 AS payout_class, p.p_2 AS pred_prob, CASE WHEN q.outcome = 2 THEN 1.0 ELSE 0.0 END AS actual FROM gold_predictions p JOIN silver_queries q ON p.query_id = q.query_id\n",
+        "  UNION ALL SELECT p.query_id, p.model_name, 5 AS payout_class, p.p_5 AS pred_prob, CASE WHEN q.outcome = 5 THEN 1.0 ELSE 0.0 END AS actual FROM gold_predictions p JOIN silver_queries q ON p.query_id = q.query_id\n",
+        "  UNION ALL SELECT p.query_id, p.model_name, 20 AS payout_class, p.p_20 AS pred_prob, CASE WHEN q.outcome = 20 THEN 1.0 ELSE 0.0 END AS actual FROM gold_predictions p JOIN silver_queries q ON p.query_id = q.query_id\n",
+        "),\n",
+        "binned AS (\n",
+        "  SELECT query_id, model_name, payout_class, pred_prob, actual, NTILE(10) OVER (PARTITION BY model_name, payout_class ORDER BY pred_prob ASC) AS prob_decile FROM unpivoted\n",
+        ")\n",
+        "SELECT \n",
+        "  model_name,\n",
+        "  CONCAT(CAST(payout_class AS STRING), 'x Payout') AS payout_label,\n",
+        "  payout_class,\n",
+        "  prob_decile,\n",
+        "  COUNT(*) AS bin_count,\n",
+        "  ROUND(AVG(pred_prob), 5) AS avg_predicted_prob,\n",
+        "  ROUND(AVG(actual), 5) AS observed_win_rate,\n",
+        "  ROUND(ABS(AVG(pred_prob) - AVG(actual)), 5) AS bin_calibration_error\n",
+        "FROM binned\n",
+        "GROUP BY model_name, payout_label, payout_class, prob_decile\n",
+        "ORDER BY model_name, payout_class, prob_decile\n"
+      ]
+    },
+    {
+      "name": "ds_regime_drift",
+      "displayName": "Machine Regime & Split Drift",
+      "queryLines": [
+        "SELECT \n",
+        "  q.split,\n",
+        "  q.machine_type,\n",
+        "  COUNT(*) AS query_count,\n",
+        "  ROUND(AVG(q.cutoff * 1.0), 1) AS avg_cutoff,\n",
+        "  ROUND(AVG(COALESCE(e.total_spins_observed, 0) * 1.0), 1) AS avg_spins,\n",
+        "  ROUND(AVG(COALESCE(e.win_rate, 0.0)), 4) AS avg_win_rate,\n",
+        "  ROUND(AVG((q.cutoff - COALESCE(e.total_spins_observed, 0)) * 100.0 / NULLIF(q.cutoff, 0)), 2) AS missing_ticks_pct\n",
+        "FROM silver_queries q\n",
+        "LEFT JOIN silver_episodes e ON q.episode_id = e.episode_id AND q.split = e.split\n",
+        "GROUP BY q.split, q.machine_type\n",
+        "ORDER BY q.split, q.machine_type\n"
+      ]
+    },
+    {
+      "name": "ds_lineage_and_audit",
+      "displayName": "Bronze Ingestion Audit & Lineage",
+      "queryLines": [
+        "SELECT \n",
+        "  dataset_name,\n",
+        "  split,\n",
+        "  status,\n",
+        "  record_count,\n",
+        "  ROUND(file_size_bytes / 1024.0, 2) AS file_size_kb,\n",
+        "  SUBSTRING(sha256_checksum, 1, 16) AS sha256_prefix,\n",
+        "  sha256_checksum,\n",
+        "  file_path,\n",
+        "  ingested_at\n",
+        "FROM bronze_audit_log\n",
+        "ORDER BY split ASC, dataset_name ASC\n"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "page_executive_leaderboard",
+      "displayName": "Executive Model Leaderboard",
+      "layout": [
+        {
+          "widget": {
+            "name": "title_executive",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# JAEGERS House Edge: Production Model Governance & Leaderboard\n",
+                "\n",
+                "Continuous tracking of ML candidate models evaluated across **Public Validation** and **Grouped CV** splits. Tracks multi-class Brier loss, log loss, calibration error (ECE), and condition robustness."
+              ]
+            }
+          },
+          "position": { "x": 0, "y": 0, "width": 12, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "kpi_champion_brier",
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "mean_brier",
+                  "displayName": "Champion Mean Brier",
+                  "aggregation": "MIN"
+                }
+              },
+              "frame": {
+                "title": "Champion Mean Brier",
+                "description": "Lowest observed multi-class Brier score"
+              }
+            },
+            "datasetName": "ds_model_leaderboard"
+          },
+          "position": { "x": 0, "y": 2, "width": 3, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "kpi_champion_log_loss",
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "log_loss",
+                  "displayName": "Champion Log Loss",
+                  "aggregation": "MIN"
+                }
+              },
+              "frame": {
+                "title": "Champion Log Loss",
+                "description": "Best multi-class cross-entropy loss"
+              }
+            },
+            "datasetName": "ds_model_leaderboard"
+          },
+          "position": { "x": 3, "y": 2, "width": 3, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "kpi_best_ece",
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "ece_calibration",
+                  "displayName": "Best ECE",
+                  "aggregation": "MIN"
+                }
+              },
+              "frame": {
+                "title": "Best Calibration ECE",
+                "description": "Expected Calibration Error across deciles"
+              }
+            },
+            "datasetName": "ds_model_leaderboard"
+          },
+          "position": { "x": 6, "y": 2, "width": 3, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "kpi_total_models",
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "model_name",
+                  "displayName": "Registered Models",
+                  "aggregation": "COUNT_DISTINCT"
+                }
+              },
+              "frame": {
+                "title": "Total Models Tracked",
+                "description": "Registered trial candidates in MLflow & Delta"
+              }
+            },
+            "datasetName": "ds_model_leaderboard"
+          },
+          "position": { "x": 9, "y": 2, "width": 3, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "table_leaderboard",
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "rank_in_provenance", "displayName": "Rank" },
+                  { "fieldName": "model_name", "displayName": "Model" },
+                  { "fieldName": "model_type", "displayName": "Architecture" },
+                  { "fieldName": "champion_status", "displayName": "Status" },
+                  { "fieldName": "evaluation_provenance", "displayName": "Provenance" },
+                  { "fieldName": "mean_brier", "displayName": "Mean Brier" },
+                  { "fieldName": "log_loss", "displayName": "Log Loss" },
+                  { "fieldName": "ece_calibration", "displayName": "ECE" },
+                  { "fieldName": "brier_stable", "displayName": "Brier (Stable)" },
+                  { "fieldName": "brier_short_history", "displayName": "Brier (Short Hist)" },
+                  { "fieldName": "brier_drift", "displayName": "Brier (Drift)" },
+                  { "fieldName": "brier_shared_change", "displayName": "Brier (Shared Chg)" },
+                  { "fieldName": "git_commit", "displayName": "Git Commit" }
+                ]
+              },
+              "frame": {
+                "title": "Full Model Leaderboard with Evaluation Provenance"
+              }
+            },
+            "datasetName": "ds_model_leaderboard"
+          },
+          "position": { "x": 0, "y": 4, "width": 12, "height": 6 }
+        },
+        {
+          "widget": {
+            "name": "chart_condition_breakdown",
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "model_name", "displayName": "Candidate Model" },
+                "y": { "fieldName": "mean_brier", "displayName": "Brier Loss", "aggregation": "AVG" },
+                "color": { "fieldName": "evaluation_provenance", "displayName": "Evaluation Provenance" }
+              },
+              "frame": {
+                "title": "Model Performance Across Provenance Tiers"
+              }
+            },
+            "datasetName": "ds_model_leaderboard"
+          },
+          "position": { "x": 0, "y": 10, "width": 12, "height": 5 }
+        }
+      ]
+    },
+    {
+      "name": "page_calibration",
+      "displayName": "House Edge & Calibration Curves",
+      "layout": [
+        {
+          "widget": {
+            "name": "title_calibration",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Payout Calibration Curves & Reliability Diagrams\n",
+                "\n",
+                "Reliability diagrams comparing predicted probability deciles vs observed win rates across all 5 payout classes (`0x`, `1x`, `2x`, `5x`, `20x`). Well-calibrated models lie close to the 45-degree diagonal."
+              ]
+            }
+          },
+          "position": { "x": 0, "y": 0, "width": 12, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "chart_calibration_curve",
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": { "fieldName": "avg_predicted_prob", "displayName": "Mean Predicted Probability" },
+                "y": { "fieldName": "observed_win_rate", "displayName": "Observed Empirical Win Rate" },
+                "color": { "fieldName": "payout_label", "displayName": "Payout Class" }
+              },
+              "frame": {
+                "title": "Reliability Diagram (Predicted vs Observed Win Rate)"
+              }
+            },
+            "datasetName": "ds_payout_calibration"
+          },
+          "position": { "x": 0, "y": 2, "width": 8, "height": 7 }
+        },
+        {
+          "widget": {
+            "name": "chart_bin_calibration_error",
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "prob_decile", "displayName": "Decile Bin (1..10)" },
+                "y": { "fieldName": "bin_calibration_error", "displayName": "Absolute Calibration Error", "aggregation": "AVG" },
+                "color": { "fieldName": "payout_label", "displayName": "Payout Class" }
+              },
+              "frame": {
+                "title": "Bin Calibration Error by Decile"
+              }
+            },
+            "datasetName": "ds_payout_calibration"
+          },
+          "position": { "x": 8, "y": 2, "width": 4, "height": 7 }
+        },
+        {
+          "widget": {
+            "name": "table_calibration_detail",
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "model_name", "displayName": "Model" },
+                  { "fieldName": "payout_label", "displayName": "Payout Class" },
+                  { "fieldName": "prob_decile", "displayName": "Decile" },
+                  { "fieldName": "bin_count", "displayName": "Observation Count" },
+                  { "fieldName": "avg_predicted_prob", "displayName": "Avg Predicted Prob" },
+                  { "fieldName": "observed_win_rate", "displayName": "Observed Rate" },
+                  { "fieldName": "bin_calibration_error", "displayName": "Calibration Error" }
+                ]
+              },
+              "frame": {
+                "title": "Calibration Decile Diagnostics Table"
+              }
+            },
+            "datasetName": "ds_payout_calibration"
+          },
+          "position": { "x": 0, "y": 9, "width": 12, "height": 5 }
+        }
+      ]
+    },
+    {
+      "name": "page_regime_drift",
+      "displayName": "Feature & Regime Drift",
+      "layout": [
+        {
+          "widget": {
+            "name": "title_regime_drift",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Regime Stability & Data Drift Monitoring\n",
+                "\n",
+                "Verifies population stability and regime distributions across `train`, `validation`, and `test` splits. Monitors machine type proportions (steady, balanced, jackpot) and cutoff tick density."
+              ]
+            }
+          },
+          "position": { "x": 0, "y": 0, "width": 12, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "chart_machine_type_distribution",
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "split", "displayName": "Data Split" },
+                "y": { "fieldName": "query_count", "displayName": "Query Count", "aggregation": "SUM" },
+                "color": { "fieldName": "machine_type", "displayName": "Machine Type" }
+              },
+              "frame": {
+                "title": "Machine Type Distribution across Splits"
+              }
+            },
+            "datasetName": "ds_regime_drift"
+          },
+          "position": { "x": 0, "y": 2, "width": 6, "height": 6 }
+        },
+        {
+          "widget": {
+            "name": "chart_sparsity_by_split",
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "machine_type", "displayName": "Machine Type" },
+                "y": { "fieldName": "missing_ticks_pct", "displayName": "Avg Missing Ticks %", "aggregation": "AVG" },
+                "color": { "fieldName": "split", "displayName": "Split" }
+              },
+              "frame": {
+                "title": "Tick Sparsity (%) by Machine Type and Split"
+              }
+            },
+            "datasetName": "ds_regime_drift"
+          },
+          "position": { "x": 6, "y": 2, "width": 6, "height": 6 }
+        },
+        {
+          "widget": {
+            "name": "table_regime_summary",
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "split", "displayName": "Split" },
+                  { "fieldName": "machine_type", "displayName": "Machine Type" },
+                  { "fieldName": "query_count", "displayName": "Total Queries" },
+                  { "fieldName": "avg_cutoff", "displayName": "Avg Cutoff Tick" },
+                  { "fieldName": "avg_spins", "displayName": "Avg Spins Observed" },
+                  { "fieldName": "avg_win_rate", "displayName": "Empirical Win Rate" },
+                  { "fieldName": "missing_ticks_pct", "displayName": "Missing Ticks %" }
+                ]
+              },
+              "frame": {
+                "title": "Split & Machine Type Metric Breakdown"
+              }
+            },
+            "datasetName": "ds_regime_drift"
+          },
+          "position": { "x": 0, "y": 8, "width": 12, "height": 5 }
+        }
+      ]
+    },
+    {
+      "name": "page_lineage_health",
+      "displayName": "Lakehouse Lineage & Health",
+      "layout": [
+        {
+          "widget": {
+            "name": "title_lineage",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Medallion Lakehouse Lineage & Ingestion Health\n",
+                "\n",
+                "Cryptographic auditing of all ingested CSV assets in Delta Lake Bronze tables. Tracks SHA-256 file hashes, record counts, ingestion timestamps, and pipeline validation state."
+              ]
+            }
+          },
+          "position": { "x": 0, "y": 0, "width": 12, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "kpi_total_ingest_records",
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "record_count",
+                  "displayName": "Total Records Ingested",
+                  "aggregation": "SUM"
+                }
+              },
+              "frame": {
+                "title": "Total Bronze Ingested Records",
+                "description": "Sum of all queries, history, labels, conditions"
+              }
+            },
+            "datasetName": "ds_lineage_and_audit"
+          },
+          "position": { "x": 0, "y": 2, "width": 4, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "kpi_total_files",
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "file_path",
+                  "displayName": "Audited Source Files",
+                  "aggregation": "COUNT_DISTINCT"
+                }
+              },
+              "frame": {
+                "title": "Cryptographically Audited Files",
+                "description": "Distinct CSV files verified with SHA-256"
+              }
+            },
+            "datasetName": "ds_lineage_and_audit"
+          },
+          "position": { "x": 4, "y": 2, "width": 4, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "kpi_total_volume_kb",
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "file_size_kb",
+                  "displayName": "Total Data Volume (KB)",
+                  "aggregation": "SUM"
+                }
+              },
+              "frame": {
+                "title": "Total Bronze Volume (KB)",
+                "description": "Total storage footprint of ingested assets"
+              }
+            },
+            "datasetName": "ds_lineage_and_audit"
+          },
+          "position": { "x": 8, "y": 2, "width": 4, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "table_audit_ledger",
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "split", "displayName": "Split" },
+                  { "fieldName": "dataset_name", "displayName": "Dataset" },
+                  { "fieldName": "status", "displayName": "Ingest Status" },
+                  { "fieldName": "record_count", "displayName": "Row Count" },
+                  { "fieldName": "file_size_kb", "displayName": "File Size (KB)" },
+                  { "fieldName": "sha256_prefix", "displayName": "SHA-256 (Prefix)" },
+                  { "fieldName": "file_path", "displayName": "Source Path" },
+                  { "fieldName": "ingested_at", "displayName": "Ingest Timestamp" }
+                ]
+              },
+              "frame": {
+                "title": "Bronze Audit Log & SHA-256 Cryptographic Ledger"
+              }
+            },
+            "datasetName": "ds_lineage_and_audit"
+          },
+          "position": { "x": 0, "y": 4, "width": 12, "height": 7 }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+# Multi-task Lakeflow DAG definition for JAEGERS House Edge Medallion Pipeline
+resources:
+  jobs:
+    house_edge_medallion_pipeline:
+      name: "[${bundle.target}] JAEGERS House Edge Medallion Pipeline"
+      description: "Automated Medallion ingestion, domain validation, past-only feature calculation, parity verification, and MLflow model tracking"
+      
+      parameters:
+        - name: catalog
+          default: "${var.catalog}"
+        - name: schema
+          default: "${var.schema}"
+        - name: data_dir
+          default: "${var.data_dir}"
+
+      tasks:
+        # Task 1: Bronze Ingestion
+        - task_key: bronze_ingest
+          description: "Ingests raw query and spin history files into Bronze Delta tables with SHA-256 lineage tracking"
+          spark_python_task:
+            python_file: ../src/bronze.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "${var.schema}"
+              - "--data-dir"
+              - "${var.data_dir}"
+
+        # Task 2: Silver Cleaning & Validation
+        - task_key: silver_clean_and_validate
+          depends_on:
+            - task_key: bronze_ingest
+          description: "Validates domain quality constraints, maps payout indices, deduplicates spins, and creates episode summaries"
+          spark_python_task:
+            python_file: ../src/silver.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "${var.schema}"
+
+        # Task 3: Gold As-Of Feature Pipeline
+        - task_key: gold_asof_features
+          depends_on:
+            - task_key: silver_clean_and_validate
+          description: "Generates 471-dimensional Gold feature vectors enforcing strict tick < cutoff temporal isolation"
+          spark_python_task:
+            python_file: ../src/gold.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "${var.schema}"
+
+        # Task 4: Feature Parity Verifier
+        - task_key: verify_feature_parity
+          depends_on:
+            - task_key: gold_asof_features
+          description: "Executes mathematical bitwise parity audit comparing PySpark Gold features against local research features"
+          spark_python_task:
+            python_file: ../src/parity.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "${var.schema}"
+
+        # Task 5: MLflow Model Tracking
+        - task_key: mlflow_track_models
+          depends_on:
+            - task_key: verify_feature_parity
+          description: "Trains champion and challenger models, logging condition Brier scores, calibration ECE, and artifacts to MLflow"
+          spark_python_task:
+            python_file: ../src/mlflow_tracking.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "${var.schema}"
+
+        # Task 6: Refresh Analytical Monitoring Views
+        - task_key: refresh_monitoring_views
+          depends_on:
+            - task_key: mlflow_track_models
+          description: "Refreshes Databricks SQL analytical monitoring views and calibration metrics for AI/BI dashboarding"
+          spark_python_task:
+            python_file: ../src/silver.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "${var.schema}"
+              - "--action"
+              - "refresh_views"
