@@ -1,0 +1,105 @@
+"""JAEGERS Experiment Analytics Dashboard & Hypothesis Explorer.
+
+Read-only, offline-capable experiment ingestion, statistical comparison,
+calibration analysis, component ablation tracking, and provenance engine.
+"""
+
+from .schema import (
+    ProvenanceType,
+    ConditionLosses,
+    TrialRecord,
+    TrialDetail,
+    AttemptRecord,
+    CalibrationBin,
+    RarePayoutDiagnostic,
+    FeatureImportanceRecord,
+    ComponentAblation,
+    HypothesisRecord,
+    PairedComparison,
+    ExecutionLog,
+    PairedBootstrapResult,
+    CalibrationReport,
+    AblationItem,
+    AblationAnalysisResult,
+    HyperparameterSweepAnalysis,
+    HypothesisVerificationResult,
+)
+from .provenance import (
+    validate_comparison_compatibility,
+    get_provenance_meta,
+    get_provenance_badge,
+    calculate_official_points,
+)
+from .adapter import (
+    ExperimentStore,
+    SQLiteStore,
+    DirectoryStore,
+    SyntheticDemoStore,
+    get_experiment_store,
+)
+from .stats import (
+    paired_episode_bootstrap,
+    calculate_calibration_curve,
+    decompose_brier_score,
+    analyze_rare_payout_tail,
+    analyze_component_ablations,
+    analyze_hyperparameter_sweep,
+    verify_hypothesis,
+)
+from .export import (
+    export_leaderboard_csv,
+    export_condition_breakdown_csv,
+    export_ablations_csv,
+    export_trial_config_json,
+    export_run_manifest_json,
+    export_hypotheses_json,
+    generate_markdown_report,
+    export_to_file,
+)
+
+__version__ = "1.0.0"
+
+__all__ = [
+    "ProvenanceType",
+    "ConditionLosses",
+    "TrialRecord",
+    "TrialDetail",
+    "AttemptRecord",
+    "CalibrationBin",
+    "RarePayoutDiagnostic",
+    "FeatureImportanceRecord",
+    "ComponentAblation",
+    "HypothesisRecord",
+    "PairedComparison",
+    "ExecutionLog",
+    "PairedBootstrapResult",
+    "CalibrationReport",
+    "AblationItem",
+    "AblationAnalysisResult",
+    "HyperparameterSweepAnalysis",
+    "HypothesisVerificationResult",
+    "validate_comparison_compatibility",
+    "get_provenance_meta",
+    "get_provenance_badge",
+    "calculate_official_points",
+    "ExperimentStore",
+    "SQLiteStore",
+    "DirectoryStore",
+    "SyntheticDemoStore",
+    "get_experiment_store",
+    "paired_episode_bootstrap",
+    "calculate_calibration_curve",
+    "decompose_brier_score",
+    "analyze_rare_payout_tail",
+    "analyze_component_ablations",
+    "analyze_hyperparameter_sweep",
+    "verify_hypothesis",
+    "export_leaderboard_csv",
+    "export_condition_breakdown_csv",
+    "export_ablations_csv",
+    "export_trial_config_json",
+    "export_run_manifest_json",
+    "export_hypotheses_json",
+    "generate_markdown_report",
+    "export_to_file",
+]

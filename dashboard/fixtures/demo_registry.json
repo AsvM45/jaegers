@@ -1,0 +1,930 @@
+{
+  "metadata": {
+    "is_synthetic": true,
+    "version": "1.0.0",
+    "generated_at": "2026-11-08T01:45:00Z",
+    "disclaimer": "This fixture contains simulated synthetic demonstration data for dashboard verification and UI exploration. It must NEVER be cited as official competition results or real model evidence."
+  },
+  "trials": [
+    {
+      "trial_id": "champion-b78abe75",
+      "study_name": "he17_official_validation",
+      "family": "jaeger",
+      "status": "SUCCEEDED",
+      "provenance": "PUBLIC_VALIDATION",
+      "is_champion": true,
+      "source_commit": "b78abe75d9e564f203874415cf91104e",
+      "wall_seconds": 184.2,
+      "created_at": "2026-11-07T18:00:00Z",
+      "finished_at": "2026-11-07T18:03:04Z",
+      "official_points": 55.121615,
+      "mean_brier": 0.365141,
+      "condition_losses": {
+        "stable": 0.067316,
+        "short_history": 0.116980,
+        "drift": 0.092323,
+        "shared_change": 0.077390
+      },
+      "per_episode_errors": {
+        "ep_001": 0.0651, "ep_002": 0.0694, "ep_003": 0.1120, "ep_004": 0.1218,
+        "ep_005": 0.0910, "ep_006": 0.0935, "ep_007": 0.0760, "ep_008": 0.0788
+      },
+      "episode_conditions": {
+        "ep_001": "stable", "ep_002": "stable",
+        "ep_003": "short_history", "ep_004": "short_history",
+        "ep_005": "drift", "ep_006": "drift",
+        "ep_007": "shared_change", "ep_008": "shared_change"
+      },
+      "hyperparameters": {
+        "stack": true,
+        "lam": 0.95,
+        "ep_weight": 0.1,
+        "forgetting_rate": 0.05,
+        "n_lags": 5,
+        "regime_mixture": true,
+        "learning_rate": 0.05,
+        "max_depth": 4
+      },
+      "feature_importance": {
+        "lags/lag1": 0.324,
+        "streak/streak_len": 0.238,
+        "regimes/high_variance": 0.176,
+        "peers/group_mean": 0.138,
+        "windows/rolling_5": 0.082,
+        "signal/raw": 0.042
+      },
+      "error_message": null,
+      "is_synthetic": true,
+      "attempt": 1,
+      "artifact_path": "trials/champion-b78abe75/attempt-0001"
+    },
+    {
+      "trial_id": "nosig-63c6396e",
+      "study_name": "he17_official_validation",
+      "family": "jaeger",
+      "status": "SUCCEEDED",
+      "provenance": "PUBLIC_VALIDATION",
+      "is_champion": false,
+      "source_commit": "63c6396e51f8933b9345cbb668dbe39f",
+      "wall_seconds": 172.5,
+      "created_at": "2026-11-07T18:10:00Z",
+      "finished_at": "2026-11-07T18:12:52Z",
+      "official_points": 55.000069,
+      "mean_brier": 0.364726,
+      "condition_losses": {
+        "stable": 0.067151,
+        "short_history": 0.122315,
+        "drift": 0.094543,
+        "shared_change": 0.079621
+      },
+      "per_episode_errors": {
+        "ep_001": 0.0655, "ep_002": 0.0688, "ep_003": 0.1190, "ep_004": 0.1256,
+        "ep_005": 0.0930, "ep_006": 0.0961, "ep_007": 0.0782, "ep_008": 0.0810
+      },
+      "episode_conditions": {
+        "ep_001": "stable", "ep_002": "stable",
+        "ep_003": "short_history", "ep_004": "short_history",
+        "ep_005": "drift", "ep_006": "drift",
+        "ep_007": "shared_change", "ep_008": "shared_change"
+      },
+      "hyperparameters": {
+        "stack": true,
+        "lam": 0.95,
+        "ep_weight": 0.1,
+        "forgetting_rate": 0.05,
+        "signal": false
+      },
+      "feature_importance": {
+        "lags/lag1": 0.345,
+        "streak/streak_len": 0.252,
+        "regimes/high_variance": 0.189,
+        "peers/group_mean": 0.132,
+        "windows/rolling_5": 0.082
+      },
+      "error_message": null,
+      "is_synthetic": true,
+      "attempt": 1,
+      "artifact_path": "trials/nosig-63c6396e/attempt-0001"
+    },
+    {
+      "trial_id": "causal-26a9a3b1",
+      "study_name": "he17_official_validation",
+      "family": "jaeger_causal",
+      "status": "SUCCEEDED",
+      "provenance": "PUBLIC_VALIDATION",
+      "is_champion": false,
+      "source_commit": "26a9a3b144bc82d02c525fcf98888e21",
+      "wall_seconds": 195.8,
+      "created_at": "2026-11-07T18:20:00Z",
+      "finished_at": "2026-11-07T18:23:15Z",
+      "official_points": 54.643349,
+      "mean_brier": 0.365445,
+      "condition_losses": {
+        "stable": 0.067477,
+        "short_history": 0.149631,
+        "drift": 0.097484,
+        "shared_change": 0.077525
+      },
+      "per_episode_errors": {
+        "ep_001": 0.0660, "ep_002": 0.0689, "ep_003": 0.1450, "ep_004": 0.1542,
+        "ep_005": 0.0965, "ep_006": 0.0984, "ep_007": 0.0768, "ep_008": 0.0782
+      },
+      "episode_conditions": {
+        "ep_001": "stable", "ep_002": "stable",
+        "ep_003": "short_history", "ep_004": "short_history",
+        "ep_005": "drift", "ep_006": "drift",
+        "ep_007": "shared_change", "ep_008": "shared_change"
+      },
+      "hyperparameters": {
+        "stack": true,
+        "causal_adaptation": true,
+        "lam": 0.92
+      },
+      "feature_importance": {
+        "lags/lag1": 0.310,
+        "streak/streak_len": 0.220,
+        "regimes/high_variance": 0.165,
+        "peers/group_mean": 0.140,
+        "windows/rolling_5": 0.095,
+        "signal/raw": 0.070
+      },
+      "error_message": null,
+      "is_synthetic": true,
+      "attempt": 1,
+      "artifact_path": "trials/causal-26a9a3b1/attempt-0001"
+    },
+    {
+      "trial_id": "nostack-f103d154",
+      "study_name": "he17_official_validation",
+      "family": "jaeger_linear",
+      "status": "SUCCEEDED",
+      "provenance": "PUBLIC_VALIDATION",
+      "is_champion": false,
+      "source_commit": "f103d154ee42c88451f28b7702f3a69a",
+      "wall_seconds": 64.1,
+      "created_at": "2026-11-07T18:30:00Z",
+      "finished_at": "2026-11-07T18:31:04Z",
+      "official_points": 52.836199,
+      "mean_brier": 0.372763,
+      "condition_losses": {
+        "stable": 0.119623,
+        "short_history": 0.184452,
+        "drift": 0.124685,
+        "shared_change": 0.113580
+      },
+      "per_episode_errors": {
+        "ep_001": 0.1180, "ep_002": 0.1212, "ep_003": 0.1780, "ep_004": 0.1909,
+        "ep_005": 0.1230, "ep_006": 0.1263, "ep_007": 0.1110, "ep_008": 0.1161
+      },
+      "episode_conditions": {
+        "ep_001": "stable", "ep_002": "stable",
+        "ep_003": "short_history", "ep_004": "short_history",
+        "ep_005": "drift", "ep_006": "drift",
+        "ep_007": "shared_change", "ep_008": "shared_change"
+      },
+      "hyperparameters": {
+        "stack": false,
+        "lam": 0.95
+      },
+      "feature_importance": null,
+      "error_message": null,
+      "is_synthetic": true,
+      "attempt": 1,
+      "artifact_path": "trials/nostack-f103d154/attempt-0001"
+    },
+    {
+      "trial_id": "stat_markov-4401",
+      "study_name": "challenger_baselines",
+      "family": "markov",
+      "status": "SUCCEEDED",
+      "provenance": "PUBLIC_VALIDATION",
+      "is_champion": false,
+      "source_commit": "4401a8ef1092a4bc8813732049104022",
+      "wall_seconds": 42.0,
+      "created_at": "2026-11-07T18:40:00Z",
+      "finished_at": "2026-11-07T18:40:42Z",
+      "official_points": 43.975000,
+      "mean_brier": 0.418100,
+      "condition_losses": {
+        "stable": 0.285000,
+        "short_history": 0.412000,
+        "drift": 0.384000,
+        "shared_change": 0.377000
+      },
+      "per_episode_errors": {
+        "ep_001": 0.2780, "ep_002": 0.2920, "ep_003": 0.4050, "ep_004": 0.4190,
+        "ep_005": 0.3790, "ep_006": 0.3890, "ep_007": 0.3710, "ep_008": 0.3830
+      },
+      "episode_conditions": {
+        "ep_001": "stable", "ep_002": "stable",
+        "ep_003": "short_history", "ep_004": "short_history",
+        "ep_005": "drift", "ep_006": "drift",
+        "ep_007": "shared_change", "ep_008": "shared_change"
+      },
+      "hyperparameters": {
+        "order": 1,
+        "laplace_smoothing": 1.0
+      },
+      "feature_importance": null,
+      "error_message": null,
+      "is_synthetic": true,
+      "attempt": 1
+    },
+    {
+      "trial_id": "stat_dirichlet-3085",
+      "study_name": "challenger_baselines",
+      "family": "dirichlet",
+      "status": "SUCCEEDED",
+      "provenance": "PUBLIC_VALIDATION",
+      "is_champion": false,
+      "source_commit": "3085bb9a8421034feec7124950348733",
+      "wall_seconds": 28.5,
+      "created_at": "2026-11-07T18:45:00Z",
+      "finished_at": "2026-11-07T18:45:28Z",
+      "official_points": 30.852000,
+      "mean_brier": 0.563500,
+      "condition_losses": {
+        "stable": 0.882000,
+        "short_history": 1.050000,
+        "drift": 0.941000,
+        "shared_change": 0.908000
+      },
+      "per_episode_errors": {
+        "ep_001": 0.875, "ep_002": 0.889, "ep_003": 1.040, "ep_004": 1.060,
+        "ep_005": 0.935, "ep_006": 0.947, "ep_007": 0.901, "ep_008": 0.915
+      },
+      "episode_conditions": {
+        "ep_001": "stable", "ep_002": "stable",
+        "ep_003": "short_history", "ep_004": "short_history",
+        "ep_005": "drift", "ep_006": "drift",
+        "ep_007": "shared_change", "ep_008": "shared_change"
+      },
+      "hyperparameters": {
+        "prior_strength": 5.0
+      },
+      "feature_importance": null,
+      "error_message": null,
+      "is_synthetic": true,
+      "attempt": 1
+    },
+    {
+      "trial_id": "single_lag-3211",
+      "study_name": "he17_official_validation",
+      "family": "lag_expert",
+      "status": "SUCCEEDED",
+      "provenance": "PUBLIC_VALIDATION",
+      "is_champion": false,
+      "source_commit": "3211ef7800a2948cbb62194883492020",
+      "wall_seconds": 15.2,
+      "created_at": "2026-11-07T18:50:00Z",
+      "finished_at": "2026-11-07T18:50:15Z",
+      "official_points": 32.114793,
+      "mean_brier": 0.535427,
+      "condition_losses": {
+        "stable": 0.836401,
+        "short_history": 0.985814,
+        "drift": 0.851164,
+        "shared_change": 0.799813
+      },
+      "per_episode_errors": {
+        "ep_001": 0.830, "ep_002": 0.842, "ep_003": 0.978, "ep_004": 0.993,
+        "ep_005": 0.845, "ep_006": 0.857, "ep_007": 0.792, "ep_008": 0.807
+      },
+      "episode_conditions": {
+        "ep_001": "stable", "ep_002": "stable",
+        "ep_003": "short_history", "ep_004": "short_history",
+        "ep_005": "drift", "ep_006": "drift",
+        "ep_007": "shared_change", "ep_008": "shared_change"
+      },
+      "hyperparameters": {
+        "lag": 1
+      },
+      "feature_importance": {
+        "lags/lag1": 1.0
+      },
+      "error_message": null,
+      "is_synthetic": true,
+      "attempt": 1
+    },
+    {
+      "trial_id": "optuna_gbdt_t01",
+      "study_name": "optuna_gbdt_tuning",
+      "family": "jaeger_optuna",
+      "status": "SUCCEEDED",
+      "provenance": "PUBLIC_VALIDATION",
+      "is_champion": false,
+      "source_commit": "f01a88bb77cc221100aa332244556677",
+      "wall_seconds": 165.0,
+      "created_at": "2026-11-07T19:00:00Z",
+      "finished_at": "2026-11-07T19:02:45Z",
+      "official_points": 55.084200,
+      "mean_brier": 0.365310,
+      "condition_losses": {
+        "stable": 0.067200,
+        "short_history": 0.119100,
+        "drift": 0.093100,
+        "shared_change": 0.078200
+      },
+      "per_episode_errors": {
+        "ep_001": 0.0652, "ep_002": 0.0692, "ep_003": 0.1160, "ep_004": 0.1222,
+        "ep_005": 0.0920, "ep_006": 0.0942, "ep_007": 0.0770, "ep_008": 0.0794
+      },
+      "episode_conditions": {
+        "ep_001": "stable", "ep_002": "stable",
+        "ep_003": "short_history", "ep_004": "short_history",
+        "ep_005": "drift", "ep_006": "drift",
+        "ep_007": "shared_change", "ep_008": "shared_change"
+      },
+      "hyperparameters": {
+        "learning_rate": 0.045,
+        "max_depth": 4,
+        "subsample": 0.85,
+        "colsample_bytree": 0.80,
+        "n_estimators": 120
+      },
+      "feature_importance": {
+        "lags/lag1": 0.315,
+        "streak/streak_len": 0.241,
+        "regimes/high_variance": 0.180,
+        "peers/group_mean": 0.142,
+        "windows/rolling_5": 0.082,
+        "signal/raw": 0.040
+      },
+      "error_message": null,
+      "is_synthetic": true,
+      "attempt": 1
+    },
+    {
+      "trial_id": "optuna_gbdt_t02",
+      "study_name": "optuna_gbdt_tuning",
+      "family": "jaeger_optuna",
+      "status": "SUCCEEDED",
+      "provenance": "PUBLIC_VALIDATION",
+      "is_champion": false,
+      "source_commit": "f02a88bb77cc221100aa332244556677",
+      "wall_seconds": 188.0,
+      "created_at": "2026-11-07T19:05:00Z",
+      "finished_at": "2026-11-07T19:08:08Z",
+      "official_points": 54.912500,
+      "mean_brier": 0.366400,
+      "condition_losses": {
+        "stable": 0.068500,
+        "short_history": 0.124500,
+        "drift": 0.095200,
+        "shared_change": 0.081100
+      },
+      "per_episode_errors": {
+        "ep_001": 0.0670, "ep_002": 0.0700, "ep_003": 0.1220, "ep_004": 0.1270,
+        "ep_005": 0.0940, "ep_006": 0.0964, "ep_007": 0.0800, "ep_008": 0.0822
+      },
+      "episode_conditions": {
+        "ep_001": "stable", "ep_002": "stable",
+        "ep_003": "short_history", "ep_004": "short_history",
+        "ep_005": "drift", "ep_006": "drift",
+        "ep_007": "shared_change", "ep_008": "shared_change"
+      },
+      "hyperparameters": {
+        "learning_rate": 0.080,
+        "max_depth": 6,
+        "subsample": 0.70,
+        "colsample_bytree": 0.75,
+        "n_estimators": 160
+      },
+      "feature_importance": {
+        "lags/lag1": 0.330,
+        "streak/streak_len": 0.235,
+        "regimes/high_variance": 0.170,
+        "peers/group_mean": 0.145,
+        "windows/rolling_5": 0.080,
+        "signal/raw": 0.040
+      },
+      "error_message": null,
+      "is_synthetic": true,
+      "attempt": 1
+    },
+    {
+      "trial_id": "cv_champion_001",
+      "study_name": "train_grouped_cv",
+      "family": "jaeger",
+      "status": "SUCCEEDED",
+      "provenance": "TRAIN_GROUP_CV",
+      "is_champion": false,
+      "source_commit": "b78abe75d9e564f203874415cf91104e",
+      "wall_seconds": 210.0,
+      "created_at": "2026-11-07T19:15:00Z",
+      "finished_at": "2026-11-07T19:18:30Z",
+      "official_points": null,
+      "mean_brier": 0.354200,
+      "condition_losses": null,
+      "per_episode_errors": {
+        "train_ep_01": 0.342, "train_ep_02": 0.356, "train_ep_03": 0.361, "train_ep_04": 0.358
+      },
+      "episode_conditions": {
+        "train_ep_01": "stable", "train_ep_02": "short_history",
+        "train_ep_03": "drift", "train_ep_04": "shared_change"
+      },
+      "hyperparameters": {
+        "stack": true,
+        "lam": 0.95
+      },
+      "feature_importance": null,
+      "error_message": null,
+      "is_synthetic": true,
+      "attempt": 1
+    },
+    {
+      "trial_id": "timeout-err-009",
+      "study_name": "neural_exploration",
+      "family": "neural_lstm",
+      "status": "TIMEOUT",
+      "provenance": "TRAIN_GROUP_CV",
+      "is_champion": false,
+      "source_commit": "e09a88bb77cc221100aa332244556677",
+      "wall_seconds": 3600.0,
+      "created_at": "2026-11-07T19:20:00Z",
+      "finished_at": "2026-11-07T20:20:00Z",
+      "official_points": null,
+      "mean_brier": null,
+      "condition_losses": null,
+      "per_episode_errors": null,
+      "episode_conditions": null,
+      "hyperparameters": {
+        "hidden_dim": 128,
+        "num_layers": 3,
+        "epochs": 100
+      },
+      "feature_importance": null,
+      "error_message": "TimeoutExpired: Worker task execution exceeded strict timeout limit of 3600.0 seconds while fitting fold 3. Process killed via SIGTERM.",
+      "is_synthetic": true,
+      "attempt": 1
+    },
+    {
+      "trial_id": "oom-err-0010",
+      "study_name": "transformer_attention",
+      "family": "transformer",
+      "status": "MEMORY_LIMIT",
+      "provenance": "TRAIN_GROUP_CV",
+      "is_champion": false,
+      "source_commit": "e10a88bb77cc221100aa332244556677",
+      "wall_seconds": 412.3,
+      "created_at": "2026-11-07T19:30:00Z",
+      "finished_at": "2026-11-07T19:36:52Z",
+      "official_points": null,
+      "mean_brier": null,
+      "condition_losses": null,
+      "per_episode_errors": null,
+      "episode_conditions": null,
+      "hyperparameters": {
+        "n_heads": 8,
+        "embed_dim": 256,
+        "batch_size": 2048
+      },
+      "feature_importance": null,
+      "error_message": "MemoryLimitExceeded: Worker memory RSS reached 32.4 GiB, exceeding container allocation limit (32.0 GiB). Process terminated via SIGKILL by supervisor.",
+      "is_synthetic": true,
+      "attempt": 1
+    },
+    {
+      "trial_id": "running-active-0011",
+      "study_name": "online_adaptation",
+      "family": "jaeger_ensemble",
+      "status": "RUNNING",
+      "provenance": "TRAIN_GROUP_CV",
+      "is_champion": false,
+      "source_commit": "b78abe75d9e564f203874415cf91104e",
+      "wall_seconds": 245.0,
+      "created_at": "2026-11-08T01:40:00Z",
+      "finished_at": null,
+      "official_points": null,
+      "mean_brier": null,
+      "condition_losses": null,
+      "per_episode_errors": null,
+      "episode_conditions": null,
+      "hyperparameters": {
+        "ensemble_size": 10,
+        "n_workers": 4
+      },
+      "feature_importance": null,
+      "error_message": null,
+      "is_synthetic": true,
+      "attempt": 1
+    }
+  ],
+  "ablations": [
+    {
+      "variant_name": "champion",
+      "removed_component": "none (full baseline)",
+      "hypothesis": "Full composite model serves as champion baseline reference",
+      "official_points": 55.121615,
+      "official_points_delta": 0.0,
+      "ci95_points": [0.0, 0.0],
+      "train_brier_delta": 0.0,
+      "ci95_brier": [0.0, 0.0],
+      "condition_loss_ratios": {
+        "stable": 0.067316,
+        "short_history": 0.116980,
+        "drift": 0.092323,
+        "shared_change": 0.077390
+      },
+      "supported": true,
+      "direction": "neutral"
+    },
+    {
+      "variant_name": "nosig",
+      "removed_component": "machine-provided signal",
+      "hypothesis": "Removing contest signal reduces noise if leak or uncalibrated variance exists",
+      "official_points": 55.000069,
+      "official_points_delta": -0.121546,
+      "ci95_points": [-0.2468, -0.0019],
+      "train_brier_delta": -0.000415,
+      "ci95_brier": [-0.0012, 0.0003],
+      "condition_loss_ratios": {
+        "stable": 0.067151,
+        "short_history": 0.122315,
+        "drift": 0.094543,
+        "shared_change": 0.079621
+      },
+      "supported": false,
+      "direction": "inconclusive"
+    },
+    {
+      "variant_name": "causal",
+      "removed_component": "acausal future aggregation",
+      "hypothesis": "Strict acausal filtering prevents leak, but reduces effective sample size",
+      "official_points": 54.643349,
+      "official_points_delta": -0.478266,
+      "ci95_points": [-0.6984, -0.2468],
+      "train_brier_delta": 0.000304,
+      "ci95_brier": [-0.0004, 0.0011],
+      "condition_loss_ratios": {
+        "stable": 0.067477,
+        "short_history": 0.149631,
+        "drift": 0.097484,
+        "shared_change": 0.077525
+      },
+      "supported": true,
+      "direction": "worse"
+    },
+    {
+      "variant_name": "no_expert_prior",
+      "removed_component": "expert prior shrinkage (gamma=0)",
+      "hypothesis": "Zero expert prior causes overfitting on short history episodes",
+      "official_points": 54.696861,
+      "official_points_delta": -0.424754,
+      "ci95_points": [-0.7100, -0.1800],
+      "train_brier_delta": 0.000239,
+      "ci95_brier": [-0.0005, 0.0009],
+      "condition_loss_ratios": {
+        "stable": 0.069582,
+        "short_history": 0.150478,
+        "drift": 0.092568,
+        "shared_change": 0.075192
+      },
+      "supported": true,
+      "direction": "worse"
+    },
+    {
+      "variant_name": "train_size_regimes",
+      "removed_component": "regime conditioning on machine size",
+      "hypothesis": "Training size regimes without group pooling degrades cross-machine stability",
+      "official_points": 54.492000,
+      "official_points_delta": -0.629615,
+      "ci95_points": [-0.8100, -0.4500],
+      "train_brier_delta": 0.002810,
+      "ci95_brier": [0.0012, 0.0044],
+      "condition_loss_ratios": {
+        "stable": 0.070500,
+        "short_history": 0.158000,
+        "drift": 0.096200,
+        "shared_change": 0.082100
+      },
+      "supported": true,
+      "direction": "worse"
+    },
+    {
+      "variant_name": "no_peer_evidence",
+      "removed_component": "peer machine evidence weights (w_ep=0)",
+      "hypothesis": "Disabling peer evidence hurts short history where local ticks are scarce",
+      "official_points": 54.460451,
+      "official_points_delta": -0.661164,
+      "ci95_points": [-1.2000, -0.1700],
+      "train_brier_delta": -0.001639,
+      "ci95_brier": [-0.0035, 0.0002],
+      "condition_loss_ratios": {
+        "stable": 0.071706,
+        "short_history": 0.165654,
+        "drift": 0.088044,
+        "shared_change": 0.081464
+      },
+      "supported": false,
+      "direction": "inconclusive"
+    },
+    {
+      "variant_name": "binary_categories_only",
+      "removed_component": "5-way ordinal structure",
+      "hypothesis": "Collapsing payouts to binary outcomes discards essential volatility magnitude",
+      "official_points": 54.026071,
+      "official_points_delta": -1.095544,
+      "ci95_points": [-1.3500, -0.8400],
+      "train_brier_delta": 0.005393,
+      "ci95_brier": [0.0035, 0.0072],
+      "condition_loss_ratios": {
+        "stable": 0.092671,
+        "short_history": 0.126442,
+        "drift": 0.113098,
+        "shared_change": 0.109033
+      },
+      "supported": true,
+      "direction": "worse"
+    },
+    {
+      "variant_name": "no_size_experts",
+      "removed_component": "size-specific expert mixture",
+      "hypothesis": "Size experts capture payout clustering; removing them degrades drift ratio",
+      "official_points": 53.683293,
+      "official_points_delta": -1.438322,
+      "ci95_points": [-1.8000, -1.1100],
+      "train_brier_delta": 0.008618,
+      "ci95_brier": [0.0062, 0.0110],
+      "condition_loss_ratios": {
+        "stable": 0.111968,
+        "short_history": 0.130611,
+        "drift": 0.122857,
+        "shared_change": 0.105228
+      },
+      "supported": true,
+      "direction": "worse"
+    },
+    {
+      "variant_name": "nostack",
+      "removed_component": "GBDT meta-learner stacker",
+      "hypothesis": "GBDT stacker provides vital non-linear aggregation over linear expert rules",
+      "official_points": 52.836199,
+      "official_points_delta": -2.285416,
+      "ci95_points": [-2.9307, -1.7179],
+      "train_brier_delta": 0.007622,
+      "ci95_brier": [0.0051, 0.0102],
+      "condition_loss_ratios": {
+        "stable": 0.119623,
+        "short_history": 0.184452,
+        "drift": 0.124685,
+        "shared_change": 0.113580
+      },
+      "supported": true,
+      "direction": "worse"
+    },
+    {
+      "variant_name": "slower_forgetting",
+      "removed_component": "adaptive forgetting rate (fixed low rate 0.01)",
+      "hypothesis": "Slower forgetting adapts too sluggishly under drift and shared change",
+      "official_points": 54.120000,
+      "official_points_delta": -1.001615,
+      "ci95_points": [-1.4500, -0.6200],
+      "train_brier_delta": 0.004120,
+      "ci95_brier": [0.0022, 0.0061],
+      "condition_loss_ratios": {
+        "stable": 0.068100,
+        "short_history": 0.142000,
+        "drift": 0.115000,
+        "shared_change": 0.096000
+      },
+      "supported": true,
+      "direction": "worse"
+    },
+    {
+      "variant_name": "faster_forgetting",
+      "removed_component": "adaptive forgetting rate (fixed high rate 0.20)",
+      "hypothesis": "Excessive forgetting throws away stable regime signal and increases variance",
+      "official_points": 53.450000,
+      "official_points_delta": -1.671615,
+      "ci95_points": [-2.1000, -1.2500],
+      "train_brier_delta": 0.006940,
+      "ci95_brier": [0.0048, 0.0092],
+      "condition_loss_ratios": {
+        "stable": 0.098000,
+        "short_history": 0.162000,
+        "drift": 0.121000,
+        "shared_change": 0.114000
+      },
+      "supported": true,
+      "direction": "worse"
+    },
+    {
+      "variant_name": "single_lag_only",
+      "removed_component": "multi-lag experts 2..5",
+      "hypothesis": "A single lag cannot capture higher-order Markov dynamics or cycle length",
+      "official_points": 32.114793,
+      "official_points_delta": -23.006822,
+      "ci95_points": [-23.9900, -21.9900],
+      "train_brier_delta": 0.170286,
+      "ci95_brier": [0.1550, 0.1850],
+      "condition_loss_ratios": {
+        "stable": 0.836401,
+        "short_history": 0.985814,
+        "drift": 0.851164,
+        "shared_change": 0.799813
+      },
+      "supported": true,
+      "direction": "worse"
+    },
+    {
+      "variant_name": "control_shuffled_stack_labels",
+      "removed_component": "meta-learner label correspondence (negative control)",
+      "hypothesis": "Negative control shuffling stack labels destroys calibration completely",
+      "official_points": 27.779000,
+      "official_points_delta": -27.342615,
+      "ci95_points": [-28.3500, -26.3800],
+      "train_brier_delta": 0.214000,
+      "ci95_brier": [0.1980, 0.2310],
+      "condition_loss_ratios": {
+        "stable": 1.120000,
+        "short_history": 1.250000,
+        "drift": 1.180000,
+        "shared_change": 1.110000
+      },
+      "supported": true,
+      "direction": "worse"
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1_GBDT_STACKER",
+      "preregistered_timestamp": "2026-11-06T12:00:00Z",
+      "component": "stacker",
+      "statement": "GBDT meta-learner provides statistically significant non-linear aggregation over linear expert rules (expected degradation > 2.0 points if removed).",
+      "expected_direction": "worse, large (> 2.0 pts)",
+      "observed_points_diff": -2.285416,
+      "observed_brier_diff": 0.007622,
+      "verdict": "CONFIRMED",
+      "decision": "NO_PROMOTION",
+      "linked_trial_id": "nostack-f103d154"
+    },
+    {
+      "id": "H2_HISTORICAL_SIGNAL_LEAK",
+      "preregistered_timestamp": "2026-11-06T14:30:00Z",
+      "component": "signal",
+      "statement": "Machine-provided signal contains future tick leakage when cutoff is not strictly respected; purging signal yields identical or superior generalization.",
+      "expected_direction": "neutral or slight improvement",
+      "observed_points_diff": -0.121546,
+      "observed_brier_diff": -0.000415,
+      "verdict": "CONFIRMED",
+      "decision": "NO_PROMOTION",
+      "linked_trial_id": "nosig-63c6396e"
+    },
+    {
+      "id": "H3_CAUSAL_ADAPTATION",
+      "preregistered_timestamp": "2026-11-06T16:00:00Z",
+      "component": "causal",
+      "statement": "Causal re-weighting protects against negative transfer under non-stationary covariate shift in drift and short history regimes.",
+      "expected_direction": "better on drift/short_history",
+      "observed_points_diff": -0.478266,
+      "observed_brier_diff": 0.000304,
+      "verdict": "REFUTED",
+      "decision": "NO_PROMOTION",
+      "linked_trial_id": "causal-26a9a3b1"
+    },
+    {
+      "id": "H4_PEER_EVIDENCE_WEIGHTS",
+      "preregistered_timestamp": "2026-11-06T17:15:00Z",
+      "component": "peers",
+      "statement": "Peer machine pooling stabilizes short-history episodes where local observations are scarce (expected delta > 0.5 points).",
+      "expected_direction": "worse if disabled",
+      "observed_points_diff": -0.661164,
+      "observed_brier_diff": -0.001639,
+      "verdict": "INCONCLUSIVE",
+      "decision": "NO_PROMOTION",
+      "linked_trial_id": "champion-b78abe75"
+    },
+    {
+      "id": "H5_MULTI_LAG_IMPORTANCE",
+      "preregistered_timestamp": "2026-11-06T18:00:00Z",
+      "component": "lags",
+      "statement": "Lags 2 through 5 are required to resolve cyclical payout dynamics; reducing to lag 1 results in catastrophic collapse (> 20 points).",
+      "expected_direction": "worse, catastrophic (> 20 pts)",
+      "observed_points_diff": -23.006822,
+      "observed_brier_diff": 0.170286,
+      "verdict": "CONFIRMED",
+      "decision": "NO_PROMOTION",
+      "linked_trial_id": "single_lag-3211"
+    },
+    {
+      "id": "H6_OPTUNA_HYPERPARAM_TUNING",
+      "preregistered_timestamp": "2026-11-07T12:00:00Z",
+      "component": "optuna",
+      "statement": "Fine-tuning GBDT learning rate and tree depth via Optuna will reliably exceed 55.15 points without overfitting.",
+      "expected_direction": "better (> +0.05 pts)",
+      "observed_points_diff": -0.037415,
+      "observed_brier_diff": 0.000169,
+      "verdict": "INCONCLUSIVE",
+      "decision": "NO_PROMOTION",
+      "linked_trial_id": "optuna_gbdt_t01"
+    }
+  ],
+  "calibration": [
+    {"class": 0, "bin": 0, "bin_range": [0.0, 0.1], "sample_count": 1420, "mean_predicted": 0.045, "observed_frequency": 0.048},
+    {"class": 0, "bin": 1, "bin_range": [0.1, 0.2], "sample_count": 980, "mean_predicted": 0.148, "observed_frequency": 0.142},
+    {"class": 0, "bin": 2, "bin_range": [0.2, 0.3], "sample_count": 810, "mean_predicted": 0.252, "observed_frequency": 0.258},
+    {"class": 0, "bin": 3, "bin_range": [0.3, 0.4], "sample_count": 1240, "mean_predicted": 0.354, "observed_frequency": 0.349},
+    {"class": 0, "bin": 4, "bin_range": [0.4, 0.5], "sample_count": 2100, "mean_predicted": 0.458, "observed_frequency": 0.462},
+    {"class": 0, "bin": 5, "bin_range": [0.5, 0.6], "sample_count": 1850, "mean_predicted": 0.548, "observed_frequency": 0.542},
+    {"class": 0, "bin": 6, "bin_range": [0.6, 0.7], "sample_count": 1320, "mean_predicted": 0.649, "observed_frequency": 0.655},
+    {"class": 0, "bin": 7, "bin_range": [0.7, 0.8], "sample_count": 920, "mean_predicted": 0.746, "observed_frequency": 0.739},
+    {"class": 0, "bin": 8, "bin_range": [0.8, 0.9], "sample_count": 450, "mean_predicted": 0.842, "observed_frequency": 0.845},
+    {"class": 0, "bin": 9, "bin_range": [0.9, 1.0], "sample_count": 160, "mean_predicted": 0.935, "observed_frequency": 0.931},
+
+    {"class": 1, "bin": 0, "bin_range": [0.0, 0.1], "sample_count": 3200, "mean_predicted": 0.052, "observed_frequency": 0.049},
+    {"class": 1, "bin": 1, "bin_range": [0.1, 0.2], "sample_count": 2400, "mean_predicted": 0.151, "observed_frequency": 0.156},
+    {"class": 1, "bin": 2, "bin_range": [0.2, 0.3], "sample_count": 2100, "mean_predicted": 0.248, "observed_frequency": 0.242},
+    {"class": 1, "bin": 3, "bin_range": [0.3, 0.4], "sample_count": 1500, "mean_predicted": 0.347, "observed_frequency": 0.352},
+    {"class": 1, "bin": 4, "bin_range": [0.4, 0.5], "sample_count": 850, "mean_predicted": 0.446, "observed_frequency": 0.440},
+    {"class": 1, "bin": 5, "bin_range": [0.5, 0.6], "sample_count": 420, "mean_predicted": 0.542, "observed_frequency": 0.549},
+    {"class": 1, "bin": 6, "bin_range": [0.6, 0.7], "sample_count": 180, "mean_predicted": 0.640, "observed_frequency": 0.635},
+    {"class": 1, "bin": 7, "bin_range": [0.7, 0.8], "sample_count": 60, "mean_predicted": 0.738, "observed_frequency": 0.750},
+    {"class": 1, "bin": 8, "bin_range": [0.8, 0.9], "sample_count": 20, "mean_predicted": 0.835, "observed_frequency": 0.800},
+    {"class": 1, "bin": 9, "bin_range": [0.9, 1.0], "sample_count": 5, "mean_predicted": 0.920, "observed_frequency": 1.000},
+
+    {"class": 2, "bin": 0, "bin_range": [0.0, 0.1], "sample_count": 4500, "mean_predicted": 0.041, "observed_frequency": 0.039},
+    {"class": 2, "bin": 1, "bin_range": [0.1, 0.2], "sample_count": 2900, "mean_predicted": 0.145, "observed_frequency": 0.149},
+    {"class": 2, "bin": 2, "bin_range": [0.2, 0.3], "sample_count": 1800, "mean_predicted": 0.244, "observed_frequency": 0.241},
+    {"class": 2, "bin": 3, "bin_range": [0.3, 0.4], "sample_count": 890, "mean_predicted": 0.342, "observed_frequency": 0.338},
+    {"class": 2, "bin": 4, "bin_range": [0.4, 0.5], "sample_count": 310, "mean_predicted": 0.440, "observed_frequency": 0.445},
+    {"class": 2, "bin": 5, "bin_range": [0.5, 0.6], "sample_count": 95, "mean_predicted": 0.538, "observed_frequency": 0.526},
+    {"class": 2, "bin": 6, "bin_range": [0.6, 0.7], "sample_count": 30, "mean_predicted": 0.635, "observed_frequency": 0.667},
+    {"class": 2, "bin": 7, "bin_range": [0.7, 0.8], "sample_count": 8, "mean_predicted": 0.730, "observed_frequency": 0.750},
+    {"class": 2, "bin": 8, "bin_range": [0.8, 0.9], "sample_count": 2, "mean_predicted": 0.825, "observed_frequency": 0.500},
+    {"class": 2, "bin": 9, "bin_range": [0.9, 1.0], "sample_count": 0, "mean_predicted": 0.0, "observed_frequency": 0.0},
+
+    {"class": 5, "bin": 0, "bin_range": [0.0, 0.1], "sample_count": 7200, "mean_predicted": 0.032, "observed_frequency": 0.030},
+    {"class": 5, "bin": 1, "bin_range": [0.1, 0.2], "sample_count": 2100, "mean_predicted": 0.138, "observed_frequency": 0.141},
+    {"class": 5, "bin": 2, "bin_range": [0.2, 0.3], "sample_count": 840, "mean_predicted": 0.239, "observed_frequency": 0.235},
+    {"class": 5, "bin": 3, "bin_range": [0.3, 0.4], "sample_count": 220, "mean_predicted": 0.335, "observed_frequency": 0.341},
+    {"class": 5, "bin": 4, "bin_range": [0.4, 0.5], "sample_count": 55, "mean_predicted": 0.432, "observed_frequency": 0.418},
+    {"class": 5, "bin": 5, "bin_range": [0.5, 0.6], "sample_count": 14, "mean_predicted": 0.528, "observed_frequency": 0.571},
+    {"class": 5, "bin": 6, "bin_range": [0.6, 0.7], "sample_count": 4, "mean_predicted": 0.625, "observed_frequency": 0.500},
+    {"class": 5, "bin": 7, "bin_range": [0.7, 0.8], "sample_count": 1, "mean_predicted": 0.710, "observed_frequency": 1.000},
+    {"class": 5, "bin": 8, "bin_range": [0.8, 0.9], "sample_count": 0, "mean_predicted": 0.0, "observed_frequency": 0.0},
+    {"class": 5, "bin": 9, "bin_range": [0.9, 1.0], "sample_count": 0, "mean_predicted": 0.0, "observed_frequency": 0.0},
+
+    {"class": 20, "bin": 0, "bin_range": [0.0, 0.1], "sample_count": 9980, "mean_predicted": 0.012, "observed_frequency": 0.011},
+    {"class": 20, "bin": 1, "bin_range": [0.1, 0.2], "sample_count": 340, "mean_predicted": 0.125, "observed_frequency": 0.118},
+    {"class": 20, "bin": 2, "bin_range": [0.2, 0.3], "sample_count": 78, "mean_predicted": 0.231, "observed_frequency": 0.244},
+    {"class": 20, "bin": 3, "bin_range": [0.3, 0.4], "sample_count": 18, "mean_predicted": 0.328, "observed_frequency": 0.333},
+    {"class": 20, "bin": 4, "bin_range": [0.4, 0.5], "sample_count": 4, "mean_predicted": 0.420, "observed_frequency": 0.500},
+    {"class": 20, "bin": 5, "bin_range": [0.5, 0.6], "sample_count": 1, "mean_predicted": 0.515, "observed_frequency": 0.000},
+    {"class": 20, "bin": 6, "bin_range": [0.6, 0.7], "sample_count": 0, "mean_predicted": 0.0, "observed_frequency": 0.0},
+    {"class": 20, "bin": 7, "bin_range": [0.7, 0.8], "sample_count": 0, "mean_predicted": 0.0, "observed_frequency": 0.0},
+    {"class": 20, "bin": 8, "bin_range": [0.8, 0.9], "sample_count": 0, "mean_predicted": 0.0, "observed_frequency": 0.0},
+    {"class": 20, "bin": 9, "bin_range": [0.9, 1.0], "sample_count": 0, "mean_predicted": 0.0, "observed_frequency": 0.0}
+  ],
+  "rare_payout_20x": {
+    "payout_class": 20,
+    "overall_brier_component": 0.01412,
+    "mean_predicted_prob": 0.01524,
+    "true_frequency": 0.01472,
+    "calibration_correlation": 0.9412,
+    "under_over_prediction_ratio": 1.0353,
+    "mae": 0.0215,
+    "ci80_width": 0.0382
+  },
+  "execution_logs": [
+    {
+      "trial_id": "timeout-err-009",
+      "attempt": 1,
+      "status": "TIMEOUT",
+      "wall_seconds": 3600.0,
+      "memory_peak_gib": 14.8,
+      "cpu_threads": 4,
+      "error_category": "TIMEOUT",
+      "error_message": "Worker task execution exceeded strict timeout limit of 3600.0 seconds while fitting fold 3.",
+      "traceback": "Traceback (most recent call last):\n  File \"research/worker.py\", line 142, in execute_trial\n    model.fit(queries, history, labels)\n  File \"research/models.py\", line 312, in fit\n    loss.backward()\n  File \"torch/autograd/__init__.py\", line 251, in backward\nTimeoutError: Task execution timed out after 3600.0 seconds",
+      "stdout_snippet": "[INFO] Starting trial timeout-err-009 on 4 worker threads...\n[INFO] Fold 1 complete in 1120s\n[INFO] Fold 2 complete in 1180s\n[WARNING] Approaching timeout threshold...",
+      "stderr_snippet": "[ERROR] TIMEOUT SIGNAL RECEIVED: fold 3 timed out."
+    },
+    {
+      "trial_id": "oom-err-0010",
+      "attempt": 1,
+      "status": "MEMORY_LIMIT",
+      "wall_seconds": 412.3,
+      "memory_peak_gib": 32.4,
+      "cpu_threads": 8,
+      "error_category": "MEMORY_LIMIT",
+      "error_message": "Worker memory RSS reached 32.4 GiB, exceeding container allocation limit (32.0 GiB).",
+      "traceback": "Traceback (most recent call last):\n  File \"research/worker.py\", line 98, in run_attempt\n    oof_matrix = allocate_attention_buffer(n_queries=1536, seq_len=5000)\nMemoryError: Unable to allocate 4.20 GiB for an array with shape (1536, 5000, 256) and data type float32",
+      "stdout_snippet": "[INFO] Initializing Transformer attention buffer...\n[INFO] Memory RSS before allocation: 28.1 GiB\n[CRITICAL] Allocation failed.",
+      "stderr_snippet": "[FATAL] Container memory limit 32 GiB reached. Kernel killed PID 4819."
+    },
+    {
+      "trial_id": "running-active-0011",
+      "attempt": 1,
+      "status": "RUNNING",
+      "wall_seconds": 245.0,
+      "memory_peak_gib": 4.2,
+      "cpu_threads": 4,
+      "error_category": null,
+      "error_message": null,
+      "traceback": null,
+      "stdout_snippet": "[INFO] Running ensemble trial running-active-0011...\n[INFO] Model 1/10 fitted (45.2s)\n[INFO] Model 2/10 fitted (48.1s)\n[INFO] In progress...",
+      "stderr_snippet": null
+    }
+  ]
+}
