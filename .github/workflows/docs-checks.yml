@@ -1,0 +1,60 @@
+name: Docs and knowledge checks
+
+on:
+  pull_request:
+    paths:
+      - 'README.md'
+      - 'CONTRIBUTING.md'
+      - 'SECURITY.md'
+      - 'docs/**'
+      - '.github/agents/**'
+      - '.github/workflows/docs-checks.yml'
+      - 'tools/check_docs_links.py'
+  push:
+    branches: [main]
+    paths:
+      - 'README.md'
+      - 'CONTRIBUTING.md'
+      - 'SECURITY.md'
+      - 'docs/**'
+      - '.github/agents/**'
+      - '.github/workflows/docs-checks.yml'
+      - 'tools/check_docs_links.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  documentation:
+    name: Canonical Markdown link and agent profile checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout without writable credentials
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Configure Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Verify checker and internal canonical links
+        run: |
+          python tools/check_docs_links.py --self-test
+      - name: Validate GitHub cloud reviewer agent frontmatter
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path=Path('.github/agents/jaegers-reviewer.agent.md')
+          text=path.read_text(encoding='utf-8')
+          assert text.startswith('---\n'), 'missing YAML frontmatter'
+          header=text.split('---',2)[1]
+          for key in ('description:', 'target: github-copilot', 'tools: ["read", "search"]', 'disable-model-invocation: true'):
+              assert key in header, f'missing profile key: {key}'
+          print('CUSTOM AGENT PROFILE: PASS')
+          PY
