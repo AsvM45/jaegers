@@ -1,35 +1,24 @@
 [
   {
     "role": "user",
-    "text": "I found a lost package",
+    "text": "there was a supplier delay",
     "at": "2027-03-08T12:01:00"
   },
   {
     "role": "tower",
-    "text": "Added A-001. \"I found a lost package\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "text": "Added A-001. Needs more information. Understood so far: a supplier delay. Please tell me which shipment is late (or which part, to which plant), the date it was originally due, and the new arrival date. No operational records were changed. The tower escalated the report and wrote nothing else.",
     "event_id": "A-001",
     "at": "2027-03-08T12:01:00"
   },
   {
     "role": "user",
-    "text": "A supplier delivered unauthorized package",
+    "text": "another supplier delay",
     "at": "2027-03-08T12:02:00"
   },
   {
     "role": "tower",
-    "text": "Added A-002. \"A supplier delivered unauthorized package\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "text": "Added A-002. The message reports a supplier delay of 20-inch alloy wheel (WHEEL-20) from Helix Power (SUP-09) into Wacky Wheels Huntsville (P_AL) from 2027-03-15 until 2027-03-22 on shipment SH-0045. Affected records: 5 production orders and 50 customer orders. The tower completed 5 reschedules, 26 dealer notices, and 15 loaner assignments.",
     "event_id": "A-002",
     "at": "2027-03-08T12:02:00"
-  },
-  {
-    "role": "user",
-    "text": "there was a supplier delay",
-    "at": "2027-03-08T12:03:00"
-  },
-  {
-    "role": "tower",
-    "text": "Added A-003. \"there was a supplier delay\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
-    "event_id": "A-003",
-    "at": "2027-03-08T12:03:00"
   }
 ]

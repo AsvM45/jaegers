@@ -3,18 +3,12 @@
     "event_id": "A-001",
     "received_at": "2027-03-08T12:01:00",
     "source": "ops chat",
-    "text": "I found a lost package"
+    "text": "there was a supplier delay"
   },
   {
     "event_id": "A-002",
     "received_at": "2027-03-08T12:02:00",
     "source": "ops chat",
-    "text": "A supplier delivered unauthorized package"
-  },
-  {
-    "event_id": "A-003",
-    "received_at": "2027-03-08T12:03:00",
-    "source": "ops chat",
-    "text": "there was a supplier delay"
+    "text": "another supplier delay"
   }
 ]

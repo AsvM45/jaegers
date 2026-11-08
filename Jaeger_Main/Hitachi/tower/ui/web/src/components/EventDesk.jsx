@@ -15,6 +15,7 @@ export function EventDesk() {
   const [chat, setChat] = useState([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [waited, setWaited] = useState(0);
   const seq = useRef(-1);
   const log = useRef(null);
 
@@ -48,7 +49,14 @@ export function EventDesk() {
   useEffect(() => {
     const box = log.current;
     if (box) box.scrollTop = box.scrollHeight;
-  }, [chat, open]);
+  }, [chat, open, busy]);
+  // Seconds since the message was sent, for the thinking bubble.
+  useEffect(() => {
+    if (!busy) { setWaited(0); return undefined; }
+    const t0 = Date.now();
+    const timer = setInterval(() => setWaited(Math.floor((Date.now() - t0) / 1000)), 1000);
+    return () => clearInterval(timer);
+  }, [busy]);
 
   const run = async () => {
     try {
@@ -135,12 +143,19 @@ export function EventDesk() {
                 {m.event_id && <button type="button" onClick={() => set({ sel: m.event_id })}>Open {m.event_id}</button>}
               </div>
             ))}
+            {busy && (
+              <div className="desk-bubble tower thinking" role="status" aria-live="polite">
+                <span className="dots" aria-hidden="true"><i /><i /><i /></span>
+                <span>Thinking{waited ? ` · ${waited}s` : ""}</span>
+                <small>Reading the message, checking it against the company records, then acting. This usually takes 10–20 seconds.</small>
+              </div>
+            )}
           </div>
           <form className="desk-compose" onSubmit={(e) => { e.preventDefault(); send(); }}>
             <textarea rows={2} value={text} maxLength={4000} placeholder="Type a message to add as an event"
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
-            <button type="submit" className="btn primary" disabled={busy || !text.trim()}>{busy ? "Reading" : "Send"}</button>
+            <button type="submit" className="btn primary" disabled={busy || !text.trim()}>{busy ? <><span className="spin"><Icon name="refresh" /></span>Thinking</> : "Send"}</button>
           </form>
         </div>
       )}
