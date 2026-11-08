@@ -1,0 +1,14 @@
+{
+  "name": "he03_causal_stacker",
+  "strategy": "grid",
+  "seed": 0,
+  "folds": 4,
+  "budget": {"workers": 2, "trials": 5, "seconds": 7200, "trial_seconds": 3000},
+  "candidates": [
+    {"family": "jaeger", "causal": false},
+    {"family": "qa_causal_all", "factory": "research.challengers.qa_causal_stacker:factory", "variant": "causal_all", "supervision": "query"},
+    {"family": "qa_causal_all_nohead", "factory": "research.challengers.qa_causal_stacker:factory", "variant": "causal_all_nohead", "supervision": "query"},
+    {"family": "qa_regime_only", "factory": "research.challengers.qa_causal_stacker:factory", "variant": "regime_only", "supervision": "query"},
+    {"family": "qa_prior_only", "factory": "research.challengers.qa_causal_stacker:factory", "variant": "prior_only", "supervision": "query"}
+  ]
+}

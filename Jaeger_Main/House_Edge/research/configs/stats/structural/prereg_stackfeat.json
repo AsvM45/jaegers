@@ -1,0 +1,12 @@
+{
+  "written": "2026-11-07 ~23:30 CT, before any result of this experiment",
+  "context": "SWM alone loses to the champion (prereg 4a00f008). Hypothesis: the six-rule posterior adds information the stacker can use selectively (e.g. trust it when one rule is clearly identified), even though it is worse as a standalone forecaster.",
+  "model": "Champion core (parity-exact copy) + 4 extra stacker inputs per row, computed from ticks strictly before the row tick: logit(SWM P(win)), max posterior over the 6 rules, null posterior, logit*maxpost. SWM params (p_on, p_off, rule prior, lam) fitted on the fit split only, as in prereg 4a00f008. Stacker settings unchanged (HGB, 300 iters, random_state 0).",
+  "gate": "With extra inputs disabled the model must equal the champion exactly.",
+  "evaluation": {
+    "R": "the #8 registry's 4 grouped train folds (same fold manifest as champion trial a2c0acc4): fit on 3 folds, predict held-out queries, five-class sampled Brier; paired episode bootstrap vs champion OOF; short_history reported separately",
+    "A": "fit on TRAIN, official score on VALIDATION, once, paired episode bootstrap vs champion"
+  },
+  "expected": "small gain concentrated in stable/short_history; drift neutral (the stacker can down-weight SWM)",
+  "decision": "Issue + PR only if R improves with interval excluding 0 AND official validation does not get worse."
+}

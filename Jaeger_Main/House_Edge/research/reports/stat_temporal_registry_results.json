@@ -1,0 +1,243 @@
+{
+ "study": "he15_temporal_registry",
+ "metric": "sampled observed-outcome five-class Brier; 4 condition-stratified whole-episode train folds; NOT official points",
+ "trials": {
+  "jaeger": {
+   "trial_id": "1dc8c749f59db6429a76f04799393587e86731099ab2038aa0c0d1bb471b036e",
+   "status": "SUCCEEDED",
+   "wall_seconds": 91.30815110000549,
+   "mean_brier": 0.36229114510320604,
+   "by_condition": {
+    "drift": 0.32040617474480115,
+    "shared_change": 0.31676315605469535,
+    "short_history": 0.4453007263102524,
+    "stable": 0.3666945233030751
+   },
+   "vs_stat_markov": {
+    "mean_delta_brier": -0.055443753192400205,
+    "ci95": [
+     -0.06811756183449652,
+     -0.042353497686187826
+    ],
+    "episodes": 96,
+    "bootstrap": 4000,
+    "seed": 0,
+    "supported_improvement": true
+   },
+   "vs_frequency": {
+    "mean_delta_brier": -0.20823869633431225,
+    "ci95": [
+     -0.23026425146175394,
+     -0.18644077094367828
+    ],
+    "episodes": 96,
+    "bootstrap": 4000,
+    "seed": 0,
+    "supported_improvement": true
+   }
+  },
+  "frequency": {
+   "trial_id": "b66b1800cc7915e741b2a65b84084b8f36d055e96908945e7f30032ccb55264c",
+   "status": "SUCCEEDED",
+   "wall_seconds": 2.387930900003994,
+   "mean_brier": 0.5705298414375183,
+   "by_condition": {
+    "drift": 0.5516674431828994,
+    "shared_change": 0.5542586943915921,
+    "short_history": 0.6224154778587518,
+    "stable": 0.5537777503168299
+   },
+   "vs_jaeger": {
+    "mean_delta_brier": 0.20823869633431225,
+    "ci95": [
+     0.1864407709436783,
+     0.23026425146175394
+    ],
+    "episodes": 96,
+    "bootstrap": 4000,
+    "seed": 0,
+    "supported_improvement": false
+   },
+   "vs_stat_markov": {
+    "mean_delta_brier": 0.1527949431419121,
+    "ci95": [
+     0.13218955404741628,
+     0.17393234635163118
+    ],
+    "episodes": 96,
+    "bootstrap": 4000,
+    "seed": 0,
+    "supported_improvement": false
+   }
+  },
+  "stat_markov": {
+   "trial_id": "175adabaa7fd9bc1f463db6cfa407931ec71112f627847f96b0cf8d9115f831e",
+   "status": "SUCCEEDED",
+   "wall_seconds": 30.337373899994418,
+   "mean_brier": 0.4177348982956062,
+   "by_condition": {
+    "drift": 0.4006486030848333,
+    "shared_change": 0.3710498454528343,
+    "short_history": 0.514845751999938,
+    "stable": 0.3843953926448192
+   },
+   "vs_jaeger": {
+    "mean_delta_brier": 0.055443753192400205,
+    "ci95": [
+     0.042353497686187826,
+     0.06811756183449652
+    ],
+    "episodes": 96,
+    "bootstrap": 4000,
+    "seed": 0,
+    "supported_improvement": false
+   },
+   "vs_frequency": {
+    "mean_delta_brier": -0.1527949431419121,
+    "ci95": [
+     -0.17393234635163118,
+     -0.13218955404741628
+    ],
+    "episodes": 96,
+    "bootstrap": 4000,
+    "seed": 0,
+    "supported_improvement": true
+   }
+  },
+  "stat_temporal_hmm": {
+   "trial_id": "fc33d89906c094807e05866353b84f9c33f83a5ec080b1f2ceadbb2f9f4d3cd5",
+   "status": "SUCCEEDED",
+   "wall_seconds": 78.33183069998631,
+   "mean_brier": 0.5543939903510096,
+   "by_condition": {
+    "drift": 0.5353175055351259,
+    "shared_change": 0.5283697352206137,
+    "short_history": 0.6099564372656697,
+    "stable": 0.5439322833826288
+   },
+   "vs_jaeger": {
+    "mean_delta_brier": 0.1921028452478035,
+    "ci95": [
+     0.17135520959429829,
+     0.21276934024945304
+    ],
+    "episodes": 96,
+    "bootstrap": 4000,
+    "seed": 0,
+    "supported_improvement": false
+   },
+   "vs_stat_markov": {
+    "mean_delta_brier": 0.13665909205540333,
+    "ci95": [
+     0.11718589970178353,
+     0.15663482392365752
+    ],
+    "episodes": 96,
+    "bootstrap": 4000,
+    "seed": 0,
+    "supported_improvement": false
+   },
+   "vs_frequency": {
+    "mean_delta_brier": -0.01613585108650877,
+    "ci95": [
+     -0.02662163934471232,
+     -0.005910454201349503
+    ],
+    "episodes": 96,
+    "bootstrap": 4000,
+    "seed": 0,
+    "supported_improvement": true
+   }
+  },
+  "stat_temporal_factorized": {
+   "trial_id": "66270e706a339dcc8b484a9be0e2e8fd1cd982cc47b9e3d049c15219010e28be",
+   "status": "SUCCEEDED",
+   "wall_seconds": 120.3456708000158,
+   "mean_brier": 0.41163153772586586,
+   "by_condition": {
+    "drift": 0.3835396199544709,
+    "shared_change": 0.368956384418025,
+    "short_history": 0.5043575463157025,
+    "stable": 0.38967260021526506
+   },
+   "vs_jaeger": {
+    "mean_delta_brier": 0.049340392622659816,
+    "ci95": [
+     0.03794599270711355,
+     0.060690331353436044
+    ],
+    "episodes": 96,
+    "bootstrap": 4000,
+    "seed": 0,
+    "supported_improvement": false
+   },
+   "vs_stat_markov": {
+    "mean_delta_brier": -0.00610336056974039,
+    "ci95": [
+     -0.014922390893156855,
+     0.002970566735552449
+    ],
+    "episodes": 96,
+    "bootstrap": 4000,
+    "seed": 0,
+    "supported_improvement": false
+   },
+   "vs_frequency": {
+    "mean_delta_brier": -0.15889830371165248,
+    "ci95": [
+     -0.17670251198356018,
+     -0.1414986934195653
+    ],
+    "episodes": 96,
+    "bootstrap": 4000,
+    "seed": 0,
+    "supported_improvement": true
+   }
+  },
+  "stat_temporal_ar1": {
+   "trial_id": "b661abd97d87a82fbf9eda69e6c20d6be246fa7a5b56ae7ab74526adcc4a7c9d",
+   "status": "SUCCEEDED",
+   "wall_seconds": 1.2917554999876302,
+   "mean_brier": 0.5627239202371292,
+   "by_condition": {
+    "drift": 0.5304005349278653,
+    "shared_change": 0.5512324768351676,
+    "short_history": 0.6212824177884853,
+    "stable": 0.5479802513969988
+   },
+   "vs_jaeger": {
+    "mean_delta_brier": 0.20043277513392327,
+    "ci95": [
+     0.1798858424297475,
+     0.22098559726158296
+    ],
+    "episodes": 96,
+    "bootstrap": 4000,
+    "seed": 0,
+    "supported_improvement": false
+   },
+   "vs_stat_markov": {
+    "mean_delta_brier": 0.14498902194152305,
+    "ci95": [
+     0.12662438207428886,
+     0.16341795502324086
+    ],
+    "episodes": 96,
+    "bootstrap": 4000,
+    "seed": 0,
+    "supported_improvement": false
+   },
+   "vs_frequency": {
+    "mean_delta_brier": -0.007805921200389019,
+    "ci95": [
+     -0.01533046442845323,
+     -9.174247742674519e-06
+    ],
+    "episodes": 96,
+    "bootstrap": 4000,
+    "seed": 0,
+    "supported_improvement": true
+   }
+  }
+ }
+}

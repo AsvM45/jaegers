@@ -1,0 +1,489 @@
+{
+  "name": "chat_diverse_screen",
+  "strategy": "grid",
+  "seed": 17,
+  "folds": 4,
+  "budget": {
+    "workers": 2,
+    "trials": 35,
+    "seconds": 1800,
+    "trial_seconds": 120
+  },
+  "protocol": {
+    "intent": "Exploratory screening, not untouched generalization evidence",
+    "hypotheses": [
+      "Within each learner, adding exact lags to recency improves held-episode Brier",
+      "Adding past-only sibling features to the same lag/recency bundle improves held-episode Brier",
+      "Nonlinear learners outperform regularized/simple frequency references without public-target selection"
+    ],
+    "evaluation": "96 main TRAIN episodes, four episode-grouped folds; no public-validation/test targets",
+    "diversity": "Anchors and repeated control settings are identified as controls; no seed/source-version inflation",
+    "selection": "Only measured promising directions get subsequent refinement; no automatic promotion or blind expansion to 100",
+    "confirmation": "Lock configs before any authoritative adaptation-validation confirmation; repeated-fold selection scores/intervals remain exploratory",
+    "unavailable_optional_libraries": "Record failures; do not fabricate or silently substitute models",
+    "frozen_release": "Read-only; this study does not regenerate the submitted candidate pair"
+  },
+  "candidates": [
+    {
+      "family": "jaeger",
+      "causal": false
+    },
+    {
+      "family": "jaeger",
+      "causal": true
+    },
+    {
+      "family": "frequency",
+      "params": {
+        "strength": 20,
+        "decay": 1,
+        "peer": 0,
+        "window": null
+      }
+    },
+    {
+      "family": "frequency",
+      "params": {
+        "strength": 10,
+        "decay": 0.97,
+        "peer": 0.1,
+        "window": null
+      }
+    },
+    {
+      "family": "frequency",
+      "params": {
+        "strength": 40,
+        "decay": 0.995,
+        "peer": 0.2,
+        "window": null
+      }
+    },
+    {
+      "family": "frequency",
+      "params": {
+        "strength": 5,
+        "decay": 0.9,
+        "peer": 0,
+        "window": 32
+      }
+    },
+    {
+      "family": "frequency",
+      "params": {
+        "strength": 20,
+        "decay": 0.97,
+        "peer": 0.3,
+        "window": 64
+      }
+    },
+    {
+      "family": "frequency",
+      "params": {
+        "strength": 40,
+        "decay": 1,
+        "peer": 0.5,
+        "window": 16
+      }
+    },
+    {
+      "family": "stat_dirichlet",
+      "factory": "research.challengers.stat_he09_registry:factory",
+      "model": "stat_dirichlet",
+      "supervision": "query"
+    },
+    {
+      "family": "stat_decay_bma",
+      "factory": "research.challengers.stat_he09_registry:factory",
+      "model": "stat_decay_bma",
+      "supervision": "query"
+    },
+    {
+      "family": "stat_markov",
+      "factory": "research.challengers.stat_he09_registry:factory",
+      "model": "stat_markov",
+      "supervision": "query"
+    },
+    {
+      "family": "logistic",
+      "groups": [
+        "type",
+        "windows",
+        "decays",
+        "missingness"
+      ],
+      "params": {
+        "C": 0.1
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "lda",
+      "groups": [
+        "type",
+        "windows",
+        "decays",
+        "missingness"
+      ],
+      "params": {
+        "shrinkage": "auto"
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "naive_bayes",
+      "groups": [
+        "type",
+        "windows",
+        "decays",
+        "missingness"
+      ],
+      "params": {
+        "smoothing": 0.001
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "random_forest",
+      "groups": [
+        "type",
+        "windows",
+        "decays",
+        "missingness"
+      ],
+      "params": {
+        "trees": 120,
+        "leaf": 20,
+        "depth": 8,
+        "max_features": 0.7
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "extra_trees",
+      "groups": [
+        "type",
+        "windows",
+        "decays",
+        "missingness"
+      ],
+      "params": {
+        "trees": 120,
+        "leaf": 20,
+        "depth": 12,
+        "max_features": 0.7
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "hist_boost",
+      "groups": [
+        "type",
+        "windows",
+        "decays",
+        "missingness"
+      ],
+      "params": {
+        "iters": 80,
+        "lr": 0.05,
+        "leaves": 15,
+        "l2": 3
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "xgboost",
+      "groups": [
+        "type",
+        "windows",
+        "decays",
+        "missingness"
+      ],
+      "params": {
+        "iters": 80,
+        "depth": 3,
+        "lr": 0.05,
+        "l2": 5
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "lightgbm",
+      "groups": [
+        "type",
+        "windows",
+        "decays",
+        "missingness"
+      ],
+      "params": {
+        "iters": 80,
+        "leaves": 15,
+        "lr": 0.05,
+        "l2": 5
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "logistic",
+      "groups": [
+        "type",
+        "lags",
+        "windows",
+        "decays",
+        "missingness"
+      ],
+      "params": {
+        "C": 0.1
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "lda",
+      "groups": [
+        "type",
+        "lags",
+        "windows",
+        "decays",
+        "missingness"
+      ],
+      "params": {
+        "shrinkage": "auto"
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "naive_bayes",
+      "groups": [
+        "type",
+        "lags",
+        "windows",
+        "decays",
+        "missingness"
+      ],
+      "params": {
+        "smoothing": 0.001
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "random_forest",
+      "groups": [
+        "type",
+        "lags",
+        "windows",
+        "decays",
+        "missingness"
+      ],
+      "params": {
+        "trees": 120,
+        "leaf": 20,
+        "depth": 8,
+        "max_features": 0.7
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "extra_trees",
+      "groups": [
+        "type",
+        "lags",
+        "windows",
+        "decays",
+        "missingness"
+      ],
+      "params": {
+        "trees": 120,
+        "leaf": 20,
+        "depth": 12,
+        "max_features": 0.7
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "hist_boost",
+      "groups": [
+        "type",
+        "lags",
+        "windows",
+        "decays",
+        "missingness"
+      ],
+      "params": {
+        "iters": 80,
+        "lr": 0.05,
+        "leaves": 15,
+        "l2": 3
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "xgboost",
+      "groups": [
+        "type",
+        "lags",
+        "windows",
+        "decays",
+        "missingness"
+      ],
+      "params": {
+        "iters": 80,
+        "depth": 3,
+        "lr": 0.05,
+        "l2": 5
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "lightgbm",
+      "groups": [
+        "type",
+        "lags",
+        "windows",
+        "decays",
+        "missingness"
+      ],
+      "params": {
+        "iters": 80,
+        "leaves": 15,
+        "lr": 0.05,
+        "l2": 5
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "logistic",
+      "groups": [
+        "type",
+        "lags",
+        "windows",
+        "decays",
+        "missingness",
+        "peers"
+      ],
+      "params": {
+        "C": 0.1
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "lda",
+      "groups": [
+        "type",
+        "lags",
+        "windows",
+        "decays",
+        "missingness",
+        "peers"
+      ],
+      "params": {
+        "shrinkage": "auto"
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "naive_bayes",
+      "groups": [
+        "type",
+        "lags",
+        "windows",
+        "decays",
+        "missingness",
+        "peers"
+      ],
+      "params": {
+        "smoothing": 0.001
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "random_forest",
+      "groups": [
+        "type",
+        "lags",
+        "windows",
+        "decays",
+        "missingness",
+        "peers"
+      ],
+      "params": {
+        "trees": 120,
+        "leaf": 20,
+        "depth": 8,
+        "max_features": 0.7
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "extra_trees",
+      "groups": [
+        "type",
+        "lags",
+        "windows",
+        "decays",
+        "missingness",
+        "peers"
+      ],
+      "params": {
+        "trees": 120,
+        "leaf": 20,
+        "depth": 12,
+        "max_features": 0.7
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "hist_boost",
+      "groups": [
+        "type",
+        "lags",
+        "windows",
+        "decays",
+        "missingness",
+        "peers"
+      ],
+      "params": {
+        "iters": 80,
+        "lr": 0.05,
+        "leaves": 15,
+        "l2": 3
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "xgboost",
+      "groups": [
+        "type",
+        "lags",
+        "windows",
+        "decays",
+        "missingness",
+        "peers"
+      ],
+      "params": {
+        "iters": 80,
+        "depth": 3,
+        "lr": 0.05,
+        "l2": 5
+      },
+      "supervision": "historical"
+    },
+    {
+      "family": "lightgbm",
+      "groups": [
+        "type",
+        "lags",
+        "windows",
+        "decays",
+        "missingness",
+        "peers"
+      ],
+      "params": {
+        "iters": 80,
+        "leaves": 15,
+        "lr": 0.05,
+        "l2": 5
+      },
+      "supervision": "historical"
+    }
+  ]
+}

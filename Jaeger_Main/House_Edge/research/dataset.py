@@ -2,7 +2,7 @@
 import csv
 from pathlib import Path
 import numpy as np
-from .common import digest, file_hash, tree_hashes, write_json
+from .common import digest, environment, file_hash, tree_hashes, write_json
 from .feature_api import FeatureComputer, HISTORICAL_GROUPS
 from .adapters import core_module, PAYOUTS
 
@@ -37,7 +37,8 @@ def conditions(folder):
 def build_cache(data, cache, stride=8, max_rows=24):
     data, cache = Path(data).resolve(), Path(cache).resolve()
     folder = data / "train"
-    identity = {"inputs": tree_hashes(folder), "features": file_hash(Path(__file__).with_name("feature_api.py")),
+    identity = {"inputs": tree_hashes(folder), "feature_environment": environment(),
+                "features": file_hash(Path(__file__).with_name("feature_api.py")),
                 "feature_plugins": tree_hashes(Path(__file__).parent / "features"),
                 "feature_extensions": tree_hashes(Path(__file__).parent / "extensions"),
                 "reader": file_hash(Path(core_module().__file__)),

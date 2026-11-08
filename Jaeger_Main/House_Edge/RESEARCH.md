@@ -105,6 +105,22 @@ source identities, runtime and failures. Incompatible data/fold/runtime contexts
 not silently paired. Repeated source versions are reported separately from distinct
 configurations; run count is not scientific diversity.
 
+`studies/chat_diverse_screen.json` preregisters a bounded train-only screen of 35
+configurations across 13 family tags, including original/causal JAEGERS and statistical
+references. Eight standard learners share three progressive feature bundles: recency,
+recency plus exact lags, then sibling observations. Study caps are two CPUs, 30 minutes
+and 120 seconds per trial. Optional-library failures stay failures. The protocol caps
+validation reuse, identifies repeated controls and requires measured promise before
+refinement; it does not authorize model promotion or release regeneration.
+The completed [measured screen report](research/reports/chat_runtime_screen.md)
+records all 35 successes, model-family comparisons, feature deltas and the safe-stop
+checkpoint. Engineering controls and repeated references are not new scientific diversity.
+
+Numeric policy matters: setting NumPy/BLAS dispatch or Python hash controls, or
+changing actual worker thread budgets, now changes the experiment context. Previously
+completed contexts remain preserved. Specify the policy before launching Python and
+use the existing `research.sweep` / `research.resume_check` commands with this study.
+
 For a portable, versioned dashboard snapshot, run from House Edge:
 
 ```powershell

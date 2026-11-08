@@ -1,0 +1,105 @@
+{
+ "study": "he03_causal_stacker",
+ "metric": "sampled observed-outcome five-class Brier; 4 condition-stratified whole-episode train folds; NOT official points",
+ "trials": {
+  "jaeger": {
+   "trial_id": "6403b07b185c400d1c4ec983956d92f2cf0bc6976358a58c6f23a162801da97a",
+   "mean_brier": 0.36229114510320604,
+   "by_condition": {
+    "drift": 0.32040617474480115,
+    "shared_change": 0.31676315605469535,
+    "short_history": 0.4453007263102524,
+    "stable": 0.3666945233030751
+   },
+   "wall_seconds": 118.1708520000102
+  },
+  "qa_causal_all": {
+   "trial_id": "3c8a208e6afa720c75cb86666f928cf9a13ad4d4bd5639261a92cc4c4a8f9a50",
+   "mean_brier": 0.3629469188821914,
+   "by_condition": {
+    "drift": 0.3169145611026604,
+    "shared_change": 0.31550011377159737,
+    "short_history": 0.4543481854301567,
+    "stable": 0.3650248152243509
+   },
+   "wall_seconds": 149.18127080000704,
+   "vs_champion": {
+    "mean_delta_brier": 0.0006557737789852894,
+    "ci95": [
+     -0.0033030142498439155,
+     0.004875998299877423
+    ],
+    "episodes": 96,
+    "bootstrap": 4000,
+    "seed": 0,
+    "supported_improvement": false
+   }
+  },
+  "qa_causal_all_nohead": {
+   "trial_id": "5127ac9758bd33a8ea2ac634bde0315ddc4fdb328863e014c21afa831b7a7e1d",
+   "mean_brier": 0.36398844594341134,
+   "by_condition": {
+    "drift": 0.32081478876094577,
+    "shared_change": 0.31480980337419223,
+    "short_history": 0.45372264389420436,
+    "stable": 0.36660654774430296
+   },
+   "wall_seconds": 111.59914169998956,
+   "vs_champion": {
+    "mean_delta_brier": 0.0016973008402053015,
+    "ci95": [
+     -0.0005745428314532946,
+     0.004102471087166049
+    ],
+    "episodes": 96,
+    "bootstrap": 4000,
+    "seed": 0,
+    "supported_improvement": false
+   }
+  },
+  "qa_regime_only": {
+   "trial_id": "5508fbcdde68748ba73f589a9ce2082a7e0f8de38a1e72b559e68f24b20bfc87",
+   "mean_brier": 0.3632460801470922,
+   "by_condition": {
+    "drift": 0.32066842704413295,
+    "shared_change": 0.31539839484355686,
+    "short_history": 0.45238043511979403,
+    "stable": 0.36453706358088495
+   },
+   "wall_seconds": 103.89623889999348,
+   "vs_champion": {
+    "mean_delta_brier": 0.0009549350438861851,
+    "ci95": [
+     -0.0008493661534748995,
+     0.002799427786761412
+    ],
+    "episodes": 96,
+    "bootstrap": 4000,
+    "seed": 0,
+    "supported_improvement": false
+   }
+  },
+  "qa_prior_only": {
+   "trial_id": "1d669e1c58334eebdbc64428bcd4828344917c8a98f9cdbce8c47671e50e4e1a",
+   "mean_brier": 0.3622002858264157,
+   "by_condition": {
+    "drift": 0.3214786313631671,
+    "shared_change": 0.31486312895132285,
+    "short_history": 0.4456885952670757,
+    "stable": 0.3667707877240973
+   },
+   "wall_seconds": 113.09686859999783,
+   "vs_champion": {
+    "mean_delta_brier": -9.085927679023459e-05,
+    "ci95": [
+     -0.0011354379280092586,
+     0.0008704099021481058
+    ],
+    "episodes": 96,
+    "bootstrap": 4000,
+    "seed": 0,
+    "supported_improvement": false
+   }
+  }
+ }
+}
