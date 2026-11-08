@@ -12,7 +12,7 @@ Probabilistic forecasting, experiment engineering, and research infrastructure d
 
 | What we built | Evidence or capability |
 | --- | --- |
-| **Probabilistic inference** | Offline CPU predictor producing \`p_0,p_1,p_2,p_5,p_20\` from strictly earlier observed ticks |
+| **Probabilistic inference** | Offline CPU predictor producing `p_0,p_1,p_2,p_5,p_20` from strictly earlier observed ticks |
 | **Structure discovery** | Six XOR/XNOR lag-rule hypotheses plus null, combined with 73 contextual experts |
 | **Main-round validation** | **55.485/60**, team-recorded *public validation*, not an official hidden score |
 | **New-data evaluation** | **18.5/20**, team-reported *local checker scale*, not the organizer's 40-point adaptation allocation |
