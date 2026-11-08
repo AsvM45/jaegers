@@ -1,0 +1,30 @@
+{
+  "issue": "AsvM45/jaegers#9",
+  "agent": "claude-stats",
+  "preregistered": "2026-11-07 ~19:20 CT, committed before any HE-09 result was computed",
+  "candidates": {
+    "stat_dirichlet": {
+      "idea": "Hierarchical Dirichlet: prior mean = type-level class frequencies (fit-split histories) tilted by type x query-signal (fit-split query labels, strength 50); machine posterior from exponentially decayed counts of its own observed ticks < cutoff.",
+      "hyperparameters": "decay in {0.90,0.95,0.97,0.99,1.0}; strength s in {1,2,5,10,20,50}, separately for short histories (<100 observed) and long; chosen by log predictive score of FIT-split query labels only (empirical Bayes)",
+      "expected": "beats FrequencyModel defaults; far below champion (no lag structure)"
+    },
+    "stat_markov": {
+      "idea": "Direct five-class lag-context mixture: experts = no context + single lags 1-8 + all lag pairs, contexts in 3 categories (0/1/2+), missing context -> expert abstains to machine marginal. Each expert is a Dirichlet over 5 classes smoothed toward the machine's decayed marginal; experts weighted by softmax(beta * decayed prequential log-likelihood) on the machine's own history.",
+      "hyperparameters": "count decay 0.95, log-likelihood decay 0.995, smoothing a in {1,3}, beta in {1,2}; chosen on FIT-split query labels",
+      "difference_from_champion": "no win/size factorization, no size regimes (no validation-derived constants), no sibling pooling, no stacker",
+      "expected": "well above Dirichlet; below champion, gap mostly from size regimes + stacker"
+    },
+    "stat_decay_bma": {
+      "idea": "Bayesian model averaging over half-lives: Dirichlet posteriors at decays {0.80,0.90,0.95,0.97,0.99,1.0} with the stat_dirichlet prior; per-machine weights from each decay's decayed (0.98) prequential log-likelihood on the machine's own history.",
+      "hyperparameters": "prior strength s from the same empirical-Bayes grid",
+      "expected": "slightly better than single-decay Dirichlet, mostly on drift/shared_change"
+    }
+  },
+  "baselines": ["champion (jaegers_entry, read-only)", "FrequencyModel defaults (lane A research/models.py, read-only)"],
+  "evaluations": {
+    "A": "fit on TRAIN (histories + query labels), predict VALIDATION, official slot_forecasting.rounds.score_round (development-exposed for the champion only; HE-09 candidates use no validation information)",
+    "B": "fit on VALIDATION (histories + query labels), predict TRAIN queries, five-class observed-outcome Brier, condition-averaged"
+  },
+  "extra_metrics": ["paired episode bootstrap CI vs champion and vs FrequencyModel (4000, seed 0)", "per-condition loss ratios", "20x: mean predicted p_20 vs mean target p_20 on validation; class-20x Brier component on train", "runtime"],
+  "decision_rule": "No promotion. A candidate is 'interesting' only if A and B both improve on the champion with A interval excluding 0; otherwise report as negative/diagnostic result."
+}
