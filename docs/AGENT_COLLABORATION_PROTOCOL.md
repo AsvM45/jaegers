@@ -28,7 +28,9 @@ git worktree add -b agent/claude-qa-he02-tests ../jaegers-claude-qa origin/main
 # Open ../jaegers-claude-qa in ONLY that agent's editor/terminal.
 ```
 
-Branch names: `agent/<unique-agent-and-issue-slug>` or `human/<unique-person-and-issue-slug>`. If the worktree already exists, inspect and reuse only for the original owner/issue; never recreate it forcibly.
+Branch names: `agent/<unique-agent-and-issue-slug>` or `human/<unique-person-and-issue-slug>`. GitHub Copilot **cloud** sessions automatically create `copilot/<unique-slug>` branches; these are also accepted by the gate **only when the same full issue claim, Agent-ID, exact changed-file allowlist, PR metadata and no-overlap checks succeed**. There is no bot exemption.
+
+**Copilot cloud PR handoff:** An auto-created draft PR may initially have only a generated description and no stand-alone issue claim, so it is intentionally blocked. Wait for that agent's code changes, verify its exact branch and changed paths, post a truthful agent-owner claim comment, and populate the PR fields `Agent-ID:`, `Issue: #NN`, `Worktree:`, `Tests:`, `Handoff:` with observed evidence. A user may need to approve GitHub Actions runs on a Copilot-generated PR before the required check can execute. Do not treat a bot assignment, pending approval, or a passing unit test as a human review. [GitHub Cloud agent API documentation](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/use-cloud-agent-via-the-api). If the worktree already exists, inspect and reuse only for the original owner/issue; never recreate it forcibly.
 
 ## Cooperate as teammates
 
