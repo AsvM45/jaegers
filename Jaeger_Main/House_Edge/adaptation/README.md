@@ -4,6 +4,8 @@ Issue: AsvM45/jaegers#6 (agent `claude-release`). Round two: **40 points**, kit 
 closes **Sun Nov 8 11:00 CT** per `RULES.md` (the team's working cutoff in `docs/CURRENT_STATE.md` is 10:30 CT;
 the human release lead confirms the real one on #5). Nothing here uploads anything.
 
+**Current status: `BLOCKED_KIT_MISSING`.** Agent `grok-he06` inherited this orchestrator, merged `origin/main`, and did not produce an adaptation CSV or ZIP. The organizer adaptation kit is not on this machine, and the local WSL Ubuntu has CPython 3.10.12 rather than 3.13. Evidence, hashes, and the human checklist are in `RELEASE_STATUS.md`. The Windows dry run at the bottom used the main-round kit only.
+
 ## Fallback strategy
 
 The unchanged champion (`jaegers_entry/`, protected) refits its expert prior and gradient-boosted stacker on the
@@ -15,8 +17,8 @@ only after the fallback package passes every check below, and only if they beat 
 
 The organizers rerun on Linux. CHAT measured Windows vs Linux forecasts differing by 0.107 and Linux default vs
 pinned CPU dispatch by 0.090, far above the 1e-8 tolerance. So the **released CSV must be produced on Linux with the
-same pinned NumPy CPU policy that `reproduce.json` declares**. Use the policy from the verified main-round package
-(`research_runs/REVIEW_MAIN_9PM/code.zip`, file `reproduce.json`, on the release machine).
+same pinned NumPy CPU policy that `reproduce.json` declares**. The four `--env` values below were read from the frozen
+main-round `research_runs/REVIEW_MAIN_9PM/code.zip` member `reproduce.json` on 2026-11-08. That ZIP was not modified.
 
 ```sh
 # 1. unpack the kit next to the repo; KIT points at its public/ folder (metadata.json, train/, validation/, test/)
@@ -24,7 +26,11 @@ same pinned NumPy CPU policy that `reproduce.json` declares**. Use the policy fr
 python3.13 -m venv .venv-linux && .venv-linux/bin/pip install -r requirements-runtime.txt
 # 3. one command: kit checks -> validation score -> test CSV twice -> CSV+ZIP -> cold rerun from the ZIP
 .venv-linux/bin/python adaptation/run_adaptation.py --kit "$KIT" --main public \
-    --out research_runs/adaptation --expect-round adaptation --env NPY_DISABLE_CPU_FEATURES=<policy from main package>
+    --out research_runs/adaptation --expect-round adaptation \
+    --env NPY_DISABLE_CPU_FEATURES=X86_V3,X86_V4,AVX512_ICL,AVX512_SPR \
+    --env OPENBLAS_CORETYPE=Nehalem \
+    --env OMP_NUM_THREADS=2 \
+    --env OPENBLAS_NUM_THREADS=2
 ```
 
 The run stops at the first failure and records evidence under `--out`:
