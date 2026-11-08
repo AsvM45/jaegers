@@ -1,0 +1,20 @@
+{
+  "issue": "AsvM45/jaegers#15 (follow-up; #12 closed by Cursor without testing the champion in an ensemble)",
+  "agent": "claude-stats",
+  "preregistered": "2026-11-07 ~22:15 CT, committed before any blend result was computed",
+  "question": "Does combining the champion with the HE-15 factorized model (learned size regimes, better 20x calibration) beat the champion alone?",
+  "candidates": {
+    "blend_linear": {
+      "idea": "p = w * champion + (1 - w) * stat_temporal_factorized (five-class linear pool).",
+      "weight_selection": "w on the grid 0.00..1.00 step 0.05, chosen by minimising out-of-fold sampled Brier on TRAIN using the #8 registry OOF predictions (trials 1dc8c749 champion, 66270e70 factorized). Reported honestly with NESTED selection: for each of the 4 folds, w is chosen on the other 3 folds and applied to the held-out fold.",
+      "official_check": "Both models fit on TRAIN, predict VALIDATION; w = the single train-OOF weight (no validation information used to pick w); official score_round, paired episode bootstrap vs champion.",
+      "expected": "w close to 1 (champion dominant); small gain at most, mainly via 20x calibration"
+    },
+    "size_swap": {
+      "idea": "Keep the champion's P(win) = 1 - p_0; replace its size distribution (validation-derived SIZE_REGIMES) with the factorized model's learned size-regime HMM predictive: p = [1 - pw, pw * size_hmm].",
+      "evaluation": "R via the #8 registry (refits both parts inside each fold) and official A.",
+      "expected": "close to the champion; an exposure-free alternative to SIZE_REGIMES, slightly worse on validation (whose targets defined SIZE_REGIMES)"
+    }
+  },
+  "decision_rule": "No promotion by this study. 'Worth a human look' only if nested-OOF R improves on the champion with interval excluding 0 AND official A does not get worse."
+}

@@ -1,0 +1,131 @@
+{
+ "R_nested_oof": {
+  "champion_trial": "1dc8c749f59db6429a76f04799393587e86731099ab2038aa0c0d1bb471b036e",
+  "factorized_trial": "66270e706a339dcc8b484a9be0e2e8fd1cd982cc47b9e3d049c15219010e28be",
+  "global_oof_weight_on_champion": 1.0,
+  "grid_oof_brier": {
+   "0.0": 0.41163153772586586,
+   "0.05": 0.4074891518561703,
+   "0.1": 0.403523120327376,
+   "0.15": 0.39973344313948306,
+   "0.2": 0.3961201202924915,
+   "0.25": 0.3926831517864013,
+   "0.3": 0.3894225376212123,
+   "0.35": 0.38633827779692465,
+   "0.4": 0.3834303723135384,
+   "0.45": 0.3806988211710534,
+   "0.5": 0.37814362436946974,
+   "0.55": 0.3757647819087873,
+   "0.6": 0.37356229378900635,
+   "0.65": 0.3715361600101268,
+   "0.7": 0.36968638057214837,
+   "0.75": 0.3680129554750713,
+   "0.8": 0.3665158847188956,
+   "0.85": 0.3651951683036212,
+   "0.9": 0.3640508062292482,
+   "0.95": 0.36308279849577646,
+   "1.0": 0.36229114510320604
+  },
+  "nested_fold_weights": {
+   "0": 1.0,
+   "1": 1.0,
+   "2": 1.0,
+   "3": 1.0
+  },
+  "champion_brier": 0.36229114510320604,
+  "nested_blend_brier": 0.36229114510320604,
+  "nested_blend_vs_champion": {
+   "mean_delta_brier": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ],
+   "episodes": 96,
+   "bootstrap": 4000,
+   "seed": 0,
+   "supported_improvement": false
+  }
+ },
+ "A_official_validation": {
+  "champion": {
+   "official_points": 55.12161530614107,
+   "loss_ratios": {
+    "stable": 0.06731585042317864,
+    "short_history": 0.11698014742007998,
+    "drift": 0.09232280188874972,
+    "shared_change": 0.07739003449861291
+   },
+   "calibration_20x": {
+    "mean_pred_p20": 0.014739763386855302,
+    "mean_target_p20": 0.014839724378202324,
+    "corr_p20": 0.9419968238307095
+   }
+  },
+  "blend_linear": {
+   "official_points": 55.12161530614107,
+   "loss_ratios": {
+    "stable": 0.06731585042317864,
+    "short_history": 0.11698014742007998,
+    "drift": 0.09232280188874972,
+    "shared_change": 0.07739003449861291
+   },
+   "calibration_20x": {
+    "mean_pred_p20": 0.014739763386855302,
+    "mean_target_p20": 0.014839724378202324,
+    "corr_p20": 0.9419968238307095
+   },
+   "vs_champion_points": {
+    "diff": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "size_swap": {
+   "official_points": 54.07117424538469,
+   "loss_ratios": {
+    "stable": 0.09776787265644032,
+    "short_history": 0.12266870387450486,
+    "drift": 0.12187592073877185,
+    "shared_change": 0.0962816954666369
+   },
+   "calibration_20x": {
+    "mean_pred_p20": 0.01549764094056492,
+    "mean_target_p20": 0.014839724378202324,
+    "corr_p20": 0.9348400874782753
+   },
+   "vs_champion_points": {
+    "diff": -1.050441060756377,
+    "ci95": [
+     -1.3599204691456555,
+     -0.7776752509196979
+    ]
+   }
+  }
+ },
+ "notes": "R = sampled-label Brier on 4 grouped train folds (not points); A = official points, development-exposed for anything containing the champion.",
+ "R_size_swap": {
+  "size_swap_trial": "7e7411d4577b9f4c1b6943b492590e0108240e9fede3bd03c7e4cd319068f67e",
+  "champion_trial": "a9fc4231f452be8d09981f466893378346a03b3855e4e1378ba5ad86719adbd6",
+  "size_swap_brier": 0.36945730400440646,
+  "champion_brier": 0.36229114510320604,
+  "by_condition": {
+   "drift": 0.32979998907347435,
+   "shared_change": 0.3306814472779674,
+   "short_history": 0.4461891429597115,
+   "stable": 0.3711586367064726
+  },
+  "vs_champion": {
+   "mean_delta_brier": 0.0071661589012004395,
+   "ci95": [
+    0.002749106623923116,
+    0.011601431082866105
+   ],
+   "episodes": 96,
+   "bootstrap": 4000,
+   "seed": 0,
+   "supported_improvement": false
+  }
+ }
+}

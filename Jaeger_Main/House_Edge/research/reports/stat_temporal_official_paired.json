@@ -1,0 +1,17 @@
+{
+ "factorized_vs_markov": {
+  "diff": 2.209494357352199,
+  "ci95": [
+   1.6862962443054856,
+   2.7556932121120217
+  ]
+ },
+ "hmm_vs_markov": {
+  "diff": -12.129171264318078,
+  "ci95": [
+   -13.315632829333168,
+   -10.922806709018978
+  ]
+ },
+ "note": "official-score points difference (candidate minus baseline; positive = candidate better), paired bootstrap of validation episodes within condition, 4000 resamples, seed 0"
+}

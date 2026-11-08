@@ -1,0 +1,11 @@
+{
+  "name": "he15_blend_registry",
+  "strategy": "grid",
+  "seed": 0,
+  "folds": 4,
+  "budget": {"workers": 1, "trials": 2, "seconds": 5400, "trial_seconds": 3000},
+  "candidates": [
+    {"family": "jaeger", "causal": false},
+    {"family": "stat_temporal_size_swap", "factory": "research.challengers.stat_temporal_blend:factory", "model": "size_swap", "supervision": "query"}
+  ]
+}
