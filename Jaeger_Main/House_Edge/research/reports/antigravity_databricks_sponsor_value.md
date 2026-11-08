@@ -14,7 +14,7 @@ The **JAEGERS House Edge** Databricks integration provides an enterprise-grade L
 
 Crucially, our implementation enforces two vital real-world engineering constraints:
 1. **Zero Runtime Dependency:** Final competition inference executes in an air-gapped, zero-dependency environment without external API calls or latency overhead.
-2. **Zero Cloud Spend Testing:** A fully transparent dual-mode session engine (`session.py` / `mock_engine.py`) allows 100% of pipeline stages, unit tests, and notebooks to run offline locally without unauthorized cloud spend.
+2. **Zero Cloud Spend Testing & Bounded Live Serverless Verification:** A dual-mode session engine (`session.py` / `mock_engine.py`) allows 100% of pipeline stages, unit tests, and notebooks to run offline locally with zero cloud spend, while explicitly rejecting mock fallbacks when executing live on Databricks Serverless (`workspace.house_edge`).
 
 ---
 
@@ -25,7 +25,7 @@ The cardinal sin of competitive time-series forecasting is **temporal lookahead 
 
 JAEGERS introduces a novel **as-of temporal join architecture** built directly into the Delta Lake Gold pipeline (`Jaeger_Main/House_Edge/databricks/src/gold.py`):
 $$\mathcal{H}_{\text{valid}}(q) = \left\{ s \in \text{SilverSpins} \mid s.\text{episode\_id} = q.\text{episode\_id} \;\land\; s.\text{tick} < q.\text{cutoff} \right\}$$
-- **Physical Enforcement:** Lookahead protection is not left to user discipline; it is an immutable invariant enforced by the Gold transform query and validated by automated perturbation unit tests (`tests/test_databricks_parity.py`).
+- **Physical Enforcement:** Lookahead protection is not left to user discipline; it is an immutable invariant enforced by the Gold transform query and validated by automated perturbation unit tests (`tests/test_databricks_parity.py`) and live `gold_parity_audit` runs.
 - **Mathematical Invariance Proof:** Our automated tests inject adversarial future spins at $t \ge \text{cutoff}$ and confirm that the resulting feature vector exhibits $\Delta = 0.00\times 10^0$ deviation from baseline features.
 
 ### 1.2 Separation of Provenance Tiers in Experiment Tracking
@@ -42,27 +42,27 @@ Our pipeline implements a clean, production-grade Medallion architecture:
 
 | Layer | Source Code | Tables Created | Quality Guarantees & Constraints Enforced |
 |---|---|---|---|
-| **Bronze** | `src/bronze.py` | `bronze_queries`, `bronze_history`, `bronze_labels`, `bronze_conditions`, `bronze_audit_log` | Cryptographic SHA-256 hash generation for every raw file; immutable append-only ingest; audit ledger tracking file sizes, row counts, and timestamps. |
+| **Bronze** | `src/bronze.py` | `bronze_queries`, `bronze_history`, `bronze_labels`, `bronze_conditions`, `bronze_audit_log` | Cryptographic SHA-256 hash generation for every raw file; complete split coverage enforcement; audit ledger tracking file sizes, row counts, and timestamps. |
 | **Silver** | `src/silver.py` | `silver_queries`, `silver_spins`, `silver_episodes`, `silver_quality_metrics` | Range assertions: `payout IN (0, 1, 2, 5, 20)`, `machine_type IN ('steady', 'balanced', 'jackpot')`, `signal IN (-1, 0, 1)`, `cutoff BETWEEN 192 AND 256`; deduplication on composite primary key `(episode_id, machine_id, tick)`. |
-| **Gold** | `src/gold.py` | `gold_features`, `gold_predictions`, `gold_model_evaluations` | Temporal `< cutoff` isolation; generates 471 canonical features across 11 groups (10 historical groups + 1 query group). |
+| **Gold** | `src/gold.py` | `gold_features`, `gold_parity_audit`, `gold_predictions`, `gold_model_evaluations`, `monitoring_machine_summary` | Temporal `< cutoff` isolation; generates 471 canonical features across 11 groups (10 historical groups + 1 query group). |
 
-### 2.2 PySpark Distributed Grouped Map Pandas UDF with 100% Bitwise Parity
+### 2.2 PySpark Distributed Grouped Map Pandas UDF with Bitwise Parity
 To enable high-throughput distributed feature calculation on Databricks clusters without introducing numerical divergence:
 - **Episode Partitioning:** PySpark partitions the dataset by `episode_id`. Because all 8 machines and 256 ticks for an episode belong to the same partition, calculations for peer machines require **zero cross-node network shuffle**.
-- **Bitwise Parity:** Features are computed via a vectorized Pandas UDF using identical mathematical operators as the reference offline engine.
-- **Verification:** Unit test `test_public_train_parity` runs against the official public dataset and proves:
+- **Bitwise Parity:** Features are computed via a vectorized Grouped Map Pandas UDF (`applyInPandas`) using identical mathematical operators as the reference offline engine.
+- **Verification:** Both `test_public_train_parity` and the live `verify_feature_parity` task run against the official public dataset and prove:
   $$\max_{i \in [1, 471]} |X_{\text{PySpark}}^{(i)} - X_{\text{NumPy}}^{(i)}| < 10^{-6}$$
-  confirming exact bitwise numerical equivalence.
+  confirming exact numerical equivalence.
 
 ### 2.3 Declarative Automation Bundle (DAB) Orchestration
 The entire pipeline is declared as infrastructure-as-code using Databricks Declarative Automation Bundles:
-- **`databricks.yml`:** Declares workspace targets (`dev` and `prod`) with parameterized catalogs and schemas (`jaegers_dev.house_edge` vs `jaegers_prod.house_edge`).
-- **`resources/house_edge_workflow.job.yml`:** Declares a 6-task Lakeflow DAG (`bronze_ingest` $\rightarrow$ `silver_clean_and_validate` $\rightarrow$ `gold_asof_features` $\rightarrow$ `verify_feature_parity` $\rightarrow$ `mlflow_track_models` $\rightarrow$ `refresh_monitoring_views`).
+- **`databricks.yml`:** Declares workspace targets (`dev` and `prod`) with parameterized catalogs and schemas (`workspace.house_edge` for `dev`).
+- **`resources/house_edge_workflow.job.yml`:** Declares a 6-task Lakeflow Serverless DAG (`bronze_ingest` $\rightarrow$ `silver_clean_and_validate` $\rightarrow$ `gold_asof_features` $\rightarrow$ `verify_feature_parity` $\rightarrow$ `mlflow_track_models` $\rightarrow$ `refresh_monitoring_views`).
 - **One-Command Deployment:** Deployed and validated using standard Databricks CLI commands:
   ```bash
-  databricks bundle validate
+  databricks bundle validate -t dev
   databricks bundle deploy -t dev
-  databricks bundle run house_edge_etl_and_training
+  databricks bundle run -t dev house_edge_medallion_pipeline
   ```
 
 ### 2.4 MLflow Governance, Model Signatures & Calibration Curves
@@ -97,20 +97,59 @@ JAEGERS respects competition rules and budgetary constraints:
 
 ---
 
-## 4. Verification & Audit Trail
+## 4. Live Workspace Verification & Audit Trail (`STATUS: LIVE_VERIFIED`)
+
+### 4.1 Live Serverless Execution Evidence (`workspace.house_edge`)
+- **Workspace Host:** `https://dbc-b8d39219-3689.cloud.databricks.com` (Serverless Spark 4.2.0, Unity Catalog `workspace.house_edge`, Volume `/Volumes/workspace/house_edge/raw_data/public`)
+- **Job ID:** `50563036183908` (`[dev asvathmadhan723] [dev] JAEGERS House Edge Medallion Pipeline`)
+- **End-to-End 6-Task DAG Run ID:** `888066060424343` (`TERMINATED SUCCESS`, total wall time ~4m 10s)
+- **Stagewise Verification Run IDs:**
+  - `bronze_ingest`: Run `925919734693613` (`TERMINATED SUCCESS`)
+  - `silver_clean_and_validate`: Run `108955288790552` (`TERMINATED SUCCESS`)
+  - `gold_asof_features`: Run `579892603954941` (`TERMINATED SUCCESS`)
+  - `verify_feature_parity`: Run `617153822117765` (`TERMINATED SUCCESS`)
+  - `mlflow_track_models`: Run `12718307334842` (`TERMINATED SUCCESS`)
+  - `refresh_monitoring_views`: Run `253019094752490` (`TERMINATED SUCCESS`)
+
+### 4.2 Live Delta Lake Tables, Row Counts & Cryptographic Digests
+
+| Table / View (`workspace.house_edge`) | Rows | Details & Integrity Evidence |
+|---|---|---|
+| `bronze_queries` | `3,072` | `768` train + `768` validation + `1,536` test; `format = 'delta'`, table ID `ac874c70-0360-4ce3-9102-eb2b7d617ee5` |
+| `bronze_history` | `564,000` | `139,944` train + `141,392` validation + `282,664` test |
+| `bronze_labels` | `1,536` | `768` train + `768` validation |
+| `bronze_conditions` | `1,536` | `768` train + `768` validation |
+| `bronze_audit_log` | `10` | `train/queries.csv` (`cd5841cadf...`), `train/history.csv` (`fc008e2277...`), `validation/queries.csv` (`5ae07ecf2a...`), `validation/history.csv` (`5402628b04...`), `test/queries.csv` (`f299006b96...`), `test/history.csv` (`005ce1932a...`) |
+| `silver_queries` | `3,072` | `rejected_queries = 0` |
+| `silver_spins` | `564,000` | `rejected_spins = 0`, `duplicates_dropped = 0` |
+| `silver_episodes` | `384` | Episode-level rollups across all splits |
+| `silver_quality_metrics` | `8` | Quality assertion summary table |
+| `gold_features` | `3,072` | `477` columns (`6` metadata + `471` canonical features) with `delta.columnMapping.mode = 'name'` |
+| `gold_parity_audit` | `1` | `status = 'PASSED'`, `max_abs_difference = 0.0`, `mean_abs_difference = 0.0`, `temporal_boundary_pass = true`, `column_manifest_match = true` |
+| `gold_model_evaluations` | `3` | Real validation evaluations linked to MLflow Experiment `4062806637201469` |
+| `gold_predictions` | `2,304` | `3` models × `768` validation queries (`p_0, p_1, p_2, p_5, p_20`) |
+| `monitoring_machine_summary` / `v_machine_summary` | `9` | Persistent table and Unity Catalog view across splits × machine types |
+
+### 4.3 Live MLflow Experiment & Run IDs
+- **Experiment Path:** `/Shared/jaegers_house_edge_experiments` (`experiment_id = 4062806637201469`)
+- **Logged Runs (Full DAG Run `888066060424343` / Stagewise Run `12718307334842`):**
+  1. `gold_empirical_decay_peer_baseline` (`empirical_dirichlet`): Run ID `8f04cbec276044c9a99ae5c3569d227d` (stagewise `b012fbece8334cc49fbba9e9401e18f4`) — `mean_brier = 0.550263` (`0.11005` per-class MSE), `log_loss = 1.063994`, `ece_calibration = 0.020798`
+  2. `gold_468_causal_no_signal_challenger` (`causal_lag_expert`): Run ID `8ae86a39ba9448e29c67d5c8a8398be5` (stagewise `82a89a8757194a22a585d75b2512ce70`) — `mean_brier = 0.553299`, `log_loss = 1.102625`, `ece_calibration = 0.030645`
+  3. `gold_471_regime_mixture_stacker` (`regime_mixture`): Run ID `21c2911be6ff4e38a21a0174c40b0910` (stagewise `6148fa24f05b45aa8d2456eedd8c7b7a`) — `mean_brier = 0.557804`, `log_loss = 1.144818`, `ece_calibration = 0.033818`
+
+### 4.4 Offline Unit Test Suite
 
 | Component | Path | Test Suite | Result |
 |---|---|---|---|
-| **Medallion Pipeline** | `Jaeger_Main/House_Edge/databricks/src/bronze.py`, `silver.py` | `tests/test_databricks_pipeline.py` | 11/11 tests pass |
+| **Medallion Pipeline & Serverless Guardrails** | `Jaeger_Main/House_Edge/databricks/src/bronze.py`, `silver.py`, `session.py` | `tests/test_databricks_pipeline.py` | 14/14 tests pass |
 | **PySpark Parity & Temporal Cutoff** | `Jaeger_Main/House_Edge/databricks/src/gold.py`, `parity.py` | `tests/test_databricks_parity.py` | 10/10 tests pass |
 | **MLflow Model Tracking & Calibration** | `Jaeger_Main/House_Edge/databricks/src/mlflow_tracking.py` | `tests/test_databricks_mlflow.py` | 17/17 tests pass |
-| **DBSQL Queries & Dashboard Spec** | `Jaeger_Main/House_Edge/databricks/sql/` | `tests/test_databricks_sql.py` | Passing |
-| **Demonstration Notebooks** | `Jaeger_Main/House_Edge/databricks/notebooks/` | `tests/test_databricks_sql.py` | Passing |
+| **DBSQL Queries, Dashboard Spec & Notebooks** | `Jaeger_Main/House_Edge/databricks/sql/`, `notebooks/` | `tests/test_databricks_sql.py` | 11/11 tests pass |
 
 ### Verification Command
 
 ```bash
-python -m unittest discover -s tests -p "test_databricks_*.py" -v
+python -m unittest discover -s tests -p "test_databricks*.py" -v
 ```
 
 ---

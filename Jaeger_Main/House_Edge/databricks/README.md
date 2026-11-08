@@ -120,29 +120,40 @@ The Databricks workflow is configured as a native Declarative Automation Bundle 
 
 ```bash
 # 1. Authenticate with Databricks CLI
-databricks auth login --host https://<databricks-instance>
+databricks auth login --host https://dbc-b8d39219-3689.cloud.databricks.com
 
 # 2. Validate bundle configuration
-databricks bundle validate
+databricks bundle validate -t dev
 
-# 3. Deploy to development environment
+# 3. Deploy to development environment (workspace.house_edge)
 databricks bundle deploy -t dev
 
-# 4. Trigger the end-to-end Lakehouse pipeline
-databricks bundle run house_edge_etl_and_training
-
-# 5. Deploy to production (with approval)
-databricks bundle deploy -t prod
+# 4. Trigger individual tasks or the full 6-task Lakehouse pipeline
+databricks bundle run -t dev --only bronze_ingest house_edge_medallion_pipeline
+databricks bundle run -t dev house_edge_medallion_pipeline
 ```
 
-### Multi-Task DAG Architecture
-The workflow executes 6 orchestrated tasks:
-1. `bronze_ingest` $\rightarrow$ Ingests CSVs and records SHA-256 checksums.
-2. `silver_clean_and_validate` $\rightarrow$ Enforces quality constraints and removes duplicates.
-3. `gold_asof_features` $\rightarrow$ Computes 471 past-only features.
-4. `verify_feature_parity` $\rightarrow$ Runs automated bitwise parity gate against NumPy reference.
-5. `mlflow_track_models` $\rightarrow$ Trains models, evaluates condition Brier scores, and logs artifacts.
-6. `refresh_monitoring_views` $\rightarrow$ Refreshes DBSQL materialized views and dashboard datasets.
+### Multi-Task DAG Architecture (`house_edge_medallion_pipeline`)
+The workflow executes 6 orchestrated Serverless Python tasks (`environment_version: "1"` / Spark 4.2.0):
+1. `bronze_ingest` $\rightarrow$ Ingests CSVs from `/Volumes/workspace/house_edge/raw_data/public`, enforces complete split coverage (`train`, `validation`, `test`), and records SHA-256 checksums.
+2. `silver_clean_and_validate` $\rightarrow$ Enforces quality constraints (`payout IN (0,1,2,5,20)`, `cutoff BETWEEN 192 AND 256`) and deduplicates spins.
+3. `gold_asof_features` $\rightarrow$ Computes 471 past-only features (`tick < cutoff`) via `applyInPandas` with Delta column mapping (`delta.columnMapping.mode = 'name'`).
+4. `verify_feature_parity` $\rightarrow$ Runs automated bitwise parity gate (`max_abs_difference = 0.00e+00`) and future-spin perturbation test (`temporal_boundary_pass = true`), writing to `gold_parity_audit`.
+5. `mlflow_track_models` $\rightarrow$ Evaluates real multi-class models on the 768 public validation queries, logs runs to `/Shared/jaegers_house_edge_experiments`, and materializes `gold_model_evaluations` and `gold_predictions`.
+6. `refresh_monitoring_views` $\rightarrow$ Materializes `monitoring_machine_summary` and persistent Unity Catalog view `v_machine_summary`.
+
+### Live Verification Summary (`STATUS: LIVE_VERIFIED`)
+
+| Resource / Artifact | Live Identifier / Table | Observed Live Result |
+|---|---|---|
+| **Databricks Workspace** | `https://dbc-b8d39219-3689.cloud.databricks.com` | Serverless Spark 4.2.0 (`workspace.house_edge`) |
+| **Lakeflow Job** | Job ID `50563036183908` (`house_edge_medallion_pipeline`) | Stagewise runs (`925919734693613`, `108955288790552`, `579892603954941`, `617153822117765`, `12718307334842`, `253019094752490`) + Full 6-task DAG Run `888066060424343` (`TERMINATED SUCCESS`) |
+| **Bronze Delta Tables** | `workspace.house_edge.bronze_queries` (`3,072` rows), `bronze_history` (`564,000` rows), `bronze_labels` (`1,536` rows), `bronze_conditions` (`1,536` rows), `bronze_audit_log` (`10` rows) | Verified `format = 'delta'` (`DESCRIBE DETAIL`), 100% SHA-256 checksums recorded |
+| **Silver Delta Tables** | `workspace.house_edge.silver_queries` (`3,072` rows), `silver_spins` (`564,000` rows), `silver_episodes` (`384` rows), `silver_quality_metrics` (`8` rows) | `rejected_queries = 0`, `rejected_spins = 0`, `duplicates_dropped = 0` |
+| **Gold Feature Store** | `workspace.house_edge.gold_features` (`3,072` rows × `477` cols = 6 metadata + 471 features) | `768` train + `768` validation + `1,536` test rows |
+| **Parity & Cutoff Audit** | `workspace.house_edge.gold_parity_audit` | `status = 'PASSED'`, `max_abs_difference = 0.0`, `mean_abs_difference = 0.0`, `temporal_boundary_pass = true` (150 queries × 471 features) |
+| **MLflow Experiment & Runs** | Experiment `/Shared/jaegers_house_edge_experiments` (`experiment_id = 4062806637201469`) | Runs `8f04cbec276044c9a99ae5c3569d227d` (`mean_brier=0.550263`), `8ae86a39ba9448e29c67d5c8a8398be5` (`mean_brier=0.553299`), `21c2911be6ff4e38a21a0174c40b0910` (`mean_brier=0.557804`) |
+| **Monitoring Views & SQL** | `workspace.house_edge.monitoring_machine_summary`, `v_machine_summary`, `gold_model_evaluations`, `gold_predictions` | All 5 production queries in `sql/dbsql_monitoring.sql` verified live on Serverless SQL Warehouse |
 
 ---
 

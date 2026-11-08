@@ -41,8 +41,76 @@ from src.mock_engine import (
     sum,
     when,
 )
-from src.session import get_mlflow, get_spark_session
+from src.session import assert_real_mlflow, assert_real_spark, get_mlflow, get_spark_session
 from src.silver import run_silver_pipeline, refresh_views
+
+
+class TestServerlessStartupAndLiveGuardrails(unittest.TestCase):
+    """Regression tests for Databricks Serverless Python-script execution without `__file__`
+    and strict live-runtime guardrails.
+    """
+
+    def test_exec_without_dunder_file_all_task_scripts(self):
+        """Executes all 5 task entrypoints via exec(compile(...)) with `__file__` absent."""
+        src_dir = DATABRICKS_DIR / "src"
+        task_scripts = [
+            "bronze.py",
+            "silver.py",
+            "gold.py",
+            "parity.py",
+            "mlflow_tracking.py",
+        ]
+        for script_name in task_scripts:
+            script_path = src_dir / script_name
+            source = script_path.read_text(encoding="utf-8")
+
+            # Case 1: Databricks Serverless wrapper provides `filename` in globals, no `__file__`
+            ns_with_filename = {"__name__": "__serverless_exec__", "filename": str(script_path)}
+            self.assertNotIn("__file__", ns_with_filename)
+            exec(compile(source, str(script_path), "exec"), ns_with_filename)
+            self.assertEqual(
+                Path(ns_with_filename["_SRC_DIR"]).resolve(),
+                src_dir.resolve(),
+                f"{script_name} failed to resolve _SRC_DIR with filename fallback",
+            )
+
+            # Case 2: Neither `__file__` nor `filename` in globals (pure code-object inspection)
+            ns_minimal = {"__name__": "__serverless_exec__"}
+            self.assertNotIn("__file__", ns_minimal)
+            exec(compile(source, str(script_path), "exec"), ns_minimal)
+            self.assertEqual(
+                Path(ns_minimal["_SRC_DIR"]).resolve(),
+                src_dir.resolve(),
+                f"{script_name} failed to resolve _SRC_DIR via frame co_filename inspection",
+            )
+
+    def test_session_rejects_mock_when_require_live(self):
+        """Verifies that live verification explicitly rejects MockSparkSession and MockMLflow."""
+        with self.assertRaises(RuntimeError):
+            get_spark_session(force_mock=True, require_live=True)
+        with self.assertRaises(RuntimeError):
+            get_mlflow(force_mock=True, require_live=True)
+        with self.assertRaises(RuntimeError):
+            assert_real_spark(MockSparkSession())
+        with self.assertRaises(RuntimeError):
+            assert_real_mlflow(MockMLflow())
+
+    def test_bronze_fails_on_missing_split_directory(self):
+        """Verifies that run_bronze_ingest raises FileNotFoundError when a required split is absent."""
+        tmp = tempfile.mkdtemp()
+        spark = MockSparkSession()
+        try:
+            with self.assertRaises(FileNotFoundError):
+                run_bronze_ingest(
+                    spark=spark,
+                    data_dir=tmp,
+                    catalog="test_cat",
+                    schema="test_sch",
+                    splits=["train", "validation", "test"],
+                )
+        finally:
+            spark.stop()
+            shutil.rmtree(tmp, ignore_errors=True)
 
 
 class TestMockEngine(unittest.TestCase):
