@@ -105,7 +105,8 @@ points require a separate, explicitly recorded public-validation check.
 
 Read [CONTRACTS.md](research/CONTRACTS.md) before implementing a model, feature provider
 or dashboard. Existing adapters reuse JAEGERS; new families belong in `research/models/`
-and may register a `research.models.module:factory` that accepts `(config, cache_path)`
+and may register a `research.models.module:factory` or existing
+`research.challengers.module:factory` that accepts `(config, cache_path)`
 and returns a compatible model. Coordinate worker-factory edits with the integration owner.
 
 Feature groups declare interaction dependencies. Historical rows use strictly earlier

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-mkdir -p .runtime/uv-linux
+mkdir -p .runtime/uv-linux research_runs
 if [[ ! -x .runtime/uv-linux/uv ]]; then
   curl -fL --retry 2 https://github.com/astral-sh/uv/releases/download/0.13.7/uv-x86_64-unknown-linux-gnu.tar.gz -o .runtime/uv-linux.tar.gz
   tar -xzf .runtime/uv-linux.tar.gz --strip-components=1 -C .runtime/uv-linux

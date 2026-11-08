@@ -38,6 +38,10 @@ def build_cache(data, cache, stride=8, max_rows=24):
     data, cache = Path(data).resolve(), Path(cache).resolve()
     folder = data / "train"
     identity = {"inputs": tree_hashes(folder), "features": file_hash(Path(__file__).with_name("feature_api.py")),
+                "feature_plugins": tree_hashes(Path(__file__).parent / "features"),
+                "feature_extensions": tree_hashes(Path(__file__).parent / "extensions"),
+                "reader": file_hash(Path(core_module().__file__)),
+                "adapters": file_hash(Path(__file__).with_name("adapters.py")),
                 "dataset": file_hash(__file__), "stride": stride, "max_rows": max_rows}
     key = digest(identity)
     destination = cache / key

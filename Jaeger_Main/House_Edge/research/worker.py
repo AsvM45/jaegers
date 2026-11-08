@@ -14,8 +14,8 @@ from .adapters import FrequencyModel, JaegerModel, core_module
 def model_for(config, cache):
     if config.get("factory"):
         module, symbol = config["factory"].split(":",1)
-        if not module.startswith("research.models.") or not symbol.isidentifier():
-            raise ValueError("Specialist factories must be named research.models.<module>:<factory>")
+        if not module.startswith(("research.models.", "research.challengers.")) or not symbol.isidentifier():
+            raise ValueError("Specialist factories must be named research.models.<module>:<factory> or research.challengers.<module>:<factory>")
         return getattr(importlib.import_module(module),symbol)(config,cache)
     family = config["family"]
     if family == "jaeger":

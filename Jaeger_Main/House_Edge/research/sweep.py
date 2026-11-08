@@ -53,6 +53,8 @@ def identity(data, folds):
             "source_sha256":{n:file_hash(Path(__file__).with_name(n)) for n in numerical},
             "model_plugins_sha256":tree_hashes(ROOT/"research/models"),
             "feature_plugins_sha256":tree_hashes(ROOT/"research/features"),
+            "challenger_plugins_sha256":tree_hashes(ROOT/"research/challengers"),
+            "feature_extensions_sha256":tree_hashes(ROOT/"research/extensions"),
             "scorer_sha256":tree_hashes(ROOT/"slot_forecasting"),
             "champion_sha256":tree_hashes(ROOT / "jaegers_entry"),
             "train_sha256":tree_hashes(Path(data)/"train"), "metadata_sha256":file_hash(Path(data)/"metadata.json"),
@@ -72,9 +74,13 @@ def snapshot_source(destination, provenance):
     for directory,key,target_parent in (("jaegers_entry","champion_sha256",destination),
                                          ("slot_forecasting","scorer_sha256",destination),
                                          ("research/models","model_plugins_sha256",destination),
-                                         ("research/features","feature_plugins_sha256",destination)):
+                                         ("research/features","feature_plugins_sha256",destination),
+                                         ("research/challengers","challenger_plugins_sha256",destination),
+                                         ("research/extensions","feature_extensions_sha256",destination)):
         source=ROOT/directory
         expected=provenance[key]
+        if tree_hashes(source) != expected:
+            raise ValueError(f"Source changed while staging trial: {directory}")
         if source.exists():
             target=target_parent/directory
             shutil.copytree(source,target,ignore=shutil.ignore_patterns("__pycache__","*.pyc"))

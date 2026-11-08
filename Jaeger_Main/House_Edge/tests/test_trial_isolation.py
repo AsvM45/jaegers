@@ -44,3 +44,10 @@ def test_entry_readme_change_does_not_duplicate_numerical_trial(tmp_path):
     assert registry.register("a",{"family":"frequency"},a) == registry.register("b",{"family":"frequency"},b)
     b["champion_sha256"]["jaeger_model.py"]="different model"
     assert registry.register("b",{"family":"frequency"},b) != registry.register("a",{"family":"frequency"},a)
+
+
+def test_missing_plugin_source_fails_before_worker_launch(tmp_path):
+    provenance=identity(ROOT/"public",{"fixture":0})
+    provenance["challenger_plugins_sha256"]={"missing.py":"expected-bytes"}
+    with pytest.raises(ValueError,match="Source changed while staging"):
+        snapshot_source(tmp_path/"missing-plugin",provenance)

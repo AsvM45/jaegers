@@ -1,11 +1,14 @@
 # House Edge integration contracts
 
-Execution owner of the integration core: **CHAT**, GitHub issues #1, #4, #8.
+Execution owner of the integration core: **CHAT**, active editing issue #8.
+Issue #1/#4 prerequisites are READY FOR REVIEW, not closed before integration.
+Active branch: `agent/chat-he08-core`; separate physical worktree: `.chat-he08/`.
 The shared GitHub assignee does not identify an agent. Read the explicit claim on #18.
 
 ## Model adapters
 
-New model implementations belong in `research/models/<family>.py`; do not create a
+New model implementations belong in `research/models/<family>.py` or the existing
+specialist `research/challengers/` namespace; do not create a
 second flat `research/models.py`. The integration-owned existing-model adapters live
 in `research/adapters.py`. Public interface:
 
@@ -28,8 +31,11 @@ restored = Serializable.load(path)
 - Fit sees only fitting episodes. Prediction may adapt to held-out episode history
   strictly before its cutoff, never query outcomes. Serialization is for trusted local
   artifacts; submitted code can deterministically retrain instead.
-- Register new factories through `research.worker.model_for` by coordination with
-  CHAT; do not independently rewrite the worker or registry.
+- Register a factory via `factory: research.models.module:function` or
+  `factory: research.challengers.module:function` in trial configuration. It accepts
+  `(config, cache_path)` and returns the model; specialist wrappers convert their
+  internal schema to this shared raw-query/history/class-index contract. Coordinate
+  changed contracts with CHAT; do not independently rewrite worker/registry files.
 
 ## Features and as-of supervision
 
@@ -38,7 +44,11 @@ may live under `research/features/` without a module-name collision. Coordinate 
 changes with #7 and #8 before changing the bridge or `research/dataset.py`.
 
 `FeatureComputer(history).row(query, groups)` returns `(float32_vector, column_names)`.
-Columns use `group/name_index` identifiers. `validate_groups` checks interaction
+Columns use `group/name_index` identifiers. Source identities/snapshots also cover
+specialist `research/extensions/` and `research/challengers/` files, and feature cache
+keys include feature extension/plugin and reader hashes. Adding those source files
+does not itself register new groups or integrate an unreviewed specialist model.
+`validate_groups` checks interaction
 dependencies and rejects query-only signal for historical training. All outcomes,
 including peers, must have tick < target tick. Machine type is treated as intrinsic
 static metadata; that assumption is recorded. Do not copy final signal into old rows.

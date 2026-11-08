@@ -4,6 +4,7 @@ $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 Push-Location $projectRoot
 try {
     New-Item -ItemType Directory -Force .runtime | Out-Null
+    New-Item -ItemType Directory -Force research_runs | Out-Null
     $uvExe = Join-Path $projectRoot '.runtime/uv/uv.exe'
     if (-not (Test-Path -LiteralPath $uvExe)) {
         if ($Offline) { throw 'uv missing; first setup requires network access' }
