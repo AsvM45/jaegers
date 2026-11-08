@@ -48,14 +48,18 @@ def main():
         filters["context"] = [selected_context]
     else:
         st.warning("Comparison context is incomplete. Inspect provenance before interpreting scores.")
-    for label, key in (("Family", "family"), ("Outcome", "status"), ("Source", "source_sha256"),
+    for label, key in (("Family", "family"), ("Outcome", "status"), ("Seed", "seed"), ("Source", "source_sha256"),
                        ("Dataset", "data_sha256"), ("Feature source", "feature_sha256"), ("Fold manifest", "split_sha256")):
         choices = sorted({r[key] for r in rows if r.get(key) is not None})
         filters[key] = st.sidebar.multiselect(label, choices, format_func=lambda s: str(s)[:32])
     groups = sorted({g for t in trials for g in t.get("hyperparameters", {}).get("groups", [])})
     required = st.sidebar.multiselect("Required feature groups", groups)
     param_text = st.sidebar.text_input("Hyperparameter text")
+    cost_cap = st.sidebar.number_input("Max measured trial wall seconds", min_value=0.0, value=0.0,
+                                       help="0 shows all runs. A positive cap selects runs with measured durations within the cap.")
     selected = filter_trials(trials, filters, required, param_text)
+    if cost_cap > 0:
+        selected = [t for t in selected if t.get("wall_seconds") is not None and t["wall_seconds"] <= cost_cap]
     if not selected:
         st.info("No runs match these filters.")
         return

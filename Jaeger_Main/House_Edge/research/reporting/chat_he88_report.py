@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 from ..analysis.chat_he88_evidence import audit_registry, calibration, comparison, context_key, load_export, trial_rows
-from ..common import digest, write_json
+from ..common import digest, file_hash, write_json
 
 
 def export_report(registry_json, out, baseline_id=None, audit_root=None):
@@ -38,6 +38,9 @@ def export_report(registry_json, out, baseline_id=None, audit_root=None):
                     comparisons.append({"candidate_id": trial["trial_id"], "baseline_id": baseline_id, "blocker": str(exc)})
     payload = {"schema": "jaegers.he88_comparison_report", "schema_version": 1,
                "input_content_sha256": json.loads(Path(registry_json).read_text())["content_sha256"],
+               "reporting_source_sha256": {"reporter": file_hash(__file__),
+                   "reader": file_hash(Path(__file__).parents[1]/"analysis/chat_he88_evidence.py"),
+                   "views": file_hash(build_figures.__code__.co_filename)},
                "metric_source": "sampled_outcome_group_cv", "official_points": None,
                "trials": rows, "comparisons": comparisons, "diagnostics": diagnostic,
                "attempt_audit": audit_registry(audit_root) if audit_root else None,

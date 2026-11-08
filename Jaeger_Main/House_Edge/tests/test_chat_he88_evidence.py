@@ -76,6 +76,11 @@ def test_verified_export_reconstructs_metrics_and_never_scores_failed_rows(tmp_p
     lambda t: t["result"]["folds"][0]["fit_episodes"].append("ep0"),
     lambda t: t["result"]["folds"][1].update(heldout_episodes=["ep0"]),
     lambda t: t["identity"].update(split_manifest_sha256="wrong"),
+    lambda t: t.update(result=[]), lambda t: t.update(hyperparameters=[]),
+    lambda t: t.update(identity=[]), lambda t: t.update(wall_seconds=-1),
+    lambda t: t["result"].update(per_query=[None]),
+    lambda t: t["result"].update(folds=[None, None]),
+    lambda t: t["result"].update(by_condition=[]),
 ])
 def test_invalid_metric_and_provenance_evidence_fails_closed(tmp_path, change):
     trial = trial_fixture()
@@ -156,11 +161,17 @@ def test_all_attempt_audit_preserves_failures_and_detects_source_mutation(tmp_pa
     report = audit_registry(tmp_path)
     assert report["ok"] and report["attempt_count"] == 2
     assert report["statuses"] == {"TIMEOUT": 1, "SUCCEEDED": 1}
+    assert report["attempts"][1]["process_cpus"] == 2
+    assert report["attempts"][1]["process_peak_rss_mib"] is None
     assert before == {p: file_hash(p) for p in before}
     (completed/"source/research/fixture.py").write_text("changed source\n")
     damaged = audit_registry(tmp_path)
     assert not damaged["ok"]
     assert any(f["code"] == "source_bytes_changed" for f in damaged["findings"])
+    write_json(completed/"source/source-manifest.json", [])
+    corrupted = audit_registry(tmp_path)
+    assert not corrupted["ok"]
+    assert any(f["code"] == "incomplete_attempt_evidence" for f in corrupted["findings"])
 
 
 def test_audit_blocks_escaped_artifact_and_latest_status_conflict(tmp_path):

@@ -27,7 +27,7 @@ def load_export(path):
     """Read only a verified portable envelope. No demo fallback or pickle loading."""
     path = Path(path)
     envelope = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(envelope, dict) or envelope.get("schema") != "jaegers.experiment_registry" or envelope.get("schema_version") != 1:
+    if not isinstance(envelope, dict) or envelope.get("schema") != "jaegers.experiment_registry" or type(envelope.get("schema_version")) is not int or envelope["schema_version"] != 1:
         raise ValueError("Expected experiment_registry portable schema version 1")
     payload = {k: v for k, v in envelope.items() if k != "content_sha256"}
     if envelope.get("content_sha256") != digest(payload):
@@ -40,6 +40,17 @@ def load_export(path):
         if not isinstance(trial, dict) or not isinstance(trial.get("trial_id"), str) or not trial["trial_id"] or trial["trial_id"] in seen:
             raise ValueError("Missing or duplicate trial ID")
         seen.add(trial["trial_id"])
+        if any(not isinstance(trial.get(k), dict) for k in ("identity", "hyperparameters", "result")):
+            raise ValueError("Trial identity, hyperparameters and result must be objects")
+        if not isinstance(trial.get("family"), str) or not trial["family"]:
+            raise ValueError("Trial family must be named")
+        config = trial["hyperparameters"]
+        groups = config.get("groups", [])
+        if not isinstance(groups, list) or any(not isinstance(g, str) for g in groups) or len(set(groups)) != len(groups) or not isinstance(config.get("params", {}), dict):
+            raise ValueError("Invalid feature group or hyperparameter schema")
+        wall = trial.get("wall_seconds")
+        if wall is not None and (type(wall) not in (int, float) or not math.isfinite(wall) or wall < 0):
+            raise ValueError("Trial wall time must be finite and nonnegative or missing")
         if trial.get("status") not in STATUSES:
             raise ValueError("Unknown trial status")
         if trial.get("is_synthetic") is not False:
@@ -69,6 +80,8 @@ def validated_result(trial):
     if trial.get("status") != "SUCCEEDED":
         raise ValueError("Trial did not succeed")
     result = trial.get("result", {})
+    if not isinstance(result, dict):
+        raise ValueError("Result must be an object")
     if result.get("official_points") is not None:
         raise ValueError("Sampled outcome diagnostics cannot contain official points")
     if result.get("evaluation_source") != "sampled_outcome_group_cv" or trial.get("evaluation_source") != "sampled_outcome_group_cv":
@@ -78,6 +91,8 @@ def validated_result(trial):
         raise ValueError("Missing per-query evidence")
     queries, labels, conditions, predictions = [], {}, {}, {}
     for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("Per-query evidence rows must be objects")
         qid, ep = row.get("query_id"), row.get("episode_id")
         if not isinstance(qid, str) or not qid or qid in predictions or not isinstance(ep, str) or not ep:
             raise ValueError("Missing or duplicate query/episode identity")
@@ -98,6 +113,8 @@ def validated_result(trial):
     for key in ("mean_brier", "by_condition", "per_episode", "episode_conditions"):
         if key not in result:
             raise ValueError(f"Missing metric evidence {key}")
+        if isinstance(calculated[key], dict) and not isinstance(result[key], dict):
+            raise ValueError(f"Stored {key} must be an object")
         if key == "episode_conditions":
             valid = calculated[key] == result[key]
         elif isinstance(calculated[key], dict):
@@ -116,6 +133,8 @@ def validated_result(trial):
     all_episodes = set(ep_conditions)
     seen_fold_ids = set()
     for fold in folds:
+        if not isinstance(fold, dict):
+            raise ValueError("Fold evidence rows must be objects")
         fit, hold = fold.get("fit_episodes", []), fold.get("heldout_episodes", [])
         fold_id = fold.get("fold")
         if type(fold_id) is not int or fold_id < 0 or fold_id in seen_fold_ids:
@@ -238,13 +257,19 @@ def audit_registry(root):
             continue
         try:
             request = json.loads((artifact/"request.json").read_text())
+            if not isinstance(request, dict):
+                raise ValueError("Invalid request object")
             trial = indexed[tid]
             if request.get("trial_id") != tid or request.get("config") != json.loads(trial["config"]) or request.get("identity") != json.loads(trial["identity"]):
                 finding(tid, number, "request_identity_conflict")
             manifest = json.loads((artifact/"source/source-manifest.json").read_text())
+            if not isinstance(manifest, dict):
+                raise ValueError("Invalid source manifest")
             if manifest != request["identity"]:
                 finding(tid, number, "source_manifest_conflict")
             sources = manifest.get("source_sha256", {})
+            if not isinstance(sources, dict):
+                raise ValueError("Invalid source hashes")
             for name, expected in sources.items():
                 source = (artifact/"source/research"/name).resolve()
                 if not source.is_relative_to(artifact/"source/research") or not source.is_file() or file_hash(source) != expected:
@@ -258,6 +283,11 @@ def audit_registry(root):
             if status == "SUCCEEDED" and not (artifact/"result.json").is_file():
                 finding(tid, number, "success_missing_result")
             process = json.loads((artifact/"process/process.json").read_text())
+            if not isinstance(process, dict):
+                raise ValueError("Invalid process evidence")
+            # Preserve missing readings as null; no zero-cost or zero-memory claims.
+            for field in ("wall_seconds", "peak_rss_mib", "cpus", "timeout_seconds", "memory_limit_gib"):
+                attempt["process_"+field] = process.get(field)
             if status == "SUCCEEDED" and process.get("status") != "SUCCEEDED":
                 finding(tid, number, "success_process_conflict")
             cpus = manifest.get("execution_policy", {}).get("cpus_per_worker")

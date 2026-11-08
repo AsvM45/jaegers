@@ -72,6 +72,7 @@ def test_offline_report_exports_full_provenance_and_preserves_prior_output(tmp_p
     payload = json.loads((out/"comparison.json").read_text())
     assert payload["official_points"] is None
     assert payload["trials"][0]["data_sha256"]
+    assert set(payload["reporting_source_sha256"]) == {"reporter", "reader", "views"}
     with pytest.raises(FileExistsError):
         export_report(source, out)
 
