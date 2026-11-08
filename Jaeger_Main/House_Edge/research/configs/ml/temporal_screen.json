@@ -1,0 +1,15 @@
+{
+  "seed": 0,
+  "fold_count": 4,
+  "holdout_fold": 0,
+  "prior": 0.5,
+  "window": 8,
+  "baseline": "no_peer",
+  "variants": ["no_peer", "peer", "drift", "peer_drift", "global", "local"],
+  "hypotheses": {
+    "peer": "Same-episode sibling payouts before cutoff reduce holdout Brier versus own history only.",
+    "drift": "An exact recent window mixed with earlier own history reduces Brier versus all own history.",
+    "peer_drift": "Sibling recent-window payouts plus own drift reduce Brier versus own history only.",
+    "local": "Mixing the train machine-type prior with own history reduces Brier versus the type prior alone."
+  }
+}
