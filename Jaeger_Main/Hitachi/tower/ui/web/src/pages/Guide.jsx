@@ -118,7 +118,7 @@ export default function Guide() {
             <div className="flow-head"><span className="badge-ico"><Icon name="bolt" /></span><b>Tips</b></div>
             <ul>
               <li>Press <kbd>/</kbd> to search events or test cases; <kbd>Esc</kbd> clears it.</li>
-              <li>The live chip shows the reader and how fresh the data is. <b>Refresh</b> on the other pages reloads results after a run.</li>
+              <li>The live chip shows the reader and how fresh the data is.</li>
               <li>On a test set, <b>Delete run</b> removes that result for good (it asks first).</li>
               {d.model && <li>This run was read by <b>{d.model}</b> with the rule check.</li>}
             </ul>

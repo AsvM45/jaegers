@@ -50,7 +50,7 @@ A live channel feed (Gmail, Outlook, Slack, Teams, and outbound notices) is docu
 | Logs | `start.py` output, the action log, and test history |
 | Guide | How to run the tower and what each page reads |
 
-The **Refresh** button is on every page except Overview. It reloads the run and test results from disk. The chip beside search shows the reader and how fresh the data is.
+The chip beside search shows the reader and how fresh the data is.
 
 Rebuild the React UI after changing `tower/ui/web`:
 

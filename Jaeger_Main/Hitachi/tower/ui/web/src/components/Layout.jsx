@@ -1,6 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { Icon } from "../lib/icons.jsx";
-import { fmt } from "../lib/constants.js";
 import { useData } from "../lib/data.jsx";
 import { useUi } from "../lib/ui.jsx";
 import { Search } from "./Search.jsx";
@@ -48,9 +47,8 @@ function LiveChip() {
 }
 
 // title, and either a trail ([[label, href|null], ...]) or a subtitle (node) under it.
-export function Topbar({ title, trail, subtitle, showRefresh = true }) {
-  const d = useData();
-  const { ui, set, toast } = useUi();
+export function Topbar({ title, trail, subtitle }) {
+  const { set } = useUi();
   const q = useRef(null);
   const [scrolled, setScrolled] = useState(false);
 
@@ -66,11 +64,6 @@ export function Topbar({ title, trail, subtitle, showRefresh = true }) {
     document.addEventListener("keydown", onKey);
     return () => { window.removeEventListener("scroll", onScroll); document.removeEventListener("keydown", onKey); };
   }, [set]);
-
-  const refresh = async () => {
-    const r = await d.reload();
-    toast(`Reloaded: ${fmt(r.events)} events, ${fmt(r.calls)} tool calls`);
-  };
 
   return (
     <header className={`topbar${scrolled ? " scrolled" : ""}`}>
@@ -91,11 +84,6 @@ export function Topbar({ title, trail, subtitle, showRefresh = true }) {
       <div className="tb-right">
         <LiveChip />
         <Search ref={q} />
-        {showRefresh && (
-          <button className={`icon-btn${d.busy ? " busy" : ""}`} title="Reload the run and test results" onClick={refresh}>
-            <Icon name="refresh" /><span>Refresh</span>
-          </button>
-        )}
       </div>
     </header>
   );

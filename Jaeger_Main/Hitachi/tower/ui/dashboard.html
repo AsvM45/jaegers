@@ -499,7 +499,6 @@
           <span class="pulse"></span><span id="live-text">Loading…</span>
         </div>
         <label class="search"><span data-icon="search"></span><input id="q" placeholder="Search events or tests" autocomplete="off"><kbd>/</kbd></label>
-        <button class="icon-btn" id="refresh" title="Reload the run and test results"><span data-icon="refresh"></span><span>Refresh</span></button>
       </div>
     </header>
     <div id="view"></div>
@@ -591,9 +590,7 @@ async function getJSON(url, fallback) {
     return await r.json();
   } catch (e) { return fallback; }
 }
-async function load(manual = false) {
-  const btn = $("#refresh");
-  btn.classList.add("busy");
+async function load() {
   const [events, traces, log, onto, reports, outbox, agents] = await Promise.all([
     getJSON("/api/events", []), getJSON("/api/traces", []), getJSON("/api/log", []),
     getJSON("/api/ontology_export", null), getJSON("/api/test_reports", null), getJSON("/api/outbox", []),
@@ -606,10 +603,8 @@ async function load(manual = false) {
   S.traceById = Object.fromEntries(traces.map((t) => [t.event_id, t]));
   if (!S.sel && traces.length) S.sel = traces[0].event_id;
   S.loadedAt = Date.now();
-  btn.classList.remove("busy");
   updateLive();
   route();
-  if (manual) toast(`Reloaded: ${fmt(traces.length)} events, ${fmt(log.length)} tool calls`);
 }
 
 /* ---------------- top bar ---------------- */
@@ -692,7 +687,6 @@ function route() {
   $("#subtitle").hidden = false;
   $("#subtitle").innerHTML = pageSubtitle(p);
   $("#title").textContent = PAGES[p];
-  $("#refresh").hidden = p === "overview";
   const view = $("#view");
   ({ overview: renderOverview, events: renderEvents, tests: (v) => renderTests(v, segs), ontology: renderOntology, logs: renderLogs, guide: renderGuide })[p](view);
   paintIcons(view);
@@ -723,7 +717,6 @@ function countUp(root) {
   });
 }
 window.addEventListener("hashchange", route);
-$("#refresh").addEventListener("click", () => load(true));
 // "/" jumps to search from anywhere; Esc clears it.
 document.addEventListener("keydown", (e) => {
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || "");
@@ -1506,7 +1499,7 @@ const GUIDE = [
     c: ["python tests/make_cases.py"] },
   { t: "Export the ontology", p: "Writes runs/ontology/ontology.json for the edge tables on the Knowledge graph page. The orb graph itself reads the CSVs directly.",
     c: ["python -m tower.ontology"] },
-  { t: "Start this dashboard", p: "Then open http://127.0.0.1:8080. After a new run, press Refresh on any page except Overview. The orb graph also runs on its own with node orb-graph/server.js.",
+  { t: "Start this dashboard", p: "Then open http://127.0.0.1:8080. The orb graph also runs on its own with node orb-graph/server.js.",
     c: ["python -m tower.ui.server", "TOWER_RUN_DIR=runs/live python -m tower.ui.server"] },
 ];
 function renderGuide(view) {
@@ -1516,7 +1509,7 @@ function renderGuide(view) {
       <div class="steps">${GUIDE.map((g, i) => `<div class="step"><div class="n">${i + 1}</div><div><h4>${esc(g.t)}</h4><p>${esc(g.p)}</p>
         ${g.c.map((c) => `<div class="cmd"><code>${esc(c)}</code><button class="btn copy" data-copy="${esc(c)}">${icon("copy")}Copy</button></div>`).join("")}</div></div>`).join("")}</div>
     </div>
-    <div class="card"><div class="card-head"><div><h3>What each page reads</h3><p class="sub">Files on disk. Press Refresh on any page except Overview to load a new run</p></div></div>
+    <div class="card"><div class="card-head"><div><h3>What each page reads</h3><p class="sub">Files on disk from the latest run</p></div></div>
       <div class="scroll-x"><table><thead><tr><th>Page</th><th>Source</th></tr></thead><tbody>
         <tr><td><b>Overview, Event feed</b></td><td class="mono">runs/run1/</td></tr>
         <tr><td><b>Tests</b></td><td class="mono">runs/given, tests, holdout, holdout2 (+ tests/*.json)</td></tr><tr><td><b>Logs</b></td><td class="mono">runs/logs/*.log, runs/run1/action_log.jsonl, runs/test_log.jsonl</td></tr>
