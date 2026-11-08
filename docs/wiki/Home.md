@@ -1,21 +1,27 @@
-# JAEGERS House Edge — Team Wiki
+# JAEGERS — Public knowledge hub
 
-A collaborative probabilistic forecasting project for TAMU Datathon 2026. This is the **human-facing documentation mirror**; the GitHub repository's [reviewed technical docs](https://github.com/AsvM45/jaegers/tree/main/docs) and [organizer kit](https://github.com/AsvM45/jaegers/tree/main/Jaeger_Main/House_Edge) are authoritative.
+This is the **source-controlled** wiki landing page for TAMU Datathon 2026's JAEGERS research project. The canonical implementation and documentation are reviewed in the ordinary [GitHub repository](https://github.com/AsvM45/jaegers). A separately published GitHub Wiki is an optional navigation mirror, not a second source of technical truth.
 
-## Start here
+## Project areas
 
-- [Five-agent collaboration and responsibility](https://github.com/AsvM45/jaegers/blob/main/docs/MULTI_AGENT_OWNERSHIP.md) — CHAT/Codex, Claude, Antigravity, Grok, Cursor.
-- [Current technical context](https://github.com/AsvM45/jaegers/blob/main/docs/AGENT_CONTEXT.md) — true problem/data/scoring semantics.
-- [GitHub task board #18](https://github.com/AsvM45/jaegers/issues/18) — live claims, handoffs and deadlines.
-- [Autonomous engineer policy](https://github.com/AsvM45/jaegers/blob/main/docs/AGENT_OPERATING_POLICY.md) — how agents inspect, implement, test and report.
-- [Experiment factory](https://github.com/AsvM45/jaegers/blob/main/docs/research/EXPERIMENT_FACTORY_GUIDE.md) — readable overview of experiments, models and metrics.
-- [Modeling research v7](https://github.com/AsvM45/jaegers/blob/main/docs/research/EXPERIMENT_FACTORY_v7.md) — **curated design synopsis**, not claim of executed models.
-- [Main repo](https://github.com/AsvM45/jaegers) and [open issues](https://github.com/AsvM45/jaegers/issues).
+- [House Edge architecture and data flow](../architecture/SYSTEM_OVERVIEW.md) — five-class probability model, historical cutoffs, research registry, dashboard, releases.
+- [Scientific evaluation](../science/EVALUATION_AND_PROVENANCE.md) — true-vector vs sampled-label Brier, episode grouping, public-validation exposure, historical `NOT_CERTIFIED`.
+- [CI and offline release operations](../runbooks/CI_AND_RELEASE.md) — reproducible commands, CPU policy and signed-off artifacts.
+- [Hitachi](../../Jaeger_Main/Hitachi/) — separate challenge; expanded `tower/` implementation resides on the [`hitachi` branch](https://github.com/AsvM45/jaegers/tree/hitachi/Jaeger_Main/Hitachi).
+- [Current engineering evidence](../CURRENT_STATE.md) — dated source-backed overview with preserved historical snapshot.
+- [GitHub agents and local worktrees](../agents/GITHUB_AGENTS_AND_WORKTREES.md) — cloud vs local sessions, issue claims, handoffs, approvals.
 
-## What is measured?
+## Contributor and platform procedures
 
-Reported main public development validation is ~55.1216/60 for the original champion, with prior public-target exposure; the hidden test score is not known from local checks. Actual delivery acceptance requires a valid offline-reproducible CSV+ZIP and human organizer receipt. Never infer contest rank from a public score.
+- [Root README](../../README.md), [contribution guide](../../CONTRIBUTING.md) and [security policy](../../SECURITY.md).
+- [Existing collaboration protocol](../AGENT_COLLABORATION_PROTOCOL.md) — unique branch, physical worktree, named issue claim and handoff.
+- [Governance runbook](../ops/PR_GOVERNANCE_RUNBOOK.md) — always-running PR gate, duplicate-merge protection and owner UI ruleset steps.
+- [Branch-retirement audit](../ops/BRANCH_CONSOLIDATION_AUDIT.md) — no destructive changes authorized.
+- [GitHub feature ADR](../adr/0001-github-engineering-features.md) — Projects/Actions/Wiki/Discussions/Agents/Releases decisions.
+- [Live issue dispatch #18](https://github.com/AsvM45/jaegers/issues/18) — coordination and blockers, not evidence an agent is running.
 
-## Source policy
+## What the repository does **not** certify
 
-Only reviewed public-safe project information belongs here. No private conversation exports, full Library backups, signed NDAs, personal records, credentials, unapproved raw output histories, or organizer receipts.
+Development-exposed public validation scores are not hidden contest results. A local packaging check is not an organizer receipt. An offline/mock Databricks test is not a live workspace experiment. A passing Hitachi workflow that reports SKIP did not run tower tests. Historical pseudo-training signal/prior behavior remains `NOT_CERTIFIED` pending organizer interpretation.
+
+All pages are public: do not upload private participant data, organizer tokens, raw personal conversations or ignored experiment archives.
