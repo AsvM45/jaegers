@@ -56,7 +56,7 @@ Do not return another long plan: start implementation within your scope.
 
 ## Handoff to Codex and the humans
 
-- Send a GitHub issue #13 progress update or a concise diff/PR reference after a tested milestone.
+- Send a GitHub issue #13 progress update and an own-feature-branch draft PR when the issue/human permission allows, with real tests and metrics after a tested milestone.
 - Issue #14 is **separate** Databricks research; keep cloud dependencies out of submission runner.
 - If you want independent read-only review instead, explicitly invoke the `jaegers-antigravity-review` skill and select a specific issue/claim.
 - Keep Antigravity file ownership separate. Never use its model changes to bypass Codex's reproducibility and release gates.
