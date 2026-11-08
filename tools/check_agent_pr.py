@@ -5,7 +5,7 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 BRANCH = re.compile(r"^(agent|human)/[a-z0-9][a-z0-9-]{2,90}$")
-CLAIM = re.compile(r"(?m)^[ \\t]*<!--[ \\t]*jaegers-claim:v1\\s+agent=([a-z0-9-]+)\\s+branch=([a-z0-9/-]+)\\s+paths=([a-zA-Z0-9_.*\\-/|]+)\\s*-->[ \\t]*$", re.I)
+CLAIM = re.compile(r"(?m)^[ \t]*<!--[ \t]*jaegers-claim:v1\s+agent=([a-z0-9-]+)\s+branch=([a-z0-9/-]+)\s+paths=([a-zA-Z0-9_.*\-/|]+)\s*-->[ \t]*$", re.I)
 HANDOFF = re.compile(r"(?m)^[ \t]*<!--[ \t]*jaegers-handoff:v1[ \t]+branch=([a-z0-9/-]+)[ \t]*-->[ \t]*$", re.I)
 FIELDS = ("Agent-ID", "Issue", "Worktree", "Tests", "Handoff")
 
@@ -61,7 +61,7 @@ def check(event, paths, comments, other_pr_paths, merged_prs=(), head_ancestor=F
                               + ", ".join("#" + str(n) for n in duplicates))
         if head_ancestor:
             errors.append("PR head is already an ancestor of main; no new commits to integrate")
-        if len(re.findall(r"(?mi)^Issue:\\s*#[1-9][0-9]*\\s*$", pr.get("body") or "")) != 1:
+        if len(re.findall(r"(?mi)^Issue:\s*#[1-9][0-9]*\s*$", pr.get("body") or "")) != 1:
             errors.append("Exactly one canonical Issue: #NN line is required")
     return errors
 
