@@ -4,7 +4,7 @@ import fnmatch, json, os, re, sys
 from pathlib import Path
 from urllib.request import Request, urlopen
 
-BRANCH = re.compile(r"^(agent|human)/[a-z0-9][a-z0-9-]{2,90}$")
+BRANCH = re.compile(r"^(agent|human|copilot)/[a-z0-9][a-z0-9-]{2,90}$")
 CLAIM = re.compile(r"(?m)^[ \t]*<!--[ \t]*jaegers-claim:v1\s+agent=([a-z0-9-]+)\s+branch=([a-z0-9/-]+)\s+paths=([a-zA-Z0-9_.*\-/|]+)\s*-->[ \t]*$", re.I)
 HANDOFF = re.compile(r"(?m)^[ \t]*<!--[ \t]*jaegers-handoff:v1[ \t]+branch=([a-z0-9/-]+)[ \t]*-->[ \t]*$", re.I)
 FIELDS = ("Agent-ID", "Issue", "Worktree", "Tests", "Handoff")
@@ -29,7 +29,11 @@ def covered(path, pattern):
 def check(event, paths, comments, other_pr_paths, merged_prs=(), head_ancestor=False):
     pr = event["pull_request"]; branch = pr["head"]["ref"]; fields = metadata(pr.get("body") or "")
     errors = []
-    if not BRANCH.fullmatch(branch): errors.append("Branch must be agent/<slug> or human/<slug>")
+
+    # GitHub Copilot cloud creates its own copilot/<slug> branch. The branch
+    # receives NO claim, metadata, file-scope, or privileged-source exemption:
+    # all normal collaboration checks apply identically.
+    if not BRANCH.fullmatch(branch): errors.append("Branch must be agent/<slug>, human/<slug> or copilot/<slug>")
     if not paths: errors.append("No files changed")
     # Existing PRs #19-#22 existed before this workflow and are exempt from new claim metadata.
     if int(pr["number"]) > 22:

@@ -85,4 +85,76 @@ class CollaborationTests(unittest.TestCase):
         errors = check(self.event, protected, self.comments, {})
         self.assertTrue(any("require release integrator" in x for x in errors))
 
+
+    def _copilot_case(self):
+        branch = "copilot/fill-genuine-regression-gaps"
+        self.event["pull_request"]["head"]["ref"] = branch
+        self.event["pull_request"]["body"] = (
+            "Agent-ID: copilot-he80\nIssue: #80\n"
+            "Worktree: GitHub cloud isolated sandbox\n"
+            "Tests: python -m pytest tests/test_he80_asof_metamorphic.py -q\n"
+            "Handoff: human review before merge\n"
+        )
+        self.paths = ["Jaeger_Main/House_Edge/tests/test_he80_asof_metamorphic.py"]
+        self.comments = [{"body": (
+            "<!-- jaegers-claim:v1 agent=copilot-he80 "
+            "branch=copilot/fill-genuine-regression-gaps "
+            "paths=Jaeger_Main/House_Edge/tests/test_he80_asof_metamorphic.py -->"
+        )}]
+
+    def test_copilot_valid_claim_and_metadata(self):
+        self._copilot_case()
+        self.assertEqual(check(self.event, self.paths, self.comments, {}), [])
+
+    def test_copilot_missing_claim_is_blocked(self):
+        self._copilot_case()
+        errors = check(self.event, self.paths, [], {})
+        self.assertTrue(any("Missing named issue claim" in e for e in errors))
+
+    def test_copilot_wrong_claim_owner_is_blocked(self):
+        self._copilot_case()
+        self.comments[0]["body"] = self.comments[0]["body"].replace("agent=copilot-he80", "agent=rogue")
+        errors = check(self.event, self.paths, self.comments, {})
+        self.assertTrue(any("Agent-ID does not match" in e for e in errors))
+
+    def test_copilot_unclaimed_file_is_blocked(self):
+        self._copilot_case()
+        errors = check(self.event, self.paths + ["Jaeger_Main/House_Edge/research/adapters.py"], self.comments, {})
+        self.assertTrue(any("Files outside claimed write scope" in e for e in errors))
+
+    def test_copilot_generated_body_missing_metadata_is_blocked(self):
+        self._copilot_case()
+        self.event["pull_request"]["body"] = "Fixes #80"
+        errors = check(self.event, self.paths, self.comments, {})
+        self.assertTrue(any("Missing PR field" in e for e in errors))
+        self.assertTrue(any("Issue must be #NN" in e for e in errors))
+
+    def test_copilot_malformed_branch_is_blocked(self):
+        self._copilot_case()
+        self.event["pull_request"]["head"]["ref"] = "copilot/fill_gaps"
+        errors = check(self.event, self.paths, self.comments, {})
+        self.assertTrue(any("Branch must" in e for e in errors))
+
+    def test_copilot_duplicate_issue_lines_is_blocked(self):
+        self._copilot_case()
+        self.event["pull_request"]["body"] += "Issue: #81\n"
+        errors = check(self.event, self.paths, self.comments, {})
+        self.assertTrue(any("Exactly one canonical Issue" in e for e in errors))
+
+    def test_copilot_overlapping_other_pr_is_blocked(self):
+        self._copilot_case()
+        errors = check(self.event, self.paths, self.comments, {79: self.paths})
+        self.assertTrue(any("Overlapping open PR" in e for e in errors))
+
+    def test_copilot_protected_champion_still_blocked(self):
+        self._copilot_case()
+        forbidden = ["Jaeger_Main/House_Edge/jaegers_entry/jaeger_model.py"]
+        self.comments[0]["body"] = (
+            "<!-- jaegers-claim:v1 agent=copilot-he80 "
+            "branch=copilot/fill-genuine-regression-gaps "
+            "paths=Jaeger_Main/House_Edge/jaegers_entry/jaeger_model.py -->"
+        )
+        errors = check(self.event, forbidden, self.comments, {})
+        self.assertTrue(any("Champion/organizer source changes" in e for e in errors))
+
 if __name__ == "__main__": unittest.main()
