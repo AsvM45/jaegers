@@ -1,38 +1,35 @@
-# JAEGERS — Multi-agent ownership and integration
+# JAEGERS — Current five-agent ownership map
 
-**Read first:** [GitHub coordination issue #18](https://github.com/AsvM45/jaegers/issues/18). This table describes proposed current lanes, not verified live processes or assigned GitHub usernames. Live local checkout and team decisions take precedence.
+**Single coordination source:** [#18](https://github.com/AsvM45/jaegers/issues/18), latest issue claim comments. **Agent policy:** [AGENT_OPERATING_POLICY](AGENT_OPERATING_POLICY.md); **source context:** [AGENT_CONTEXT](AGENT_CONTEXT.md). Agent claims and actual local worktree trump default reservations below. The shared GitHub login is not an agent identity.
 
-| Lane | Default issues | Source ownership | Explicit boundaries |
+| Lane / platform | Sole implementation issue set | What is confirmed vs reserved | Owned code boundaries |
 | --- | --- | --- | --- |
-| Codex | #1 champion freeze/reproduce; #4 offline release; #6 adaptation; #8 experiment registry | `Jaeger_Main/House_Edge/research/{freeze,reproduce,release,offline,process,dataset,features,learners,models,metrics}.py`, runner and release tools; integration | Preserve original `jaegers_entry/` until verified/human approved. No auto-upload or push. |
-| Antigravity | **#13 experiment analytics/dashboard**, then #14 Databricks with approval; optional independent read-only review | **new** `dashboard/`, `research/analysis/antigravity_*.py`, `research/reports/`; isolated `databricks/` | Treat existing `research/*.py`, `jaegers_entry/`, and `docs/CURRENT_STATE.md` as read-only unless explicitly delegated. |
-| Human release lead | #5 organizer verification and submission; oversight of #6 | private organizer receipts, decisions, GitHub ownership | Only authorized human can approve/execute submission or paid cloud work. |
-| Teammate QA/Data | #2, #7, #16 | new isolated test and feature modules by agreement | Shared feature schema owned by current agent until handoff. |
-| Teammate Stats | #3, #9, #12, #17; optional #15 | independent research challengers and audit reports | No in-place champion rewrite. |
-| Teammate ML | #10, #11 and support #14 | isolated model/temporal challengers | Avoid edits to agent-owned shared adapters. |
-| Claude Code | review or explicitly assigned issue | own branch/unique files only | Does not duplicate an active Codex or Antigravity issue. |
+| **A CHAT/Codex** | #1, #4, #8, later #6 | #1/#4/#8 explicitly claimed; branch `chat/house-edge-release-research-core` reported locally. One issue actively edited at a time. | Existing shared `research/{freeze,reproduce,release,offline,process,registry,sweep,worker,common,dataset,features,learners,models,metrics,adapters,feature_api}.py` and release tooling; `jaegers_entry` champion protected. |
+| **B Antigravity** | #13, later #14 | #13 reserved with handoff but no confirmed live run. | New `dashboard/**`, `research/analysis/antigravity_*`, later approved `databricks/**`. A-owned `research/*.py` read-only. |
+| **C Claude Code / InTheHiggsField** | #3, #2, #7 | Explicit issue claims; PR [#19](https://github.com/AsvM45/jaegers/pull/19), [#20](https://github.com/AsvM45/jaegers/pull/20), [#21](https://github.com/AsvM45/jaegers/pull/21) open. | New `research/audits/**`, `research/extensions/qa_*`, `research/challengers/signal_*`, `tests/test_agent_qa_*`. Shared code read-only. |
+| **D Grok Build (planned)** | #9, later #17/#12/#15 | Not yet claimed/running; one issue at a time after named claim. | New `research/challengers/stat_*`, `research/configs/stats/**`, `research/reports/stat_*`, `tests/test_stat_*`; shared adapters read-only. |
+| **E Cursor** | #16, later #10/#11 | #16 explicitly claimed (branch `agent/cursor-he16-ci`), not evidence complete. #10/#11 reserved pending handoff. | For #16 only: `.github/workflows/house-edge-ci.yml`, `tests/test_release*.py`, `scripts/smoke_release.py`; after handoff, unique `research/challengers/ml_*` and `temporal_*`. |
+| **Human** | #5 organizer submission and #18 coordination | Human approval gate; not counted among the five coding agents. | Organizer receipt private, merge approval, model promotion, secrets, paid cloud authorization and conflict mediation. |
 
-## Worktree discipline
+## Rules of engagement
 
-Never run Codex and Antigravity as editing agents in one working tree. For an isolated branch:
+1. **One owner per implementation issue, one active editing issue per agent, and one worktree per agent.** Reservations do not mean live work. Before a write: check the current issue's latest claim/handoff, #18, `git worktree list`, `git status --short`, HEAD and branch.
+2. Latest issue claim comments trump stale tables. Never overwrite or switch/reset another agent checkout. No modeler writes A's common adapters/feature registry without explicit handoff; create isolated additional modules and request interface changes.
+3. Claude PRs #19–#21 are review-ready proposals; don't reimplement their tests/audit. Cursor already claims #16; don't give CI to C or Grok. Grok gets #9 **only after it claims**, not immediately on seeing this table.
+4. A owns model/feature API integration, not everyone else's research outcomes. To propose new model, publish tested `fit/predict_proba` interface and 5-vector output, submit code + source/data/fold/metric provenance, then allow A to integrate after review.
+5. **Scope:** House Edge only; separate Hitachi code unaffected. The original `jaegers_entry` champion cannot be replaced without human review/approval.
+6. **Branch PR:** own feature branch/draft PR when issue-level permission allows. Never merge/push `main` or submit to organizer automatically. Only a human approves paid cloud, secrets, or external publication.
+7. **Handoff:** issue comment with tested command/output, changed paths, source/config/data hashes, PR, blocker and next bounded task; don't claim completion from a PR title alone.
+8. **GitHub OS:** [docs/GITHUB_OPERATING_SYSTEM](GITHUB_OPERATING_SYSTEM.md) holds Projects/Discussions/Wiki/Actions workflow. Canonical reviewed agent context is [AGENT_CONTEXT](AGENT_CONTEXT.md), not raw chats.
+
+## Windows worktree creation example (Grok D only)
 
 ```powershell
-cd "C:\Users\asvat\OneDrive\Documents\GitHub\Datathon2026\jaegers"
-git fetch origin
-git worktree add -b agent/antigravity-dashboard ../jaegers-antigravity origin/main
+$repo = "C:\Users\asvat\OneDrive\Documents\GitHub\Datathon2026\jaegers"
+cd $repo
 git worktree list
+git fetch origin
+git worktree add -b agent/grok-he09 ../jaegers-grok-he09 origin/main
 ```
 
-If the branch/worktree already exists, inspect `git worktree list` and open it; do not recreate or force it.
-
-## Integration protocol
-
-1. Before code, announce claim on GitHub issue. Read latest `docs/CURRENT_STATE.md` and any active owner notes.
-2. Agree on read-only trial result/schema contract with Codex (#8), then implement in unique paths.
-3. Commit only explicitly approved, reviewed branches; propose PR to `main` for integration. Avoid auto-merges. Human release lead remains responsible for protected champion/submissions.
-4. Every handoff gives exact command, commit/diff, measured tests, artifact lineage, evaluation provenance, and blockers.
-5. Never check in model outputs, private credentials, organizer receipts, hidden answer data or large generated studies. Keep inference fully offline; Databricks is optional research/sponsor work.
-
-## Immediate constraint
-
-Main-round release risk precedes dashboards. Antigravity's local analytics work must not change the Code ZIP/CSV or consume the release owner's compute budget. Where the trial registry is not yet implemented, build only the tested read-only reader/API and clearly labeled demo UI; integrate on real artifacts once available.
+Only if not already present. Do **not** run this for another agent's branch.
