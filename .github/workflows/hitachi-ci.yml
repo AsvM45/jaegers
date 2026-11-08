@@ -1,0 +1,45 @@
+name: Hitachi component CI
+
+on:
+  pull_request:
+    paths:
+      - 'Jaeger_Main/Hitachi/**'
+      - '.github/workflows/hitachi-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Jaeger_Main/Hitachi/**'
+      - '.github/workflows/hitachi-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hitachi-component-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  component:
+    name: Hitachi bounded unit and adversarial tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout without writable credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configure Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Run tower tests when source is present
+        working-directory: Jaeger_Main/Hitachi
+        shell: bash
+        run: |
+          if [[ -d tower/tests ]]; then
+            echo 'Hitachi tower/tests discovered; running every test_*.py. Failures block this job.'
+            python -m unittest discover -s tower/tests -p 'test_*.py' -v
+          else
+            echo '::notice title=Hitachi tests SKIPPED::This ref lacks Jaeger_Main/Hitachi/tower/tests; no tower verification was performed.'
+          fi
