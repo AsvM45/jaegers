@@ -1,11 +1,19 @@
 ---
-description: "JAEGERS House Edge engineering, issue ownership and five-agent boundaries"
+description: "JAEGERS House Edge engineering, current deadline, Cursor's new independent issue and five-agent ownership"
 alwaysApply: true
 ---
 
-# Cursor — issue-owned autonomous engineering
-Read `AGENTS.md`, `Jaeger_Main/House_Edge/AGENTS.md`, `docs/AGENT_OPERATING_POLICY.md`, `docs/AGENT_CONTEXT.md`, `docs/MULTI_AGENT_OWNERSHIP.md`, GitHub issue #18 and your **claimed issue**.
+# Cursor — launch from a unique issue/worktree
 
-Cursor's claimed current issue is **#16 CI** on `agent/cursor-he16-ci`. Own only this issue's paths: `.github/workflows/house-edge-ci.yml`, `Jaeger_Main/House_Edge/tests/test_release*.py`, `Jaeger_Main/House_Edge/scripts/smoke_release.py`. Other agents own QA PRs #19–21 and champion/release/registry. Later #10/#11 are reserved, not concurrently active.
+**Current team target:** Sunday November 8, 2026 at **10:30 AM Central** (user reported; the organizer's original House Edge `RULES.md` still says main Sat 9 PM / adaptation Sun 11 AM). Consult `docs/DEADLINE_1030_HANDOFF.md` and current Form before assuming a main-round extension.
 
-Be a real engineer: inspect local HEAD and worktree, code, test, debug, report actual evidence, and open an issue-linked review PR on own branch when permitted. Never auto-merge, push main, submit to organizer, incur cloud costs, or duplicate another agent's claimed issue. If scope conflicts, stop and ask for explicit handoff.
+**Available fresh Cursor task:** [GitHub issue #46](https://github.com/AsvM45/jaegers/issues/46) — independent read-only frozen release CSV/ZIP, archive, and second-host portability witness. It is **reserved, not yet claimed or actively running**. Earlier Cursor issues #16 (CI), #10 (supervised ML), #11 (temporal), and #12 (ensembles) are **closed and their work integrated**. Do not reopen or duplicate them.
+
+Read root and House Edge `AGENTS.md`, `Jaeger_Main/House_Edge/AGENT_START_HERE.md`, `docs/AGENT_COLLABORATION_PROTOCOL.md`, `docs/AGENT_OPERATING_POLICY.md`, and the latest #18 + #46 comments. Check actual `git status --short`, `git worktree list`, HEAD and branch. If #46 is still unclaimed, create a unique Cursor worktree/branch and post the exact `jaegers-claim:v1` comment before editing. **Exclusive new files only:**
+- `Jaeger_Main/House_Edge/tools/cursor_portability_probe.py`
+- `Jaeger_Main/House_Edge/tests/test_cursor_portability_probe.py`
+- `docs/release/CURSOR_PORTABILITY_REPORT.md`
+
+**READ ONLY:** all `jaegers_entry/**`, shared `research/**` and existing runner/CI files, local `research_runs/**` (frozen pair), Hitachi. A separate physical host parity run is useful only if one is actually available; never claim it from another container on the same host. If release artifacts aren't mounted in your worktree, ask human for read-only copy and test with synthetic fixtures in the meantime.
+
+Implement, test, debug, self-review, document exact commands/hash evidence, and open an issue-linked PR on your own branch when authorized. No organizer upload, model promotion, main push, self-merge, cloud spend, or other agent's files. GitHub issues and instructions **do not launch** Cursor or guarantee background execution.

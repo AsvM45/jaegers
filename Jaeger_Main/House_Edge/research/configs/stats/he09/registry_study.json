@@ -1,0 +1,14 @@
+{
+  "name": "he09_registry",
+  "strategy": "grid",
+  "seed": 0,
+  "folds": 4,
+  "budget": {"workers": 1, "trials": 5, "seconds": 3000, "trial_seconds": 900},
+  "candidates": [
+    {"family": "jaeger", "causal": false},
+    {"family": "frequency", "params": {"strength": 20, "decay": 1}},
+    {"family": "stat_dirichlet", "factory": "research.challengers.stat_he09_registry:factory", "model": "stat_dirichlet", "supervision": "query"},
+    {"family": "stat_decay_bma", "factory": "research.challengers.stat_he09_registry:factory", "model": "stat_decay_bma", "supervision": "query"},
+    {"family": "stat_markov", "factory": "research.challengers.stat_he09_registry:factory", "model": "stat_markov", "supervision": "query"}
+  ]
+}
