@@ -1,10 +1,14 @@
-# Multi-task Lakeflow DAG definition for JAEGERS House Edge Medallion Pipeline
+# Multi-task Lakeflow DAG for JAEGERS House Edge.
+# All tasks use a shared serverless Python environment.
+# No schedule is configured: runs must be started manually.
 resources:
   jobs:
     house_edge_medallion_pipeline:
       name: "[${bundle.target}] JAEGERS House Edge Medallion Pipeline"
       description: "Automated Medallion ingestion, domain validation, past-only feature calculation, parity verification, and MLflow model tracking"
-      
+      max_concurrent_runs: 1
+      timeout_seconds: 1800
+
       parameters:
         - name: catalog
           default: "${var.catalog}"
@@ -13,9 +17,16 @@ resources:
         - name: data_dir
           default: "${var.data_dir}"
 
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+
       tasks:
-        # Task 1: Bronze Ingestion
         - task_key: bronze_ingest
+          environment_key: default
+          max_retries: 0
+          timeout_seconds: 600
           description: "Ingests raw query and spin history files into Bronze Delta tables with SHA-256 lineage tracking"
           spark_python_task:
             python_file: ../src/bronze.py
@@ -27,8 +38,10 @@ resources:
               - "--data-dir"
               - "${var.data_dir}"
 
-        # Task 2: Silver Cleaning & Validation
         - task_key: silver_clean_and_validate
+          environment_key: default
+          max_retries: 0
+          timeout_seconds: 600
           depends_on:
             - task_key: bronze_ingest
           description: "Validates domain quality constraints, maps payout indices, deduplicates spins, and creates episode summaries"
@@ -40,8 +53,10 @@ resources:
               - "--schema"
               - "${var.schema}"
 
-        # Task 3: Gold As-Of Feature Pipeline
         - task_key: gold_asof_features
+          environment_key: default
+          max_retries: 0
+          timeout_seconds: 600
           depends_on:
             - task_key: silver_clean_and_validate
           description: "Generates 471-dimensional Gold feature vectors enforcing strict tick < cutoff temporal isolation"
@@ -53,11 +68,13 @@ resources:
               - "--schema"
               - "${var.schema}"
 
-        # Task 4: Feature Parity Verifier
         - task_key: verify_feature_parity
+          environment_key: default
+          max_retries: 0
+          timeout_seconds: 600
           depends_on:
             - task_key: gold_asof_features
-          description: "Executes mathematical bitwise parity audit comparing PySpark Gold features against local research features"
+          description: "Executes mathematical feature parity audit comparing PySpark Gold features against local research features"
           spark_python_task:
             python_file: ../src/parity.py
             parameters:
@@ -66,11 +83,13 @@ resources:
               - "--schema"
               - "${var.schema}"
 
-        # Task 5: MLflow Model Tracking
         - task_key: mlflow_track_models
+          environment_key: default
+          max_retries: 0
+          timeout_seconds: 600
           depends_on:
             - task_key: verify_feature_parity
-          description: "Trains champion and challenger models, logging condition Brier scores, calibration ECE, and artifacts to MLflow"
+          description: "Logs model metrics, calibration, and provenance to MLflow; real-data provenance must be independently verified"
           spark_python_task:
             python_file: ../src/mlflow_tracking.py
             parameters:
@@ -79,11 +98,13 @@ resources:
               - "--schema"
               - "${var.schema}"
 
-        # Task 6: Refresh Analytical Monitoring Views
         - task_key: refresh_monitoring_views
+          environment_key: default
+          max_retries: 0
+          timeout_seconds: 600
           depends_on:
             - task_key: mlflow_track_models
-          description: "Refreshes Databricks SQL analytical monitoring views and calibration metrics for AI/BI dashboarding"
+          description: "Refreshes analytical monitoring views and calibration metrics for reporting"
           spark_python_task:
             python_file: ../src/silver.py
             parameters:
