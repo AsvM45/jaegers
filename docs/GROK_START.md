@@ -1,27 +1,33 @@
-# Grok Build — JAEGERS statistical research lane D
+# Grok Build — JAEGERS statistical and temporal research lane D
 
-**Default reserved issue:** [#9 Bayesian / Dirichlet / Markov challenger](https://github.com/AsvM45/jaegers/issues/9). Future, **not concurrent**: [#12 ensembles](https://github.com/AsvM45/jaegers/issues/12), [#15 advanced temporal](https://github.com/AsvM45/jaegers/issues/15).
+**Initial reserved issue: [#15 advanced time-series, HMM and regime-switching models](https://github.com/AsvM45/jaegers/issues/15).** Optional next issue: [#12 calibration and ensemble](https://github.com/AsvM45/jaegers/issues/12), only after #15 review and a new explicit claim.
 
-Grok Build official docs say it reads `AGENTS.md`, `CLAUDE.md`, and Claude Code skills, so shared repository policy and skills apply; no duplicate long Grok-only rule set is necessary. The Grok CLI is `grok`, after normal product authentication (never store tokens in Git). [Grok Build docs](https://docs.x.ai/build/overview), [skills compatibility](https://docs.x.ai/build/features/skills-plugins-marketplaces).
+## Ownership update
+[#9](https://github.com/AsvM45/jaegers/issues/9) was claimed and completed by Claude Code, with [PR #28](https://github.com/AsvM45/jaegers/pull/28) for Dirichlet/Markov/decay models. [#17](https://github.com/AsvM45/jaegers/issues/17) also belongs to Claude via PR #22. **Grok must not work on #9 or #17, or duplicate their results.** This supersedes older Grok dispatch in stale issue bodies.
 
-## New isolated Grok worktree — only if not already in use
+## Essential setup
+Read root and House Edge AGENTS.md, CLAUDE.md where supported, docs/AGENT_COLLABORATION_PROTOCOL.md, docs/AGENT_OPERATING_POLICY.md, docs/AGENT_CONTEXT.md, docs/MULTI_AGENT_OWNERSHIP.md, board #18 and issue #15's current comments. Follow the machine-readable jaegers-claim:v1 marker with exact branch and path list. Do not assume any reserved task is available until checked live.
+
+### Dedicated worktree example — only when #15 is unclaimed
 
 ```powershell
 $repo = "C:\Users\asvat\OneDrive\Documents\GitHub\Datathon2026\jaegers"
 cd $repo
+git status --short
 git worktree list
 git fetch origin
-git worktree add -b agent/grok-he09 ../jaegers-grok-he09 origin/main
-cd "../jaegers-grok-he09/Jaeger_Main/House_Edge"
+git worktree add -b agent/grok-he15 ../jaegers-grok-he15 origin/main
+cd ../jaegers-grok-he15/Jaeger_Main/House_Edge
 grok
 ```
 
-**Before invoking**, confirm the #9 issue is still unclaimed and `agent/grok-he09` not already present. If so, claim #9 with your distinct session/worktree name.
+If the Grok CLI is unavailable or unauthenticated, follow its official setup; never store secrets in Git.
 
-## Grok launch prompt
+## Launch prompt
 
-> You own JAEGERS issue #9, not any other issue. Read applicable AGENTS.md and CLAUDE.md, docs/AGENT_OPERATING_POLICY.md, docs/AGENT_CONTEXT.md, docs/MULTI_AGENT_OWNERSHIP.md, docs/GROK_START.md, latest GitHub #9 and #18 claim comments, organizer House Edge RULES.md/DATA.md and the existing research adapter contracts. Verify isolated worktree and source state; claim only #9 before implementation. Build and validate 3 distinct Bayesian/Dirichlet/Markov/recency challenger configurations in NEW research/challengers/stat_*.py, tests/test_stat_*.py and research/configs/stats files, leaving protected champion, flat research/models.py, features.py, learners.py, and other agents' work read-only. Every predictor must emit valid five-class [0,1,2,5,20] probabilities based on tick<cutoff observations, with no missing-tick-as-zero confusion or historical query signal leakage. Use same episode folds and legitimate observed-outcome Brier; record official public-validation true-vector results only where available and label selection exposure. Run real smoke tests, compare against frozen champion, log failed models and actual runtimes, open an issue-linked PR on your own branch when authorized, and report evidence. No cloud spend, main push, organizer upload or cross-lane work. Work until acceptance/real blocker, not just a plan.
+You are a JAEGERS House Edge autonomous research engineer. Your **only prospective issue is #15**, not #9 or #17. Check #15 and #18 for actual issue claims before editing; stop if owned by another agent. Read applicable AGENTS, the collaboration protocol, AGENT_CONTEXT, owner map and organizer RULES, DATA and scorer. Confirm an isolated branch/worktree and exact writable paths; post a named machine-readable issue claim.
 
-## Handoff and next issue
+Implement a bounded, **distinct** challenger study using only new research/challengers/stat_temporal_*.py, research/configs/stats/temporal_*, and tests/test_stat_temporal_*.py files. Compare two or more legitimate HMM/state-space/regime-change/indicator-series variants against frozen champion and a simple baseline using five-category payout probabilities ordered 0,1,2,5,20. All features including sibling observations must precede cutoff, missing ticks stay unknown, and historical signal(t) is not supplied. Use the same episode-disjoint folds and report actual commands, source/config/split hashes, correct sampled Brier versus exposed public true-target points, failures and runtime. Do not duplicate Claude PR #28's models or change CHAT shared adapters. When authorized, open issue-linked PR on your own branch, never merge or push main, promote champion, submit or spend cloud resources.
 
-After #9 review, owner may request next assignment. Read the binding `docs/AGENT_COLLABORATION_PROTOCOL.md` and post its exact machine-readable issue claim before PR work. Grok does not auto-claim #12/#15. Issue #17 is explicitly claimed by Claude Code and has PR #22; Grok must not duplicate it. For interface needs request A's #8 schema/adapter approval; don't overwrite it.
+## Handoff
+After #15 is reviewed, Grok may request #12 if still unclaimed. Do not self-claim a second issue while #15 is active.
