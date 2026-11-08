@@ -1,39 +1,47 @@
-# Human guide — What the JAEGERS experiment factory does
+# JAEGERS Experiment Factory — current human-facing guide
 
-**Fresh public-safe guide derived from the latest House Edge architecture discussions and recent Library guide title. NOT a verbatim import of the Library artifact** (its complete bytes were unavailable via the Library connection). Current implemented status always comes from code, issue #8 and actual test runs.
+**Updated:** 2026-11-08 · This guide reconciles the complete Nov 7 [original human proposal](../archive/drive/EXPERIMENT_FACTORY_HUMAN_GUIDE_ORIGINAL_2026-11-07.md) with the current [technical architecture](EXPERIMENT_FACTORY_v7.md) and actual repository state. **Do not confuse a future design with an implemented/verified service.**
 
-## The goal
+## The goal: stop improvising experiments
 
-Replace ad hoc hand-tuned models with a reproducible research engine. It should answer questions like:
+Each trial needs a reproducible answer to: **what was tested, on what legal data, with which features/model/settings, and how reliable is the improvement?** Without an immutable record, testing 100 ideas mainly creates selection bias and lost history. The purpose is not simply to run more trials; it is to eliminate fake improvements and make genuine advances repeatable.
 
-- Does adding information from sibling machines help specifically in `shared_change`, or does it also harm `stable`?
-- Does a hierarchical Dirichlet prior beat frequency/shrinkage in `short_history`?
-- How much of JAEGERS 55.12/60 development score comes from its stacking layer, payout-size regimes, or lag experts?
-- Are two top models making complementary prediction errors and worth blending?
-- Which feature groups, hyperparameters, training modes and interaction combinations improve **same-episode-fold**, properly sourced loss?
+For every House Edge query, produce five probabilities in payout order 0×/1×/2×/5×/20×. Each machine belongs to an eight-machine episode. The useful historical inputs are actual observed prior payouts, including same-episode peers, strictly at ticks **earlier** than the forecast. The next-spin true five-probability target is visible on public validation only, not main test.
 
-## What one experiment contains
+## The four parts of the system
 
-A **trial** specifies the data snapshot, episode fold manifest, legal as-of feature groups, model, training mode, hyperparameters, seed and maximum runtime. The runner constructs training/evaluation input, fits the model, produces five payout probabilities, checks for future leakage/simplex, computes the **appropriate** metric, stores hashes/results/negative findings, and makes them queryable by a dashboard. Failures are recorded; they are not silently deleted. A dashboard can filter by condition, model family, features, runtime, seed and training provenance.
+1. **Reliable data:** the original challenge CSVs are immutable; local loaders and optionally Databricks Bronze/Silver/Gold tables validate data, preserve episode boundaries and record source hashes. A missing tick is unknown, not a 0× payout.
+2. **Feature definitions:** one named, deterministic transform generates exact-lag/rolling/recency/peer/drift features with a declared as-of cutoff. Reusing a feature cache is safe only when source, feature version and split manifest match.
+3. **Experiment engine:** a controlled trial combines legal feature groups, model family and conditional hyperparameters, training mode, fold manifest, seed and compute budget. Its recorded result includes failures and negative outcomes; MLflow is a view, not the authoritative transactional queue.
+4. **Evaluation/release:** the scorer validates all five probabilities and uses episode-safe comparisons. Official true-vector points on public validation are different from historical sampled-payout Brier. Release requires a separate offline cold reproduction and human organizer receipt.
 
-The experiment scheduler should avoid factorial explosions. Start with simple baselines, single feature ablations, selected pair interactions, several model families, then tune promising families with Optuna/random search. Always cap workers, attempts and wall time. An analysis dashboard is **read-only** to the trial registry.
+**Already available in the repo:** working Python research modules and trial registry, champion model, challenger experiments and negative-result evidence, a read-only dashboard, Databricks source/mock mode, and Actions tests. **Not yet demonstrated:** a universal model grammar across every family, large multi-host scheduling, actual Databricks workspace results, official organizer acceptance.
 
-## The tools and roles
+## What models and features to try
 
-- **Python 3.13 + NumPy + scikit-learn**: existing baseline and core probability modeling.
-- **Pandas / DuckDB / Parquet**: optional convenient local queryable features and run history.
-- **Optuna**: bounded conditional hyperparameter/feature search (not an evaluator or warehouse).
-- **SQLite/atomic JSONL + immutable files**: local trial queue, run state and evidence; multi-host version might move to PostgreSQL.
-- **pytest**: as-of, ID/normalization, scorer/adapter tests.
-- **Streamlit + Plotly**: optional user-facing local research dashboard.
-- **Delta Lake / PySpark / Databricks + MLflow**: optional sponsor-compliant lakehouse and experiment mirror; NOT required for offline competition runner.
+Begin with the existing 73-expert lag-context predictor and simple smoothed frequencies. Compare Bayesian/Dirichlet/Markov families and legitimate historical as-of supervised training. The original design also proposed regime switching and HMMs, state-space/change-point filters, cross-machine latent factors, dropout-robust histories, boosted trees, categorical ARIMA-style diagnostics, neural sequences, calibration, and constrained ensembles. These are candidate hypotheses, **not claims of completed winning implementations**.
 
-**Agents:** CHAT builds common experiment API; Claude independently audits correctness; Cursor builds quality gate and later supervised ML; Grok owns new statistical challengers; Antigravity builds the reader/dashboard and later Databricks where approved. See owner map.
+Useful experiments isolate one mechanism: do sibling histories help shared-change episodes? Does a short window help drift but damage stable? Is the rare 20× probability miscalibrated? Does the stacker help because of legitimate features or historically unavailable query signal? A good test states a null/control, fixed episode folds, compute budget and decision threshold before running.
 
-## Before trusting a score
+## 'Every combination' is not a useful default
 
-Is it train sampled-label Brier, public validation true-probability competition points, or test format-only? Was a training row built using a historical signal never actually observed? Were the eight machines in an episode kept together in holdouts? Was public validation previously used in design? Was the ZIP independently reproduced? **55.12/60 public validation is a development result, not the hidden score.**
+Twenty yes/no feature switches yield **1,048,576** combinations before hyperparameter permutations. Instead: enumerate only finite grammar with count and budget, run one-group ablations, cover high-value pairwise interactions, compare model families under identical episode folds, then tune only survivors. Keep a frozen baseline and all failed/negative trials. Do not keep querying the same public validation targets until an apparent win appears.
 
-## How to begin
+## Databricks: what is real and what remains
 
-Use the task issue/PR and exact runnable commands reported by the owner. Do not treat a mock dashboard, plan or configuration file as proof that large sweeps ran. For a fresh experiment: state a hypothesis, pick a legal feature/model delta, run a small pilot with the same episode folds, compare paired per-episode loss, record negative results and decide whether a bigger sweep is justified.
+The team already has a **14-day competition trial**. The source code defines a PySpark/Delta/MLflow workflow and currently passes 49 *offline* Databricks tests. This is meaningful engineering, but **not** an actual cloud run. Issue [#14](https://github.com/AsvM45/jaegers/issues/14) owns the authenticated small-sample pilot and proof: Delta table readback, row counts, Spark-to-local feature parity, real MLflow run IDs and consumed resources. There is no reason to fork the repo inside the workspace or run full sweeps before that proof.
+
+## What you should trust
+
+A claim saying '55.12/60' refers to **public development validation**, already exposed during model selection. It is not a hidden-test score. A valid CSV is not an organizer submission. A green Hitachi workflow that skipped tower tests is not a Hitachi test pass. A staged Wiki file is not a live GitHub Wiki page. Always follow [current state](../CURRENT_STATE.md), [science and provenance](../science/EVALUATION_AND_PROVENANCE.md), [issue #18](https://github.com/AsvM45/jaegers/issues/18), and actual commit/CI evidence.
+
+## Minimum repeatable workflow
+
+1. State one hypothesis and one falsification control.
+2. Freeze source SHA, episode folds, feature signature, metric source and resource budget.
+3. Run a small consistent test, preserving the baseline and previous results.
+4. Compare paired per-episode differences and condition-specific losses; keep failures/negative evidence.
+5. Require an as-of audit and independent reproduction before contemplating promotion.
+6. If the improvement survives, package a *separate* offline candidate without overwriting the frozen competition pair.
+
+For implementation details, command interfaces and resource schemas, use the [current technical specification](EXPERIMENT_FACTORY_v7.md) and actual `research/CONTRACTS.md`. The full original Drive texts are accessible as [historical provenance](../archive/drive/README.md) but should **never** supersede current code or organizer rules.

@@ -11,6 +11,10 @@ Probabilistic forecasting, experiment engineering, and agentic operations develo
 
 ## Read first
 
+For an up-to-date synthesized continuity source for new ChatGPT sessions, start at [the canonical JAEGERS project source](docs/JAEGERS_PROJECT_CONTEXT_2026-11-08.md). The complete Nov 7 Drive experiment-factory research has been reconciled into [current technical design](docs/research/EXPERIMENT_FACTORY_v7.md) and [plain-English guide](docs/research/EXPERIMENT_FACTORY_GUIDE.md); historical originals are archived separately, and private/personal materials are excluded. GitHub Wiki and Projects are enabled at the repository level but live publication/board configuration is not confirmed.
+
+
+
 | Need | Canonical source |
 | --- | --- |
 | Current evidence, integrated work and unknowns | [Verified status](docs/CURRENT_STATE.md) and [issue #18](https://github.com/AsvM45/jaegers/issues/18) |
