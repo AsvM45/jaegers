@@ -50,8 +50,9 @@ or evidence of calibration.
 
 ZIP CRC validation passed. Its six root entries are `README.md`, `jaeger_model.py`,
 `params.json`, `predict.py`, `reproduce.json`, and `requirements.txt`. **The frozen
-ZIP's model, parameters and predictor match the corresponding main entry files
-byte for byte.** The ZIP pins NumPy 2.5.4, scikit-learn 1.9.1, SciPy 1.18.1,
+ZIP's model, parameters and predictor match the original populated main checkout
+byte for byte. Canonical Git blobs have LF endings; all three source texts match
+after CRLF-to-LF normalization.** The ZIP pins NumPy 2.5.4, scikit-learn 1.9.1, SciPy 1.18.1,
 joblib 1.6.0, threadpoolctl 3.8.0, cloudpickle 3.1.2, and narwhals 2.28.0.
 Its reproduction command pins the documented Linux CPU-dispatch/OpenBLAS policy
 and two threads. Do not substitute a different runtime policy or mix artifact pairs.
