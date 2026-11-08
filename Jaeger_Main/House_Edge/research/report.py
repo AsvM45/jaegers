@@ -17,7 +17,7 @@ def read_rows(root):
 
 def evaluation_key(row):
     identity=json.loads(row["identity"])
-    return digest({key:identity.get(key) for key in ("train_sha256","metadata_sha256","split_manifest_sha256","environment")})
+    return digest({key:identity.get(key) for key in ("train_sha256","metadata_sha256","split_manifest_sha256","environment","execution_policy")})
 
 
 def report(root,out,baseline=None):

@@ -78,6 +78,15 @@ SQLite: `research_runs/<round>/registry.sqlite`. Tables:
 
 Trial ID hashes canonical configuration plus source, data, fold and environment
 identity. Completed trials are reused; interrupted attempts get a new directory.
+Runtime identity includes allowlisted NumPy/BLAS dispatch controls, Python hash
+policy and host architecture/processor. `execution_policy` records the actual worker
+CPU/thread caps (including Optuna's serial two-CPU worker). These fields distinguish
+trial IDs and paired-comparison contexts. Old contexts remain intact; they are not
+silently reused as if the newly recorded numeric policy had been known.
+Feature-cache keys independently include their builder's numeric runtime environment,
+including inherited thread caps. A new trial policy cannot silently use a cache from
+an older context. These conservative fields may cause intentional cache misses;
+they do not establish universal cross-host floating-point parity.
 Git HEAD and entry README/dependency text are retained as provenance but do not
 invalidate an otherwise identical numerical trial. Worker source snapshots and
 model/parameter bytes remain part of the identity. A specialist factory named
