@@ -1,6 +1,8 @@
+> **UPDATE / ACTIVE PROJECT POLICY (Nov 7 2026):** This document is a historical planning or evidence snapshot, NOT the live multi-agent operating agreement. Read [Autonomous Engineer Policy](AGENT_OPERATING_POLICY.md), [Current Scientific Context](AGENT_CONTEXT.md), [Ownership](MULTI_AGENT_OWNERSHIP.md), [GitHub #18](https://github.com/AsvM45/jaegers/issues/18), and current PR/issue comments before implementation. New Grok/Cursor/Claude/Antigravity/CHAT issue claims supersede older owner tables. Main code/runtime truth is the actual local checkout and official organizer kit; never treat this document as a completed test or organizer receipt.
+
 # Provenance and official references
 
-- Exact public repository inspected: https://github.com/AsvM45/jaegers, HEAD b78abe75db15688e652b30b9d5388a151f2b7acd (2026-11-07T22:45:10Z).
+- Historical model-source snapshot: b78abe75. Later public source snapshot reviewed for new agent policy: 26f23435175ea71e1cb6217d15d67614e6d87792 (Nov 8 00:32 UTC), and open Claude PRs #19–#21. Consult actual current HEAD for active truth.
 - Official House Edge kit is already tracked under `Jaeger_Main/House_Edge`: `RULES.md`, `DATA.md`, `EXPERIMENTS.md`, `public/metadata.json`, `check_submission.py`, `slot_forecasting/rounds.py`, `build_entry.py`.
 - Older uploaded `House Edge — Participant Guide` describes 80/20 and different portal; actual 60/40 kit describes Google Forms. Do not silently replace one with another. Confirm with organizer.
 - Source conversations, both uploaded user MD exports: archived OUTSIDE repo overlay at `reference_inputs/`; best-effort context, not proof of current repo runtime.
