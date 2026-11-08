@@ -1,0 +1,43 @@
+{
+  "issue": "AsvM45/jaegers#17",
+  "preregistered": "2026-11-07 ~19:00 CT, committed before any HE-17 result was computed",
+  "baseline": "champion",
+  "champion_source": "Jaeger_Main/House_Edge/jaegers_entry/jaeger_model.py + params.json (read-only)",
+  "evaluations": {
+    "A": "fit expert prior + stacker on TRAIN, predict VALIDATION, official slot_forecasting.rounds.score_round (development-exposed: params and SIZE_REGIMES were chosen on these targets)",
+    "B": "fit on VALIDATION, predict TRAIN queries, five-class observed-outcome Brier, condition-averaged (independent of validation target vectors except SIZE_REGIMES)"
+  },
+  "uncertainty": "paired bootstrap over episodes within condition, 4000 resamples, seed 0",
+  "decision_rule": "A difference counts as supported only if its 95% interval excludes 0 in A AND B points the same way (B interval need not exclude 0). No variant is promoted by this study; promotion needs lane A approval.",
+  "known_prior_results": "HE-03 (#3) already measured nostack, nosig and causal on A and B; they are re-run here in the same harness for a single table.",
+  "variants": [
+    {"name": "champion", "change": {}, "hypothesis": "baseline"},
+    {"name": "nostack", "change": {"params": {"stack": false}},
+     "hypothesis": "Gradient-boosting stacker is the largest single component.", "expected": "worse, large"},
+    {"name": "nosig", "change": {"drop_stack_cols": [13]},
+     "hypothesis": "Query-time signal in the stacker adds little outside the selection split.", "expected": "A slightly worse, B unchanged"},
+    {"name": "no_size_experts", "change": {"params": {"size_experts": false}},
+     "hypothesis": "Context-specific size experts beat the machine-level size regime posterior.", "expected": "worse"},
+    {"name": "no_peer_evidence", "change": {"params": {"ep_weight": 0.0, "ep_weight_s": 0.0}},
+     "hypothesis": "Sibling expert log-likelihood helps pick lag experts, especially under shared_change.", "expected": "worse, mostly shared_change"},
+    {"name": "no_expert_prior", "change": {"params": {"gamma": 0.0}},
+     "hypothesis": "Train-learned prior over expert types helps short histories.", "expected": "worse, mostly short_history"},
+    {"name": "single_lag_only", "change": {"experts": "single_lag_only"},
+     "hypothesis": "Win probability depends on lag PAIRS; removing pair experts hurts a lot.", "expected": "worse, large"},
+    {"name": "binary_categories_only", "change": {"experts": "binary_only"},
+     "hypothesis": "3-way 0/1/2+ contexts add little over win/loss contexts.", "expected": "about equal"},
+    {"name": "no_short_history_prior", "change": {"params": {"lam_short": "=lam", "prior_short": "=prior"}},
+     "hypothesis": "Short-history smoothing helps short_history condition.", "expected": "worse, short_history"},
+    {"name": "slower_forgetting", "change": {"params": {"lam": 0.99}},
+     "hypothesis": "Faster forgetting (lam 0.95) tracks drift; slower forgetting hurts drift.", "expected": "worse, drift"},
+    {"name": "faster_forgetting", "change": {"params": {"lam": 0.90}},
+     "hypothesis": "Forgetting faster than 0.95 loses too much evidence.", "expected": "worse, stable"},
+    {"name": "train_size_regimes", "change": {"size_regimes": {
+        "steady": [[0.794, 0.162, 0.043, 0.001], [0.572, 0.339, 0.088, 0.002]],
+        "balanced": [[0.514, 0.345, 0.120, 0.021], [0.323, 0.466, 0.180, 0.031]],
+        "jackpot": [[0.318, 0.221, 0.313, 0.148], [0.188, 0.313, 0.374, 0.125]]}},
+     "hypothesis": "Exposure-free size regimes (train-only EM, 32-tick windows, from HE-03) cost points vs validation-derived constants.", "expected": "worse (A); informative for adaptation"},
+    {"name": "control_shuffled_stack_labels", "change": {"shuffle_stack_labels": true},
+     "hypothesis": "NEGATIVE CONTROL: stacker trained on permuted labels must be much worse than champion and than nostack.", "expected": "much worse"}
+  ]
+}
