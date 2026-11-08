@@ -1,0 +1,124 @@
+{
+  "source_sha256": {
+    "jaegers_entry/jaeger_model.py": "10da55e636962ae6032344415390ca6efb38ace734977dc2a94e7065152fa0c3",
+    "jaegers_entry/params.json": "af6fd59838f18987bedf9d4bf220634892411ff3be848516c82a1f4bd47b4e3b"
+  },
+  "A_train_to_validation": {
+    "champion": {
+      "official_points": 55.12161530614107,
+      "loss_ratios": {
+        "stable": 0.06731585042317864,
+        "short_history": 0.11698014742007998,
+        "drift": 0.09232280188874972,
+        "shared_change": 0.07739003449861291
+      }
+    },
+    "nosig": {
+      "official_points": 55.0000694296429,
+      "loss_ratios": {
+        "stable": 0.06715148569169048,
+        "short_history": 0.12231531957844609,
+        "drift": 0.09454277982144003,
+        "shared_change": 0.07962127008420485
+      },
+      "paired_vs_champion": {
+        "diff_points": -0.12154587649816762,
+        "ci95": [
+          -0.24679388049011344,
+          -0.001850780175875487
+        ],
+        "p_le_0": 0.97775
+      }
+    },
+    "causal": {
+      "official_points": 54.64334873053072,
+      "loss_ratios": {
+        "stable": 0.0674765455649767,
+        "short_history": 0.1496313163177737,
+        "drift": 0.09748446400611915,
+        "shared_change": 0.07752502371832078
+      },
+      "paired_vs_champion": {
+        "diff_points": -0.47826657561034835,
+        "ci95": [
+          -0.6983777167623902,
+          -0.24678592306377814
+        ],
+        "p_le_0": 1.0
+      }
+    },
+    "nostack": {
+      "official_points": 52.83619947439348,
+      "loss_ratios": {
+        "stable": 0.11962328097005227,
+        "short_history": 0.18445199891434688,
+        "drift": 0.12468518487275779,
+        "shared_change": 0.11357986985213937
+      },
+      "paired_vs_champion": {
+        "diff_points": -2.285415831747585,
+        "ci95": [
+          -2.9307262847289746,
+          -1.7179202693592273
+        ],
+        "p_le_0": 1.0
+      }
+    }
+  },
+  "B_validation_to_train": {
+    "champion": {
+      "mean_condition_brier": 0.36514088479523205
+    },
+    "nosig": {
+      "mean_condition_brier": 0.3647262577743442,
+      "paired_vs_champion": {
+        "diff_brier": -0.000414627020887886,
+        "ci95": [
+          -0.0019103963346295536,
+          0.0010686768342615378
+        ],
+        "p_ge_0": 0.309,
+        "by_condition": {
+          "drift": -0.0013743953351946375,
+          "shared_change": -0.0031705490171625196,
+          "short_history": 0.0008832251204418141,
+          "stable": 0.0020032111483637986
+        }
+      }
+    },
+    "causal": {
+      "mean_condition_brier": 0.36544541064059194,
+      "paired_vs_champion": {
+        "diff_brier": 0.00030452584535983394,
+        "ci95": [
+          -0.001886929291819039,
+          0.0025571866409673364
+        ],
+        "p_ge_0": 0.619,
+        "by_condition": {
+          "drift": -0.00043442820796832284,
+          "shared_change": -0.0030387334694392987,
+          "short_history": 0.0035175600459285247,
+          "stable": 0.0011737050129184325
+        }
+      }
+    },
+    "nostack": {
+      "mean_condition_brier": 0.37276288049672773,
+      "paired_vs_champion": {
+        "diff_brier": 0.007621995701495646,
+        "ci95": [
+          0.0032782112020253813,
+          0.01188980246770526
+        ],
+        "p_ge_0": 0.99975,
+        "by_condition": {
+          "drift": 0.007867215788617992,
+          "shared_change": 0.009929136018673039,
+          "short_history": 0.007916893495586724,
+          "stable": 0.0047747375031048315
+        }
+      }
+    }
+  }
+}
