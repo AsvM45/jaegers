@@ -1,6 +1,8 @@
-# Issue-ready backlog (not posted to GitHub)
+> **UPDATE / ACTIVE PROJECT POLICY (Nov 7 2026):** This document is a historical planning or evidence snapshot, NOT the live multi-agent operating agreement. Read [Autonomous Engineer Policy](AGENT_OPERATING_POLICY.md), [Current Scientific Context](AGENT_CONTEXT.md), [Ownership](MULTI_AGENT_OWNERSHIP.md), [GitHub #18](https://github.com/AsvM45/jaegers/issues/18), and current PR/issue comments before implementation. New Grok/Cursor/Claude/Antigravity/CHAT issue claims supersede older owner tables. Main code/runtime truth is the actual local checkout and official organizer kit; never treat this document as a completed test or organizer receipt.
 
-These are proposed independent issues; none is claimed created remotely. Prefix with `HE-V5` and apply after Astra plan review.
+# Historical HE-V5 backlog (live GitHub issues #1–#18 now exist)
+
+These are historical scope sketches from v5. Current tasks are now GitHub issues #1–#18 with exclusive agents and working PRs. This list is NOT the dispatch queue.
 
 | ID | P | Title | File scope | Acceptance |
 |---|---|---|---|---|
