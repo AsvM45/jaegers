@@ -6,6 +6,7 @@ import { useUi } from "../lib/ui.jsx";
 import { KindTag, Mono, Status, Toggle } from "../components/common.jsx";
 import { Page } from "./Page.jsx";
 import { useFilteredTraces } from "./Overview.jsx";
+import { EventDesk } from "../components/EventDesk.jsx";
 
 const NODE_TYPES = /^(Shipment|Part|Model|Plant|ProductionOrder|CustomerOrder|Dealer|Customer|Lot|Supplier|Vehicle)$/;
 
@@ -173,7 +174,8 @@ export default function Events() {
   const subtitle = <><span><b>{fmt(d.traces.length)}</b> events</span><span>Selected <b>{sel || "—"}</b></span></>;
   return (
     <Page title="Event feed" subtitle={subtitle}>
-      {!d.traces.length ? <div className="card empty">{d.loadedAt ? "No events yet. Run python start.py." : "Loading…"}</div> : (
+      <EventDesk />
+      {!d.traces.length ? <div className="card empty">{d.loadedAt ? "No events yet. Run python start.py, or add one in the chat." : "Loading…"}</div> : (
         <div className="ev-layout">
           <div className="ev-side">
           <div className="ev-filters panel">

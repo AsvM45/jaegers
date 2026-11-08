@@ -172,6 +172,33 @@ def write_report(all_results, cases, traces_by_reader, rows_by_reader):
     return path
 
 
+def _reader_label(folder_name: str) -> str:
+    """'rules' stays; 'llm_qwen2.5_0.5b' becomes 'qwen2.5:0.5b'."""
+    if folder_name.startswith("llm_"):
+        return folder_name[4:].replace("_", ":", 1)
+    return folder_name
+
+
+def _load_saved(folder_name: str):
+    """A reader folder left by an earlier run, or None when it is incomplete."""
+    folder = os.path.join(OUT, folder_name)
+    results_path = os.path.join(folder, "results.json")
+    traces_path = os.path.join(folder, "traces.json")
+    log_path = os.path.join(folder, "action_log.jsonl")
+    if not (os.path.isfile(results_path) and os.path.isfile(traces_path) and os.path.isfile(log_path)):
+        return None
+    results = json.load(open(results_path, encoding="utf-8"))
+    traces = {t["event_id"]: t for t in json.load(open(traces_path, encoding="utf-8"))}
+    rows = {}
+    for line in open(log_path, encoding="utf-8"):
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        if "event_id" in row:
+            rows.setdefault(row["event_id"], []).append(row)
+    return results, traces, rows
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--reader", choices=("rules", "llm", "both"), default="both")
@@ -183,16 +210,35 @@ def main():
 
     readers = ["rules", "llm"] if args.reader == "both" else [args.reader]
     all_results, traces_by_reader, rows_by_reader = {}, {}, {}
+    fresh = set()
     for reader in readers:
         name = "rules" if reader == "rules" else MODEL
         all_results[name] = rc.run(reader, cases, truth, graph)
-        folder = os.path.join(OUT, "rules" if reader == "rules" else "llm_" + MODEL.replace(":", "_"))
-        traces_by_reader[name] = {t["event_id"]: t for t in json.load(open(os.path.join(folder, "traces.json")))}
+        folder_name = "rules" if reader == "rules" else "llm_" + MODEL.replace(":", "_")
+        fresh.add(folder_name)
+        folder = os.path.join(OUT, folder_name)
+        traces_by_reader[name] = {t["event_id"]: t for t in json.load(open(os.path.join(folder, "traces.json"), encoding="utf-8"))}
         rows = {c["id"]: [] for c in cases}
-        for line in open(os.path.join(folder, "action_log.jsonl")):
+        for line in open(os.path.join(folder, "action_log.jsonl"), encoding="utf-8"):
             row = json.loads(line)
             rows[row["event_id"]].append(row)
         rows_by_reader[name] = rows
+    # A rules-only run must not drop the model column from the report.
+    if os.path.isdir(OUT):
+        for folder_name in sorted(os.listdir(OUT)):
+            if folder_name in fresh or not os.path.isdir(os.path.join(OUT, folder_name)):
+                continue
+            loaded = _load_saved(folder_name)
+            if not loaded:
+                continue
+            results, traces, rows = loaded
+            by_id = {r["id"]: r for r in results}
+            if any(c["id"] not in by_id or c["id"] not in traces for c in cases):
+                continue
+            label = _reader_label(folder_name)
+            all_results[label] = [by_id[c["id"]] for c in cases]
+            traces_by_reader[label] = traces
+            rows_by_reader[label] = {c["id"]: rows.get(c["id"], []) for c in cases}
     print("report:", write_report(all_results, cases, traces_by_reader, rows_by_reader))
 
 

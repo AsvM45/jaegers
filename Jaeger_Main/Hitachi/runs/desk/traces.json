@@ -1,0 +1,144 @@
+[
+  {
+    "event_id": "A-001",
+    "source": "ops chat",
+    "received_at": "2027-03-08T12:01:00",
+    "text": "I found a lost package",
+    "classification": "noise",
+    "incidents": [
+      {
+        "kind": "noise",
+        "summary": "\"I found a lost package\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold.",
+        "supplier_id": null,
+        "part_id": null,
+        "plant_id": null,
+        "shipment_id": null,
+        "lot_id": null,
+        "blocked_from": null,
+        "blocked_until": null,
+        "outage_start": null,
+        "outage_end": null,
+        "build_start": null,
+        "build_end": null,
+        "evidence": [
+          "no confirmed supplier delay, plant outage, or quality hold"
+        ],
+        "reader": "rules",
+        "model_reason": ""
+      }
+    ],
+    "results": [],
+    "calls": [],
+    "summary": "\"I found a lost package\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "guardrail": "Noise writes nothing; an unconfirmed report is escalate only; confirmed incidents change only the affected records.",
+    "handoffs": [
+      {
+        "from": "coordinator",
+        "to": "reader",
+        "task": "Read the message into incidents (LLM proposes, rule check verifies).",
+        "returned": "1 incident: noise (read by rules)"
+      },
+      {
+        "from": "coordinator",
+        "to": "coordinator",
+        "task": "Noise: no specialist is needed.",
+        "returned": "No tool calls."
+      }
+    ]
+  },
+  {
+    "event_id": "A-002",
+    "source": "ops chat",
+    "received_at": "2027-03-08T12:02:00",
+    "text": "A supplier delivered unauthorized package",
+    "classification": "noise",
+    "incidents": [
+      {
+        "kind": "noise",
+        "summary": "\"A supplier delivered unauthorized package\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold.",
+        "supplier_id": null,
+        "part_id": null,
+        "plant_id": null,
+        "shipment_id": null,
+        "lot_id": null,
+        "blocked_from": null,
+        "blocked_until": null,
+        "outage_start": null,
+        "outage_end": null,
+        "build_start": null,
+        "build_end": null,
+        "evidence": [
+          "no confirmed supplier delay, plant outage, or quality hold"
+        ],
+        "reader": "rules",
+        "model_reason": ""
+      }
+    ],
+    "results": [],
+    "calls": [],
+    "summary": "\"A supplier delivered unauthorized package\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "guardrail": "Noise writes nothing; an unconfirmed report is escalate only; confirmed incidents change only the affected records.",
+    "handoffs": [
+      {
+        "from": "coordinator",
+        "to": "reader",
+        "task": "Read the message into incidents (LLM proposes, rule check verifies).",
+        "returned": "1 incident: noise (read by rules)"
+      },
+      {
+        "from": "coordinator",
+        "to": "coordinator",
+        "task": "Noise: no specialist is needed.",
+        "returned": "No tool calls."
+      }
+    ]
+  },
+  {
+    "event_id": "A-003",
+    "source": "ops chat",
+    "received_at": "2027-03-08T12:03:00",
+    "text": "there was a supplier delay",
+    "classification": "noise",
+    "incidents": [
+      {
+        "kind": "noise",
+        "summary": "\"there was a supplier delay\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold.",
+        "supplier_id": null,
+        "part_id": null,
+        "plant_id": null,
+        "shipment_id": null,
+        "lot_id": null,
+        "blocked_from": null,
+        "blocked_until": null,
+        "outage_start": null,
+        "outage_end": null,
+        "build_start": null,
+        "build_end": null,
+        "evidence": [
+          "no confirmed supplier delay, plant outage, or quality hold",
+          "delay wording was incomplete (needs two dates and a shipment, or a part and a plant): delay"
+        ],
+        "reader": "rules",
+        "model_reason": ""
+      }
+    ],
+    "results": [],
+    "calls": [],
+    "summary": "\"there was a supplier delay\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "guardrail": "Noise writes nothing; an unconfirmed report is escalate only; confirmed incidents change only the affected records.",
+    "handoffs": [
+      {
+        "from": "coordinator",
+        "to": "reader",
+        "task": "Read the message into incidents (LLM proposes, rule check verifies).",
+        "returned": "1 incident: noise (read by rules)"
+      },
+      {
+        "from": "coordinator",
+        "to": "coordinator",
+        "task": "Noise: no specialist is needed.",
+        "returned": "No tool calls."
+      }
+    ]
+  }
+]

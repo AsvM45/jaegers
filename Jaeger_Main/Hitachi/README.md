@@ -12,14 +12,13 @@ From this folder (`Jaeger_Main/Hitachi`):
 python start.py
 ```
 
-That runs the tower on the 15 given events, the test suites, and the ontology export, then opens the dashboard. If Ollama is running with `qwen2.5:0.5b` pulled, that reader is used and every reading is checked against the rule reader. Otherwise the rule reader runs alone.
+That runs the tower on the 15 given events, grades them, exports the ontology, then opens the dashboard. If Ollama is running with `qwen2.5:0.5b` pulled, that reader is used and every reading is checked against the rule reader. Otherwise the rule reader runs alone.
 
 ```bash
 python start.py --rules          # rule reader only, about 5 seconds
 python start.py --serve-only     # dashboard on the results already on disk
 python start.py --no-browser     # do not open a tab
 python start.py --port 9000
-python start.py --model-test     # also score the LLM reader on its own
 ```
 
 Python 3.10 or newer. No pip packages.
@@ -29,13 +28,12 @@ Python 3.10 or newer. No pip packages.
 ```bash
 ollama pull qwen2.5:0.5b && ollama serve        # optional, smallest model that passes the 15
 python -m tower.run --notify dry-run            # runs/run1/  (Overview, Event feed)
-python tests/run_given.py                       # runs/given/
-python tests/run_cases.py                       # runs/tests/  (100 generated cases)
+python tests/run_given.py                       # runs/given/  (the 15 given events)
 python -m tower.ontology                        # runs/ontology/
 python -m tower.ui.server                       # http://127.0.0.1:8080
 ```
 
-`--reader` on the test scripts is `rules`, `llm`, or `both`. Another model: `TOWER_LLM_MODEL=qwen3:1.7b`.
+`--reader` on `tests/run_given.py` is `rules`, `llm`, or `both`. Another model: `TOWER_LLM_MODEL=qwen3:1.7b`.
 
 A live channel feed (Gmail, Outlook, Slack, Teams, and outbound notices) is documented in [tower/channels/README.md](tower/channels/README.md).
 
@@ -44,8 +42,8 @@ A live channel feed (Gmail, Outlook, Slack, Teams, and outbound notices) is docu
 | Page | What it shows |
 |---|---|
 | Overview | Events, tool calls, escalations, test pass rate, the agent team |
-| Event feed | How each message was read, the graph path, and every tool call |
-| Tests | Pass rate by suite and case, expected versus actual |
+| Event feed | How each message was read, the graph path, and every tool call. Event run walks the feed live. Event add chats a new message into the feed. |
+| Tests | The 15 given events: expected versus actual. Run tests grades them and shows each one as it finishes. |
 | Knowledge graph | Company records and the paths an event traced |
 | Logs | `start.py` output, the action log, and test history |
 | Guide | How to run the tower and what each page reads |
@@ -79,7 +77,7 @@ tower/agents/          coordinator, reader, three specialists
 tower/graph.py         knowledge graph over the company CSVs
 tower/channels/        inbound mail and chat, outbound notices
 tower/ui/              dashboard (React source in web/, served from dist/)
-tests/                 given, generated, held-out, stress, and accuracy suites
+tests/                 the 15 given events and the grader
 Data/                  events, handbook, and company tables
 runs/                  traces, action logs, and reports
 ```

@@ -18,9 +18,9 @@ const TOUR = [
   { id: "overview", icon: "home", t: "Overview", p: "The state of the run at a glance.",
     points: ["Headline counts: events, tool calls, escalations, test pass rate", "Agent team and what each agent may do", "Tool calls per event; click a bar to open that event"] },
   { id: "events", icon: "feed", t: "Event feed", p: "Every message and exactly what the tower did about it.",
-    points: ["How it was read, with the model's reasoning", "Agent handoffs and graph paths", "Every tool call with its reason and result"] },
+    points: ["Event run walks the feed and shows each event as it finishes", "Event add: chat a message in and the tower reads it into the feed", "How it was read, the graph path, and every tool call"] },
   { id: "tests", icon: "check", t: "Tests", p: "How well the tower predicts, scored against answer keys.",
-    points: ["Pass rate by test set and by kind of message", "Drill in: all sets → one set → one case", "Each case: input, expected output, actual output"] },
+    points: ["Run tests and watch each of the 15 given events pass or fail as it finishes", "Pass rate by kind of message", "Open one event: input, expected output, actual output"] },
   { id: "ontology", icon: "graph", t: "Knowledge graph", p: "The company's records and how they connect.",
     points: ["Network, schema, or one event's traced records", "Drag, click to focus, scroll to zoom", "Edge types and the traversals agents use"] },
   { id: "logs", icon: "doc", t: "Logs", p: "The raw record behind every page.",
@@ -35,12 +35,11 @@ const TERMS = [
   { term: <KindTag kind="noise" />, d: "Not operational (a brochure question, a thank-you). No action." },
   { term: <b>Reader</b>, d: "What turned the message into incidents: the model (checked by rules) or the rules alone." },
   { term: <b>Expected output</b>, d: "A test case's answer key traced through the company tables: what a correct tower would change." },
-  { term: <b>Held-out sets</b>, d: "Test cases never used to tune the reader, so their score shows how well it generalizes." },
 ];
 
 const RUN = {
   quick: [
-    { c: "python start.py", d: "Run the tower, every test set and the ontology export, then open the dashboard." },
+    { c: "python start.py", d: "Run the tower on the 15 given events, grade them, export the ontology, then open the dashboard." },
     { c: "python start.py --rules", d: "The same, with the rule reader only (no Ollama needed)." },
     { c: "python start.py --serve-only", d: "Just open the dashboard on the results already on disk." },
   ],
@@ -48,8 +47,6 @@ const RUN = {
     { c: "ollama pull qwen2.5:0.5b && ollama serve", d: "Optional: the local LLM reader, the smallest that passes the 15 events. Pick another with TOWER_LLM_MODEL." },
     { c: "python -m tower.run --notify dry-run", d: "Run the tower on the 15 events (writes runs/run1/)." },
     { c: "python tests/run_given.py", d: "Grade the 15 given events." },
-    { c: "python tests/run_cases.py", d: "Run the 100 generated cases (--reader rules | llm | both)." },
-    { c: "python tests/run_model.py", d: "Score the model on its own against the held-out sets." },
     { c: "python -m tower.ontology", d: "Export the ontology for the Knowledge graph page." },
     { c: "python -m tower.ui.server", d: "Serve this dashboard at http://127.0.0.1:8080." },
   ],
@@ -61,7 +58,7 @@ const RUN = {
 
 const SOURCES = [
   ["Overview, Event feed", "runs/run1/"],
-  ["Tests", "runs/given, tests, holdout, holdout2"],
+  ["Tests", "runs/given/"],
   ["Answer keys", "tests/*.json"],
   ["Knowledge graph", "Data/…/data/*.csv, runs/ontology/"],
   ["Logs", "runs/logs/, runs/test_log.jsonl"],

@@ -1,9 +1,8 @@
-"""One command: run the control tower and both test suites, then open the dashboard.
+"""One command: run the control tower on the 15 given events, grade them, then open the dashboard.
 
     python start.py                # everything, then http://127.0.0.1:8080 opens in the browser
     python start.py --rules        # skip the LLM reader even if Ollama is running (fast, ~5 seconds)
     python start.py --serve-only   # just open the dashboard on the results already on disk
-    python start.py --model-test   # also score the LLM reader on its own (held-out + given, ~6 min)
     python start.py --no-browser   # don't open a browser tab
     python start.py --port 9000
     cd desktop && npm start        # the same dashboard in an Electron window
@@ -14,13 +13,9 @@ Works from any directory. Steps, in order:
        running or the model is not pulled, every step uses the rule reader instead, so the reports
        never show rule-reader results under an LLM name.
     2. python -m tower.run --notify dry-run --overwrite  -> runs/run1/  (Overview, Event feed)
-    3. python tests/run_given.py                -> runs/given/       (Test reports, given suite)
-    4. python tests/run_cases.py                -> runs/tests/       (Test reports, generated suite)
-       python tests/run_cases.py --cases tests/holdout_cases.json --out runs/holdout   (held-out suite)
-       python tests/run_cases.py --cases tests/stress_cases.json --out runs/stress   (149 stress cases)
-       python tests/run_model.py                -> runs/model/       (only with --model-test)
-    5. python -m tower.ontology                 -> runs/ontology/    (Knowledge graph tables)
-    6. Serve tower/ui/dashboard.html and open it.
+    3. python tests/run_given.py                -> runs/given/       (the 15 given events, TC1–TC6)
+    4. python -m tower.ontology                 -> runs/ontology/    (Knowledge graph tables)
+    5. Serve tower/ui/dashboard.html and open it.
 
 A failed step is reported and the rest still run, so the dashboard always opens.
 """
@@ -103,8 +98,6 @@ def main() -> None:
     ap.add_argument("--rules", action="store_true", help="use the rule reader only, even if Ollama is running")
     ap.add_argument("--serve-only", action="store_true", help="skip the runs and open the dashboard")
     ap.add_argument("--no-browser", action="store_true", help="don't open a browser tab")
-    ap.add_argument("--model-test", action="store_true",
-                    help="also score the LLM reader on its own against the expected graphs (needs Ollama)")
     ap.add_argument("--port", type=int, default=8080, help="dashboard port (default 8080, or the next free one)")
     cli = ap.parse_args()
     sys.stdout.reconfigure(line_buffering=True)  # progress shows even when piped to a file
@@ -131,22 +124,8 @@ def main() -> None:
             ("Control tower on the 15 events", ["-m", "tower.run", "--reader", tower_reader, "--notify", "dry-run",
                                                 "--overwrite"]),
             ("Given tests (docx TC1–TC6)", ["tests/run_given.py", "--reader", test_reader]),
-            ("Generated tests (100 cases)", ["tests/run_cases.py", "--reader", test_reader]),
-            ("Held-out tests, set 1 (146 cases)", ["tests/run_cases.py", "--reader", test_reader,
-                                                  "--cases", "tests/holdout_cases.json", "--out", "runs/holdout"]),
-            ("Held-out tests, set 2 (190 cases)", ["tests/run_cases.py", "--reader", test_reader,
-                                                  "--cases", "tests/holdout2_cases.json", "--out", "runs/holdout2"]),
-            ("Stress tests (149 cases)", ["tests/run_cases.py", "--reader", test_reader,
-                                          "--cases", "tests/stress_cases.json", "--out", "runs/stress"]),
-            ("Accuracy paraphrases (23 cases)", ["tests/run_cases.py", "--reader", test_reader,
-                                                 "--cases", "tests/accuracy_cases.json", "--out", "runs/accuracy"]),
             ("Ontology export", ["-m", "tower.ontology"]),
         ]
-        if cli.model_test:
-            if use_llm:
-                steps.append(("The model on its own vs the expected graphs", ["tests/run_model.py"]))
-            else:
-                print("--model-test skipped: it needs Ollama with the model pulled.")
         for label, args in steps:
             if not step(label, args):
                 failed.append(label)
@@ -175,6 +154,12 @@ def main() -> None:
     except KeyboardInterrupt:
         print("\nStopped.")
     finally:
+        try:
+            from tower.ui import runner
+
+            runner.stop()
+        except Exception:  # noqa: BLE001 - shutting down anyway
+            pass
         httpd.server_close()
 
 

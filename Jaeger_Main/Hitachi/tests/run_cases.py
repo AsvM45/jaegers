@@ -342,8 +342,8 @@ def run(reader_name, cases, truth, graph):
 
 
 # runs/ folder -> the dashboard's suite id.
-SUITE_OF_FOLDER = {"given": "given", "tests": "generated", "holdout": "holdout", "holdout2": "holdout2",
-                    "stress": "stress", "accuracy": "accuracy"}
+SUITE_OF_FOLDER = {"given": "given", "tests": "generated", "holdout": "holdout",
+                    "holdout2": "holdout2", "stress": "stress", "accuracy": "accuracy"}
 
 
 def log_run(folder, reader, results):

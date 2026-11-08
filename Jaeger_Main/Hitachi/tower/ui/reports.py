@@ -1,9 +1,8 @@
 """Test reports for the dashboard: expected outcome, actual outcome and verdict for every case.
 
-Two suites, each with one folder per reader under runs/:
+One suite, with one folder per reader under runs/:
 
     given      tests/given_cases.json  +  runs/given/<reader>/   (python tests/run_given.py)
-    generated  tests/cases.json        +  runs/tests/<reader>/   (python tests/run_cases.py)
 
 Expected output: each case's answer key ("expect" in the cases file) traced through the company
 graph by tests/run_cases.py (CSV-based, independent of tower/graph.py) to every production order,
@@ -36,16 +35,6 @@ RUNS = os.path.join(HITACHI, "runs")
 SUITES = [
     {"id": "given", "title": "Given tests", "subtitle": "The 15 events in events.json, graded against docx TC1–TC6",
      "cases": "given_cases.json", "runs": "given"},
-    {"id": "holdout2", "title": "Held-out tests (set 2)", "subtitle": "190 messages: the original 100 plus two regressions for each miss (tests/make_holdout2.py, tests/make_regression.py)",
-     "cases": "holdout2_cases.json", "runs": "holdout2"},
-    {"id": "holdout", "title": "Held-out tests (set 1)", "subtitle": "146 messages: the original 100 plus two regressions for each miss (tests/make_holdout.py, tests/make_regression.py)",
-     "cases": "holdout_cases.json", "runs": "holdout"},
-    {"id": "generated", "title": "Generated tests", "subtitle": "100 messages: 25 hand-made edge cases + 75 from real records (tests/make_cases.py)",
-     "cases": "cases.json", "runs": "tests"},
-    {"id": "stress", "title": "Stress tests", "subtitle": "149 messages: 74 normal, 45 edge cases, 30 overload (tests/make_stress.py)",
-     "cases": "stress_cases.json", "runs": "stress"},
-    {"id": "accuracy", "title": "Accuracy paraphrases", "subtitle": "23 messages: ordinary wording the reader used to miss, plus noise guards (tests/accuracy_cases.json)",
-     "cases": "accuracy_cases.json", "runs": "accuracy"},
 ]
 
 _cache: dict = {"key": None, "data": None}
@@ -224,16 +213,28 @@ def build() -> dict:
             res_path = os.path.join(folder, name, "results.json")
             if not os.path.isfile(res_path):
                 continue
-            with open(res_path, encoding="utf-8") as handle:
-                results = {r["id"]: r for r in json.load(handle)}
+            try:
+                with open(res_path, encoding="utf-8") as handle:
+                    results = {r["id"]: r for r in json.load(handle)}
+            except (OSError, json.JSONDecodeError, KeyError, TypeError):
+                # A grade can be mid-write while the dashboard is open. Skip that reader until it finishes.
+                continue
             rows = defaultdict(list)
             log_path = os.path.join(folder, name, "action_log.jsonl")
             if os.path.isfile(log_path):
-                with open(log_path, encoding="utf-8") as handle:
-                    for line in handle:
-                        if line.strip():
-                            row = json.loads(line)
-                            rows[row["event_id"]].append(row)
+                try:
+                    with open(log_path, encoding="utf-8") as handle:
+                        for line in handle:
+                            if not line.strip():
+                                continue
+                            try:
+                                row = json.loads(line)
+                            except json.JSONDecodeError:
+                                continue
+                            if "event_id" in row:
+                                rows[row["event_id"]].append(row)
+                except OSError:
+                    continue
             items = []
             for case in cases:
                 result = results.get(case["id"])

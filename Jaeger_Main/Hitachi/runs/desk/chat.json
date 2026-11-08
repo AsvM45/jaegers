@@ -1,0 +1,35 @@
+[
+  {
+    "role": "user",
+    "text": "I found a lost package",
+    "at": "2027-03-08T12:01:00"
+  },
+  {
+    "role": "tower",
+    "text": "Added A-001. \"I found a lost package\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "event_id": "A-001",
+    "at": "2027-03-08T12:01:00"
+  },
+  {
+    "role": "user",
+    "text": "A supplier delivered unauthorized package",
+    "at": "2027-03-08T12:02:00"
+  },
+  {
+    "role": "tower",
+    "text": "Added A-002. \"A supplier delivered unauthorized package\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "event_id": "A-002",
+    "at": "2027-03-08T12:02:00"
+  },
+  {
+    "role": "user",
+    "text": "there was a supplier delay",
+    "at": "2027-03-08T12:03:00"
+  },
+  {
+    "role": "tower",
+    "text": "Added A-003. \"there was a supplier delay\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "event_id": "A-003",
+    "at": "2027-03-08T12:03:00"
+  }
+]

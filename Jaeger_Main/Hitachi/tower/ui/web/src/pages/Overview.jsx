@@ -105,7 +105,7 @@ export default function Overview() {
         </div>
 
         <div className="card">
-          <CardHead title="Test pass rate" sub={`All test suites · ${scoreWho}`} />
+          <CardHead title="Test pass rate" sub={`The 15 given events · ${scoreWho}`} />
           <div className="gauge-wrap">
             <Gauge pct={pct} />
             <div className="gauge-cap"><b>{fmt(passed)}</b> of {fmt(total)} test cases passed</div>

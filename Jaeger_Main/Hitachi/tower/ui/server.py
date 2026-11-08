@@ -23,6 +23,16 @@ Listens on http://127.0.0.1:8080
     GET /api/agents            the coordinator and the three specialist agents (role, tools, rules)
     GET /api/test_reports      expected vs actual outcome for every test case, per reader
     GET /api/revision          a token that changes when the run or the saved results change
+    GET /api/events/chat       the event-add transcript
+    POST /api/events/chat      read one chat message and add it to the feed
+    GET /api/events/run        the event run in progress (or the last one)
+    GET /api/events/run/stream the same run as a server-sent event stream
+    POST /api/events/run       walk the feed and report each event as it finishes
+    POST /api/events/run/stop  stop that walk
+    GET /api/run               the test grade in progress (or the last one), one snapshot
+    GET /api/run/stream        the same grade as a server-sent event stream
+    POST /api/run              start a grade: {"reader":"rules"|"llm"|"both","suites":["given",...]}
+    POST /api/run/stop         stop the grade that is going
     GET /api/knowledge_graph?view=network|schema|event&event=E-01[&run=given/rules]
                                {nodes, links} for the orb graph
     GET /orb/...               the orb graph viewer (orb-graph/public), embedded on the Ontology page
@@ -57,8 +67,7 @@ STATIC_TYPES = {
     ".png": "image/png", ".ico": "image/x-icon", ".woff2": "font/woff2", ".md": "text/markdown; charset=utf-8",
 }
 # Test-suite run folders the knowledge graph may read traces from (suite id -> runs/ subfolder).
-SUITE_RUNS = {"given": "given", "generated": "tests", "holdout": "holdout", "holdout2": "holdout2",
-              "stress": "stress", "accuracy": "accuracy"}
+SUITE_RUNS = {"given": "given"}
 EVENTS = os.path.join(HITACHI, "Data", "hack_the_highway_package", "data", "events.json")
 # TOWER_RUN_DIR=runs/live shows the live channel feed instead of the batch run.
 RUN_DIR = os.path.join(HITACHI, os.environ.get("TOWER_RUN_DIR", os.path.join("runs", "run1")))
@@ -192,8 +201,10 @@ def revision_payload():
     """Changes when the run files or any saved test result change. Stat calls only, no report build."""
     from tower.ui import reports
 
+    from tower.ui import event_desk
+
     stamps = [reports.revision()]
-    for path in (TRACES, LOG, OUTBOX, EVENTS, ONTOLOGY_JSON):
+    for path in (TRACES, LOG, OUTBOX, EVENTS, ONTOLOGY_JSON, *event_desk.stamp_paths()):
         if os.path.isfile(path):
             st = os.stat(path)
             stamps.append(f"{os.path.basename(path)}:{st.st_mtime_ns}:{st.st_size}")
@@ -235,13 +246,25 @@ class Handler(BaseHTTPRequestHandler):
             if split.path.startswith("/orb/"):
                 return self._static(ORB_ROOT, urllib.parse.unquote(split.path[len("/orb/"):]) or "index.html")
             if path == "/api/events":
-                return self._json(read_json(EVENTS))
+                from tower.ui import event_desk
+
+                official = read_json(EVENTS)
+                extra = event_desk.saved_events()
+                have = {e.get("event_id") for e in official if isinstance(e, dict)}
+                return self._json(official + [e for e in extra if e.get("event_id") not in have])
             if path == "/api/ontology":
                 return self._json(ontology_payload())
             if path == "/api/traces":
-                return self._json(read_json(TRACES) if os.path.isfile(TRACES) else [])
+                from tower.ui import event_desk
+
+                base = read_json(TRACES) if os.path.isfile(TRACES) else []
+                have = {t.get("event_id") for t in base if isinstance(t, dict)}
+                return self._json(base + [t for t in event_desk.saved_traces() if t.get("event_id") not in have])
             if path == "/api/log":
-                return self._json(read_jsonl(LOG) if os.path.isfile(LOG) else [])
+                from tower.ui import event_desk
+
+                base = read_jsonl(LOG) if os.path.isfile(LOG) else []
+                return self._json(base + event_desk.saved_log())
             if path == "/api/outbox":
                 return self._json(read_jsonl(OUTBOX) if os.path.isfile(OUTBOX) else [])
             if path == "/api/channels":
@@ -270,6 +293,22 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(reports.payload())
             if path == "/api/revision":
                 return self._json(revision_payload())
+            if path == "/api/events/chat":
+                from tower.ui import event_desk
+
+                return self._json({"messages": event_desk.messages()})
+            if path == "/api/events/run":
+                from tower.ui import event_desk
+
+                return self._json(event_desk.status())
+            if path == "/api/events/run/stream":
+                return self._stream_events()
+            if path == "/api/run":
+                from tower.ui import runner
+
+                return self._json(runner.status())
+            if path == "/api/run/stream":
+                return self._stream_run()
         except NotFound as exc:
             return self._json({"error": "not found", "detail": str(exc)}, 404)
         except FileNotFoundError as exc:
@@ -282,6 +321,55 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"error": "bad encoding", "detail": str(exc)}, 500)
         self._json({"error": "not found"}, 404)
 
+    def _local(self) -> bool:
+        """True when the browser asked this process by name. Blocks a DNS-rebinding page."""
+        host = (self.headers.get("Host") or "").split(":")[0]
+        return host in ("127.0.0.1", "localhost")
+
+    def do_POST(self):
+        """POST starts a test grade, an event run, or one chat event. Same-host only."""
+        if not self._local():
+            return self._json({"error": "forbidden"}, 403)
+        path = urllib.parse.urlsplit(self.path).path.rstrip("/") or "/"
+        allowed = ("/api/run", "/api/run/stop", "/api/events/run", "/api/events/run/stop", "/api/events/chat")
+        if path not in allowed:
+            return self._json({"error": "not found"}, 404)
+        from tower.ui import event_desk, runner
+
+        if path == "/api/run/stop":
+            return self._json(runner.stop())
+        if path == "/api/events/run/stop":
+            return self._json(event_desk.stop())
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            return self._json({"error": "bad request"}, 400)
+        if length > 8000:
+            return self._json({"error": "bad request"}, 400)
+        raw = self.rfile.read(length) if length else b"{}"
+        try:
+            body = json.loads(raw.decode("utf-8") or "{}")
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return self._json({"error": "invalid json"}, 400)
+        if not isinstance(body, dict):
+            return self._json({"error": "invalid json"}, 400)
+        if path == "/api/events/chat":
+            return self._add_event(body)
+        if path == "/api/events/run":
+            result = event_desk.start()
+            if result.get("error"):
+                return self._json(result, 409)
+            return self._json(result)
+        try:
+            result = runner.start(body.get("reader") or "rules", body.get("suites"))
+        except ValueError as exc:
+            return self._json({"error": str(exc)}, 400)
+        except OSError as exc:
+            return self._json({"error": "could not start", "detail": str(exc)}, 500)
+        if result.get("error"):
+            return self._json(result, 409)
+        return self._json(result)
+
     def do_DELETE(self):
         """DELETE /api/test_reports/<suite>/<reader> removes that report's folder under runs/.
 
@@ -289,8 +377,7 @@ class Handler(BaseHTTPRequestHandler):
         DNS-rebinding pages, and browsers will not send a cross-site DELETE without a CORS
         preflight, which this server never answers.
         """
-        host = (self.headers.get("Host") or "").split(":")[0]
-        if host not in ("127.0.0.1", "localhost"):
+        if not self._local():
             return self._json({"error": "forbidden"}, 403)
         parts = [urllib.parse.unquote(p) for p in urllib.parse.urlsplit(self.path).path.strip("/").split("/")]
         if len(parts) != 4 or parts[:2] != ["api", "test_reports"]:
@@ -304,6 +391,55 @@ class Handler(BaseHTTPRequestHandler):
         if not removed:
             return self._json({"error": "no such report"}, 404)
         return self._json({"deleted": f"{parts[2]}/{parts[3]}"})
+
+    def _add_event(self, body: dict):
+        """Read one chat message and keep it as an event. The 15 given events are not rewritten."""
+        from tower.ui import event_desk
+
+        try:
+            saved = event_desk.add_message(body.get("text"))
+        except ValueError as exc:
+            return self._json({"error": str(exc)}, 400)
+        except OSError as exc:
+            return self._json({"error": "could not save", "detail": str(exc)}, 500)
+        return self._json(saved)
+
+    def _stream(self, follow):
+        """Server-sent events. One chunk per update, plus a snapshot on connect."""
+        self.protocol_version = "HTTP/1.1"
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Connection", "close")
+        self.send_header("Transfer-Encoding", "chunked")
+        self.end_headers()
+
+        def send(event: str, data: dict) -> None:
+            raw = f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n".encode("utf-8")
+            self.wfile.write(f"{len(raw):x}\r\n".encode("ascii") + raw + b"\r\n")
+            self.wfile.flush()
+
+        try:
+            for event, data in follow():
+                send(event, data)
+        except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError, TimeoutError, OSError):
+            return
+        except Exception as exc:  # noqa: BLE001 - keep one dropped client from taking down the server
+            print(f"event stream ended: {exc}", file=sys.stderr, flush=True)
+            return
+        finally:
+            self.close_connection = True
+
+    def _stream_events(self):
+        from tower.ui import event_desk
+
+        return self._stream(event_desk.follow)
+
+    def _stream_run(self):
+        """Server-sent events for the live grade. One event per case, plus a snapshot on connect."""
+        from tower.ui import runner
+
+        return self._stream(runner.follow)
 
     def _static(self, root, rel):
         """Serve a file under root; anything that resolves outside it is a 404."""
@@ -370,6 +506,13 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
+        try:
+            from tower.ui import event_desk, runner
+
+            runner.stop()
+            event_desk.stop()
+        except Exception:  # noqa: BLE001 - shutting down anyway
+            pass
         server.server_close()
 
 

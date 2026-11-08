@@ -7,6 +7,7 @@ import { CAT_NAME, CAT_ORDER, KIND_LABEL, TOOL_WORD, fmt, passColor, pctOf, read
 import { newestBySuite, useData } from "../lib/data.jsx";
 import { go, useUi } from "../lib/ui.jsx";
 import { CardHead, KindTag, Mono, Status, Toggle } from "../components/common.jsx";
+import { RunTests } from "../components/RunTests.jsx";
 import { FailurePie, PassBars, PassFailPie, catRows } from "../components/charts.jsx";
 import { Page } from "./Page.jsx";
 
@@ -60,7 +61,7 @@ function useTestsSubtitle() {
   const score = newestBySuite(d.reports);
   const who = score.labels.length === 1 ? score.labels[0] : score.labels.length > 1 ? "newest reader per set" : "";
   return <>
-    <span><b>{fmt(score.sets.length)}</b> test sets</span>
+    <span><b>{fmt(score.total)}</b> given events</span>
     <span>{who ? <><b>{who}</b> · saved {score.updated}</> : "No results yet"}</span>
     <span><b>{fmt(score.passed)}</b> of <b>{fmt(score.total)}</b> cases passed</span>
   </>;
@@ -99,6 +100,7 @@ function AllSets() {
   const copy = scoreCopy(score.sets);
   return (
     <Page title="Tests" subtitle={subtitle}>
+      <RunTests />
       <div className="card">
         <CardHead title={copy.title} sub={copy.sub}>
           <div className="controls">
