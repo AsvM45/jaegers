@@ -99,6 +99,11 @@ def _key() -> tuple:
     return tuple((p, os.path.getmtime(p)) for p in _inputs() + _model_files() + [LOG] if os.path.exists(p))
 
 
+def revision() -> str:
+    """Token for the dashboard. Changes when a result file, case file, or the test log changes."""
+    return str(_key())
+
+
 def _load_cases(name: str) -> list[dict]:
     path = os.path.join(TESTS, name)
     if not os.path.isfile(path):
@@ -342,14 +347,20 @@ def payload() -> dict:
     key = _key()
     with _lock:
         if _cache["key"] != key:
-            _cache["data"] = build()
+            data = build()
+            _cache["data"] = data
             _cache["key"] = key
+            try:
+                write_summary(data=data)
+            except OSError:
+                pass
         return _cache["data"]
 
 
-def write_summary(path: str = os.path.join(RUNS, "TEST_SUMMARY.md")) -> str:
+def write_summary(path: str = os.path.join(RUNS, "TEST_SUMMARY.md"), data: dict | None = None) -> str:
     """Write runs/TEST_SUMMARY.md from the current results, so it never goes stale."""
-    data = payload()
+    if data is None:
+        data = payload()
     lines = ["# Control tower — test summary", "",
              f"Written {time.strftime('%Y-%m-%d %H:%M')} from the saved results by `tower/ui/reports.py`. "
              "Each test's expected output is its answer key traced through the company graph (`tests/run_cases.py`, "

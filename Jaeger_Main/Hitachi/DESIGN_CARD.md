@@ -1,11 +1,11 @@
 # Design card — Wacky Wheels control tower (team JAEGERS)
 
-**Model:** Qwen3 0.6B (`qwen3:0.6b`, 752M parameters, 4-bit, 522 MB), run locally through Ollama, is the tower's only model. There is no cloud. Everything else is Python standard library.
+**Model:** Qwen2.5 0.5B (`qwen2.5:0.5b`, 494M parameters, 397 MB), run locally through Ollama, is the tower's model. It is the smallest one that still passes the 15 given events. A reading is used only when it matches the rule reader; otherwise the rules decide, and a checked reading the rules do not support is escalated. There is no cloud. Everything else is Python standard library.
 
 ## Architecture
 
 ```
-GET /events ─► Coordinator ─► 1 Understand   (Qwen3 0.6B + rule check)  → incidents
+GET /events ─► Coordinator ─► 1 Understand   (Qwen2.5 0.5B + rule check)  → incidents
                    │          2 Hand each incident to the specialist agent that owns it:
                    │              Supply Chain Planner           mes.reschedule, mes.transfer       (rules 1–3)
                    │              Quality                        quality.hold_lot, dealer.stop_sale,
@@ -20,11 +20,11 @@ Each agent has a card in `tower/agents/roster.py`: its responsibility, the incid
 
 ## LLM versus code
 
-| LLM (Qwen3 0.6B) | Plain code |
+| LLM (Qwen2.5 0.5B) | Plain code |
 |---|---|
 | Labels each message section with one of the five kinds. Copies out the exact phrases for the plant, part, supplier, lot, shipment and the two dates | Checks each phrase is in the text. Resolves names through `aliases.csv` (plus typo matching). Turns phrases like "next Friday" into dates. Runs a rule reader as a check. Does every graph query, slot search, loaner decision and handbook rule |
 
-The LLM proposes and code verifies. If the model's output fails a check, or it disagrees with the rule reader on the kind or on a field, the rule reading is used, and the trace says why. A 0.6B model therefore never decides an action on its own. That is deliberate: the action log is half the score.
+The LLM proposes and code verifies. If the model's output fails a check, or it disagrees with the rule reader on the kind or on a field, the rule reading is used, and the trace says why. The 0.5B model therefore never decides an action on its own. That is deliberate: the action log is half the score.
 
 ## Guardrails
 
@@ -41,11 +41,10 @@ The LLM proposes and code verifies. If the model's output fails a check, or it d
 
 | Check | Result |
 |---|---|
-| 15 given events, docx TC1–TC6 (`tests/run_given.py`) | **15/15** on effects and on the required evidence |
-| 100 generated cases: 25 hand-made edge cases + 75 from real records with nicknames, relative and m/d dates (`tests/run_cases.py`) | **100/100**, with the rule reader and with Qwen3 0.6B. The reader's word lists are general word families (delay/late/slip/postpone, down/halted/offline, defect/contamination/out-of-spec, heard/might/unconfirmed), not phrases from the given events; this set informed them, so it is not blind |
-| Handbook audit of the submitted log (`tower/_audit_run.py`) | 0 problems |
-| Official server run (`enterprise_server.py`, `POST /act`) | 768 calls, **0 failed**, identical to the in-process run |
-| Model benchmark, 6 local models from 0.5B to 2.0B | All give identical actions. Qwen3 0.6B is the smallest with the best kind accuracy (14/16), at about 3 s per call and 16 calls per run |
+| 15 given events, docx TC1–TC6 (`tests/run_given.py`) | **15/15** on effects and on the required evidence, with the rule reader and with Qwen2.5 0.5B plus the rule check |
+| Submitted log (`runs/run1/action_log.jsonl`) | 768 calls, **0 failed**. Noise has no calls. Each rumor is one `escalate` |
+| Qwen2.5 0.5B alone, no rule check | 4/15. Qwen3 0.6B alone is 3/15. The rule check is why the smaller model still passes |
+| Walkthrough | `runs/screenshots/`: 01 event arrives, 02 graph path, 03 agents act, 04 audit trail |
 
 The graders compute the expected effects straight from the CSVs, not from our graph code. The expected answers for the given events are our own hand reading of the handbook, because the organizers' answers are hidden.
 

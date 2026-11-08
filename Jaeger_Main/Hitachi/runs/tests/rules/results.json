@@ -36,7 +36,7 @@
       }
     ],
     "summary": "The message reports a supplier delay of leather seat set (SEAT-LEA) from Meridian Seating (SUP-04) into Wacky Wheels Lexington (P_KY) from 2027-03-15 until 2027-03-17 on shipment SH-0090. Affected records: 2 production orders and 18 customer orders. The tower completed 2 reschedules, 15 dealer notices, and 6 loaner assignments.",
-    "seconds": 0.0
+    "seconds": 0.1
   },
   {
     "id": "T-02",

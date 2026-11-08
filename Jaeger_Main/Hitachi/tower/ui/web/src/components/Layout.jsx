@@ -41,7 +41,7 @@ function LiveChip() {
   return (
     <div className={`live ${cls}`} title="Reader model and when the data was last loaded">
       <span className="pulse" />
-      <span>{d.traces.length ? <><b>{d.model || "rule reader"}</b> · updated {agoText(age)}</> : "No run loaded"}</span>
+      <span>{d.traces.length ? <><b>{d.model || "rule reader"}</b> · loaded {agoText(age)}</> : "No run loaded"}</span>
     </div>
   );
 }

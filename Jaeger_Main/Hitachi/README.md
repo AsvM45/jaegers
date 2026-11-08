@@ -12,7 +12,7 @@ From this folder (`Jaeger_Main/Hitachi`):
 python start.py
 ```
 
-That runs the tower on the 15 given events, the test suites, and the ontology export, then opens the dashboard. If Ollama is running with `qwen3:0.6b` pulled, the LLM reader is used and every reading is checked by the rule reader. Otherwise the rule reader runs alone.
+That runs the tower on the 15 given events, the test suites, and the ontology export, then opens the dashboard. If Ollama is running with `qwen2.5:0.5b` pulled, that reader is used and every reading is checked against the rule reader. Otherwise the rule reader runs alone.
 
 ```bash
 python start.py --rules          # rule reader only, about 5 seconds
@@ -27,7 +27,7 @@ Python 3.10 or newer. No pip packages.
 ## Run it in pieces
 
 ```bash
-ollama pull qwen3:0.6b && ollama serve          # optional
+ollama pull qwen2.5:0.5b && ollama serve        # optional, smallest model that passes the 15
 python -m tower.run --notify dry-run            # runs/run1/  (Overview, Event feed)
 python tests/run_given.py                       # runs/given/
 python tests/run_cases.py                       # runs/tests/  (100 generated cases)
@@ -50,7 +50,7 @@ A live channel feed (Gmail, Outlook, Slack, Teams, and outbound notices) is docu
 | Logs | `start.py` output, the action log, and test history |
 | Guide | How to run the tower and what each page reads |
 
-The chip beside search shows the reader and how fresh the data is.
+The chip beside search shows the reader and when the page last loaded the run. It reloads on its own when those files change.
 
 Rebuild the React UI after changing `tower/ui/web`:
 
@@ -62,7 +62,7 @@ cd tower/ui/web && npm install && npm run build
 
 ## How a message is handled
 
-1. **Read.** Qwen3 0.6B (or the rule reader) turns the text into incidents. Quoted phrases must appear in the message. A failed check falls back to the rules, and the trace says why.
+1. **Read.** Qwen2.5 0.5B (or the rule reader) turns the text into incidents. Quoted phrases must appear in the message. A checked reading is used only when it matches the rule reader; otherwise the rules decide, and the trace says why.
 2. **Hand off.** Supply Chain Planner owns delays, outages, and slots. Quality Containment owns lots, stop-sale, and owner notices. Dealer and Customer Care owns one notice per dealer and loaners.
 3. **Check.** The coordinator drops any planned call outside that agent's tools, then runs the rest. Only affected records change. A failed write is logged, not retried.
 4. **Record.** `runs/run1/action_log.jsonl` and `traces.json` feed the dashboard.

@@ -7127,7 +7127,7 @@
       }
     ],
     "summary": "The message reports a supplier delay of standard wiring harness (HARN-A) from Ridgeline Wire (SUP-16) into Wacky Wheels Jackson (P_MS) from 2027-03-22 until 2027-03-26 on shipment SH-0139. Affected records: 8 production orders and 72 customer orders. The tower completed 8 reschedules, 32 dealer notices, and 15 loaner assignments.",
-    "seconds": 0.0
+    "seconds": 0.1
   },
   {
     "id": "H2-189",

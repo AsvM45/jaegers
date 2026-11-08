@@ -61,14 +61,17 @@ function CallLog() {
       </CardHead>
       <div className="scroll-x"><table>
         <thead><tr><th className="num">#</th><th>Event</th><th>Tool</th><th>Arguments</th><th>Result</th></tr></thead>
-        <tbody>{rows.slice(0, 1000).map(({ r, n }) => (
-          <tr key={n}>
-            <td className="num note">{n}</td><td><b>{r.event_id}</b></td>
-            <td>{TOOL_WORD[r.tool] || r.tool}<div className="note mono">{r.tool}</div></td>
-            <td className="mono" style={{ maxWidth: 520 }}>{argText(r.args)}</td>
-            <td><Status kind={r.ok ? "ok" : "fail"} /></td>
-          </tr>
-        ))}</tbody>
+        <tbody>
+          {rows.slice(0, 1000).map(({ r, n }) => (
+            <tr key={n}>
+              <td className="num note">{n}</td><td><b>{r.event_id}</b></td>
+              <td>{TOOL_WORD[r.tool] || r.tool}<div className="note mono">{r.tool}</div></td>
+              <td className="mono" style={{ maxWidth: 520 }}>{argText(r.args)}</td>
+              <td><Status kind={r.ok ? "ok" : "fail"} /></td>
+            </tr>
+          ))}
+          {!rows.length && <tr><td colSpan={5} className="empty">{ui.callFailed ? "No failed calls." : "No calls match."}</td></tr>}
+        </tbody>
       </table></div>
       {rows.length > 1000 && <p className="note">Showing the first 1,000 of {fmt(rows.length)}.</p>}
     </div>

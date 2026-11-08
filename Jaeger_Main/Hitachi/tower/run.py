@@ -2,7 +2,7 @@
 
 Launch from the Hitachi directory:
 
-    python -m tower.run                 # local LLM via Ollama (default qwen3:0.6b)
+    python -m tower.run                 # local LLM via Ollama (default qwen2.5:0.5b)
     python -m tower.run --reader rules  # deterministic reader only
     python -m tower.run --server http://127.0.0.1:8000   # official path: GET /events, POST /act
 

@@ -62,8 +62,9 @@ export default function Overview() {
   const escal = d.log.filter((r) => r.tool === "escalate").length;
   const count = (o) => traces.filter((t) => d.outcome(t.event_id) === o).length;
   const acted = count("acted");
-  const { passed, total } = d.testTotals;
+  const { passed, total, labels } = d.testTotals;
   const pct = pctOf(passed, total);
+  const scoreWho = !labels?.length ? "no results yet" : labels.length === 1 ? `${labels[0]} reader` : "newest saved reader for each suite";
   const incidents = traces.flatMap((t) => t.incidents || []);
   const viaModel = incidents.filter((i) => i.reader && i.reader !== "rules").length;
   const overLists = incidents.filter((i) => (i.evidence || []).some((e) => String(e).startsWith("rule word lists read"))).length;
@@ -104,7 +105,7 @@ export default function Overview() {
         </div>
 
         <div className="card">
-          <CardHead title="Test pass rate" sub={`All test suites, ${d.model || "rules"} reader`} />
+          <CardHead title="Test pass rate" sub={`All test suites · ${scoreWho}`} />
           <div className="gauge-wrap">
             <Gauge pct={pct} />
             <div className="gauge-cap"><b>{fmt(passed)}</b> of {fmt(total)} test cases passed</div>

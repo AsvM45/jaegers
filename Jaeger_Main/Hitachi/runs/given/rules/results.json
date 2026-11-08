@@ -44,7 +44,7 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels San Antonio (P_TX) from 2027-03-19 through 2027-03-22 and a supplier delay of infotainment chip (CHIP-IVI) from Quanta Silicon (SUP-12) into Wacky Wheels Princeton (P_IN) from 2027-03-15 until 2027-03-19 on shipment SH-0190. Affected records: 14 production orders and 122 customer orders. The tower completed 14 reschedules, 41 dealer notices, and 26 loaner assignments.",
-    "seconds": 0.0
+    "seconds": 0.1
   },
   {
     "id": "E-02",

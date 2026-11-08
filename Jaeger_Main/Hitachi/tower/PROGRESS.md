@@ -18,7 +18,7 @@ Georgi and the coordinator share the structure: contracts, the knowledge graph, 
 
 Wacky Wheels has no parts buffer. A message is a supplier delay, a plant outage, a quality hold, noise, an unconfirmed report, or a compound of those. Confirmed incidents follow the handbook. Noise writes nothing. An unconfirmed report is `escalate` and nothing else. Only affected records change.
 
-Scoring is 50% action accuracy, 20% graph and reasoning, 10% agent architecture, 10% efficiency, 10% the control-tower view. No language model is used: the reader is deterministic Python. The one-page design card is `DESIGN.md`. The ontology export is `tower/ontology.mmd`.
+Scoring is 50% action accuracy, 20% graph and reasoning, 10% agent architecture, 10% efficiency, 10% the control-tower view. The shipped reader is Qwen2.5 0.5B through Ollama, kept only when it matches the rule reader. The one-page design card is `DESIGN_CARD.md`. The ontology export is `runs/ontology/`.
 
 The feed has 15 events. The shapes match the six test cases: 3 delays, 3 outages, 3 quality holds, 3 noise, 1 compound, 2 unconfirmed.
 
@@ -36,9 +36,9 @@ The graph answers who is affected. Specialists turn that into tool calls. The co
 1. **Next weekday.** Locked. "next Monday" is 2027-03-15 and "next Friday" is 2027-03-19. "last Monday" is 2027-03-01.
 2. **Delay window.** A build is affected from the original ETA up to, not including, the new ETA, at the receiving plant, on models whose bill of materials contains the part. `covers_days` is not a second filter. The handbook states the window directly.
 3. **Slots.** Locked. Same plant first, on or after the new ETA or the restart day. Transfer only when that plant has no free slot through 2027-04-02. Transfer goes to the earliest free day at another plant that builds the model. Equal days break toward the lower plant id.
-4. **Understanding.** Qwen3 0.6B (`qwen3:0.6b`, 752M parameters, local through Ollama) reads each message section and returns its kind plus exact phrases for the plant, part, supplier, lot, shipment, and two dates (`tower/agents/llm_reader.py`). Code checks that each phrase appears in the text, resolves it through aliases and the calendar, and runs the deterministic reader as a check. A kind disagreement or a failed check falls back to the rule reader, and the trace records why (`Incident.reader`, `evidence`). `python -m tower.run --reader rules` skips the model. Event ids are never a lookup key.
-   Latest run: the model's reading was used on 11 of 16 sections. The rules were used on 5: 2 wrong kinds (E-09, E-10) and 3 bad phrases (E-01 outage, E-03, E-11). Actions match the rules-only run exactly, apart from dealer message wording.
-   Model benchmark on the 15 events (kinds right / readings verified / s per call): qwen2.5:0.5b 10/7/2.1, **qwen3:0.6b 14/11/3.2**, gemma3:1b 11/9/4.9, llama3.2:1b 14/14/4.0, qwen2.5:1.5b 14/11/4.2, qwen3:1.7b 14/14/5.1. All six give identical actions; Qwen3 0.6B is the smallest with the best kind accuracy.
+4. **Understanding.** Qwen2.5 0.5B (`qwen2.5:0.5b`, 494M parameters, local through Ollama) reads each message section and returns its kind plus exact phrases for the plant, part, supplier, lot, shipment, and two dates (`tower/agents/llm_reader.py`). Code checks that each phrase appears in the text, resolves it through aliases and the calendar, and runs the deterministic reader as a check. A kind disagreement or a failed check falls back to the rule reader, and the trace records why (`Incident.reader`, `evidence`). `python -m tower.run --reader rules` skips the model. Event ids are never a lookup key.
+   The shipped model is the smallest that still passes the 15 given events once the rule check is on. On its own it passes 4/15; Qwen3 0.6B on its own passes 3/15. With the check, both pass 15/15, so the smaller one ships.
+   Earlier benchmark, model alone (kinds right / readings verified / s per call): qwen2.5:0.5b 10/7/2.1, qwen3:0.6b 14/11/3.2, gemma3:1b 11/9/4.9, llama3.2:1b 14/14/4.0, qwen2.5:1.5b 14/11/4.2, qwen3:1.7b 14/14/5.1.
 5. **UI.** One local page, Python standard library only, beside the run. It shows the event, the affected records, the graph path, the decisions, the actions, and the audit trail.
 
 ## Step 3 — Specialists, coordinator, UI
@@ -100,9 +100,9 @@ What actually costs points, and what changed:
 
 - Action log (50%): a Sunday new ETA no longer drops the delay. Friday builds move to Monday. A transfer may land before the restart; that is Rule 3, not a bug. The stored 768-call log still matches the handbook checker (PROBLEMS 0). Classifications of the 15 events are unchanged.
 - Graph (20%): cited paths are drawn as SVG on the page. Ontology export is `tower/ontology.json` and `tower/ontology.mmd`. traces.json compacted 876 KB → 558 KB.
-- Efficiency (10%): written on the backend branch before it merged with the LLM reader. After the merge the tower reads with Qwen3 0.6B plus the rule check (see Step 5 above and `DESIGN_CARD.md`).
-- UX (10%): design card `DESIGN.md`, demo still of E-01 at `runs/screenshots/e01-compound.png`. Relative dates now use the event `received_at` day.
+- Efficiency (10%): written on the backend branch before it merged with the LLM reader. The shipped reader is Qwen2.5 0.5B plus the rule check (`DESIGN_CARD.md`).
+- UX (10%): design card `DESIGN_CARD.md`. Walkthrough stills are `runs/screenshots/01-event-arrives.png` through `04-audit-trail.png`. Relative dates use the event `received_at` day.
 
 ## Merge — LLM reader + backend branch
 
-The LLM reader (Qwen3 0.6B, rule check, retry with feedback, a reason on every incident) and the backend branch (gateway, event-day anchor, hearsay first, non-events, labeled ETAs, lot-only bulletins, transfer guard, path cap, overwrite guard) are combined. `quality.py` keeps holding every lot that overlaps an ambiguous window.
+The LLM reader (Qwen2.5 0.5B, rule check, retry with feedback, a reason on every incident) and the backend branch (gateway, event-day anchor, hearsay first, non-events, labeled ETAs, lot-only bulletins, transfer guard, path cap, overwrite guard) are combined. `quality.py` keeps holding every lot that overlaps an ambiguous window.

@@ -5,7 +5,7 @@ enterprise tools it may plan. The coordinator hands each specialist its incident
 planned call against that agent's tools before executing anything, and records each handoff in
 the event trace so the UI can show who did what.
 
-The understanding step (understand.py + llm_reader.py, Qwen3 with a rule check) is the
+The understanding step (understand.py + llm_reader.py, Qwen2.5 0.5B with a rule check) is the
 coordinator's own first step, not a specialist: the docx asks the system to "use an LLM to
 understand each event", and the coordinator owns that decision.
 """

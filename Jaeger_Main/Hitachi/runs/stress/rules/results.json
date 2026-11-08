@@ -2034,7 +2034,7 @@
       }
     ],
     "summary": "The message reports a quality hold on lot LOT-0243 at Wacky Wheels Huntsville (P_AL) for builds 2027-03-02 through 2027-03-03. Affected records: 194 quality records. The tower completed 1 lot hold, 31 stop-sales, and 115 customer notices.",
-    "seconds": 0.0
+    "seconds": 0.2
   },
   {
     "id": "S-054",
@@ -2431,7 +2431,7 @@
       }
     ],
     "summary": "\"The visitor gate by the entrance is stuck. Note 8\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
-    "seconds": 0.0
+    "seconds": 0.1
   },
   {
     "id": "S-067",
@@ -2896,7 +2896,7 @@
       }
     ],
     "summary": "The message reports a supplier delay of 60 kWh battery pack (BATT-60) from Lumen Cells (SUP-18) into Wacky Wheels Huntsville (P_AL) from 2027-03-22 until 2027-03-25 on shipment SH-0247. Affected records: 3 production orders and 26 customer orders. The tower completed 3 reschedules, 17 dealer notices, and 1 loaner assignment.",
-    "seconds": 0.0
+    "seconds": 0.1
   },
   {
     "id": "S-082",
@@ -3076,7 +3076,7 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels Huntsville (P_AL) from 2027-03-17 through 2027-03-19. Affected records: 9 production orders and 85 customer orders. The tower completed 9 reschedules, 32 dealer notices, and 24 loaner assignments.",
-    "seconds": 0.0
+    "seconds": 0.1
   },
   {
     "id": "S-087",
@@ -3148,7 +3148,7 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels Greensboro (P_NC) from 2027-03-11 through 2027-03-16. Affected records: 12 production orders and 108 customer orders. The tower completed 12 reschedules, 37 dealer notices, and 21 loaner assignments.",
-    "seconds": 0.0
+    "seconds": 0.1
   },
   {
     "id": "S-089",
@@ -4115,7 +4115,7 @@
       }
     ],
     "summary": "\"Volt says the heavy-duty wiring harness to the Texas plant. No delay expected. Original drop 2027-03-09, new ETA 2027-03-16. Note 2\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
-    "seconds": 0.0
+    "seconds": 0.1
   },
   {
     "id": "S-119",
@@ -4215,7 +4215,7 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels Huntsville (P_AL) from 2027-03-09 through 2027-03-11, a plant outage at Wacky Wheels Princeton (P_IN) from 2027-03-09 through 2027-03-11, a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-09 through 2027-03-11, a plant outage at Wacky Wheels Jackson (P_MS) from 2027-03-09 through 2027-03-11, a plant outage at Wacky Wheels Greensboro (P_NC) from 2027-03-09 through 2027-03-11, and a plant outage at Wacky Wheels San Antonio (P_TX) from 2027-03-09 through 2027-03-11. Affected records: 54 production orders and 485 customer orders. The tower completed 54 reschedules, 48 dealer notices, and 54 loaner assignments.",
-    "seconds": 0.0
+    "seconds": 0.1
   },
   {
     "id": "S-121",
@@ -4291,7 +4291,7 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels Huntsville (P_AL) from 2027-03-10 through 2027-03-12, a plant outage at Wacky Wheels Princeton (P_IN) from 2027-03-10 through 2027-03-12, a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-10 through 2027-03-12, a plant outage at Wacky Wheels Jackson (P_MS) from 2027-03-10 through 2027-03-12, a plant outage at Wacky Wheels Greensboro (P_NC) from 2027-03-10 through 2027-03-12, and a plant outage at Wacky Wheels San Antonio (P_TX) from 2027-03-10 through 2027-03-12. Affected records: 54 production orders and 482 customer orders. The tower completed 54 reschedules, 49 dealer notices, and 58 loaner assignments.",
-    "seconds": 0.0
+    "seconds": 0.1
   },
   {
     "id": "S-122",
@@ -4443,7 +4443,7 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels Huntsville (P_AL) from 2027-03-12 through 2027-03-16, a plant outage at Wacky Wheels Princeton (P_IN) from 2027-03-12 through 2027-03-16, a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-12 through 2027-03-16, a plant outage at Wacky Wheels Jackson (P_MS) from 2027-03-12 through 2027-03-16, a plant outage at Wacky Wheels Greensboro (P_NC) from 2027-03-12 through 2027-03-16, and a plant outage at Wacky Wheels San Antonio (P_TX) from 2027-03-12 through 2027-03-16. Affected records: 54 production orders and 485 customer orders. The tower completed 54 reschedules, 50 dealer notices, and 64 loaner assignments.",
-    "seconds": 0.0
+    "seconds": 0.1
   },
   {
     "id": "S-124",
@@ -4519,7 +4519,7 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels Huntsville (P_AL) from 2027-03-15 through 2027-03-17, a plant outage at Wacky Wheels Princeton (P_IN) from 2027-03-15 through 2027-03-17, a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-15 through 2027-03-17, a plant outage at Wacky Wheels Jackson (P_MS) from 2027-03-15 through 2027-03-17, a plant outage at Wacky Wheels Greensboro (P_NC) from 2027-03-15 through 2027-03-17, and a plant outage at Wacky Wheels San Antonio (P_TX) from 2027-03-15 through 2027-03-17. Affected records: 54 production orders and 490 customer orders. The tower completed 54 reschedules, 50 dealer notices, and 65 loaner assignments.",
-    "seconds": 0.0
+    "seconds": 0.1
   },
   {
     "id": "S-125",
@@ -4595,7 +4595,7 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels Huntsville (P_AL) from 2027-03-16 through 2027-03-18, a plant outage at Wacky Wheels Princeton (P_IN) from 2027-03-16 through 2027-03-18, a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-16 through 2027-03-18, a plant outage at Wacky Wheels Jackson (P_MS) from 2027-03-16 through 2027-03-18, a plant outage at Wacky Wheels Greensboro (P_NC) from 2027-03-16 through 2027-03-18, and a plant outage at Wacky Wheels San Antonio (P_TX) from 2027-03-16 through 2027-03-18. Affected records: 54 production orders and 480 customer orders. The tower completed 54 reschedules, 48 dealer notices, and 65 loaner assignments.",
-    "seconds": 0.0
+    "seconds": 0.1
   },
   {
     "id": "S-126",
@@ -4671,7 +4671,7 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels Huntsville (P_AL) from 2027-03-17 through 2027-03-19, a plant outage at Wacky Wheels Princeton (P_IN) from 2027-03-17 through 2027-03-19, a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-17 through 2027-03-19, a plant outage at Wacky Wheels Jackson (P_MS) from 2027-03-17 through 2027-03-19, a plant outage at Wacky Wheels Greensboro (P_NC) from 2027-03-17 through 2027-03-19, and a plant outage at Wacky Wheels San Antonio (P_TX) from 2027-03-17 through 2027-03-19. Affected records: 54 production orders and 491 customer orders. The tower completed 54 reschedules, 48 dealer notices, and 66 loaner assignments.",
-    "seconds": 0.0
+    "seconds": 0.1
   },
   {
     "id": "S-127",

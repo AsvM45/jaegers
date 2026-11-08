@@ -22,6 +22,7 @@ Listens on http://127.0.0.1:8080
     GET /api/ontology.mmd      the ontology as a Mermaid diagram (tower/ontology.mmd)
     GET /api/agents            the coordinator and the three specialist agents (role, tools, rules)
     GET /api/test_reports      expected vs actual outcome for every test case, per reader
+    GET /api/revision          a token that changes when the run or the saved results change
     GET /api/knowledge_graph?view=network|schema|event&event=E-01[&run=given/rules]
                                {nodes, links} for the orb graph
     GET /orb/...               the orb graph viewer (orb-graph/public), embedded on the Ontology page
@@ -78,6 +79,10 @@ RELATIONSHIPS = [
 
 _ontology = None
 _ontology_lock = threading.Lock()
+
+
+class NotFound(Exception):
+    """The URL named something this server does not have. That is a 404, not a failed read."""
 
 
 class TowerServer(ThreadingHTTPServer):
@@ -161,7 +166,7 @@ def knowledge_payload(query):
             suite, _, reader = run.partition("/")
             parent = os.path.join(HITACHI, "runs", SUITE_RUNS.get(suite, ""))
             if suite not in SUITE_RUNS or not os.path.isdir(parent) or reader not in os.listdir(parent):
-                raise FileNotFoundError(f"no test run {run}")
+                raise NotFound(f"no test run {run}")
             traces = os.path.join(parent, reader, "traces.json")
         return knowledge.event(traces, event_id)
     return knowledge.network()
@@ -175,12 +180,24 @@ def logs_payload(name: str | None):
     files = sorted((f for f in os.listdir(LOG_DIR) if f.endswith(".log")), reverse=True) if os.path.isdir(LOG_DIR) else []
     if name:
         if name not in files:
-            raise FileNotFoundError(name)
+            raise NotFound(name)
         with open(os.path.join(LOG_DIR, name), encoding="utf-8", errors="replace") as handle:
             return {"name": name, "text": handle.read()[-400_000:]}
     return [{"name": f, "size": os.path.getsize(os.path.join(LOG_DIR, f)),
              "updated": time.strftime("%Y-%m-%d %H:%M", time.localtime(os.path.getmtime(os.path.join(LOG_DIR, f))))}
             for f in files]
+
+
+def revision_payload():
+    """Changes when the run files or any saved test result change. Stat calls only, no report build."""
+    from tower.ui import reports
+
+    stamps = [reports.revision()]
+    for path in (TRACES, LOG, OUTBOX, EVENTS, ONTOLOGY_JSON):
+        if os.path.isfile(path):
+            st = os.stat(path)
+            stamps.append(f"{os.path.basename(path)}:{st.st_mtime_ns}:{st.st_size}")
+    return {"rev": "|".join(stamps)}
 
 
 def channels_payload():
@@ -251,6 +268,10 @@ class Handler(BaseHTTPRequestHandler):
                 from tower.ui import reports
 
                 return self._json(reports.payload())
+            if path == "/api/revision":
+                return self._json(revision_payload())
+        except NotFound as exc:
+            return self._json({"error": "not found", "detail": str(exc)}, 404)
         except FileNotFoundError as exc:
             return self._json({"error": "missing file", "detail": str(exc)}, 500)
         except json.JSONDecodeError as exc:

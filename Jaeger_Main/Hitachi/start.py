@@ -10,7 +10,7 @@
 
 Works from any directory. Steps, in order:
 
-    1. Check for Ollama and the reader model (TOWER_LLM_MODEL, default qwen3:0.6b). If it is not
+    1. Check for Ollama and the reader model (TOWER_LLM_MODEL, default qwen2.5:0.5b). If it is not
        running or the model is not pulled, every step uses the rule reader instead, so the reports
        never show rule-reader results under an LLM name.
     2. python -m tower.run --notify dry-run --overwrite  -> runs/run1/  (Overview, Event feed)
@@ -41,7 +41,7 @@ HITACHI = os.path.dirname(os.path.abspath(__file__))
 if HITACHI not in sys.path:
     sys.path.insert(0, HITACHI)
 
-MODEL = os.environ.get("TOWER_LLM_MODEL", "qwen3:0.6b")
+MODEL = os.environ.get("TOWER_LLM_MODEL", "qwen2.5:0.5b")
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434").rstrip("/")
 
 

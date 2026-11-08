@@ -45,7 +45,7 @@ const RUN = {
     { c: "python start.py --serve-only", d: "Just open the dashboard on the results already on disk." },
   ],
   steps: [
-    { c: "ollama pull qwen3:0.6b && ollama serve", d: "Optional: the local LLM reader. Pick another with TOWER_LLM_MODEL." },
+    { c: "ollama pull qwen2.5:0.5b && ollama serve", d: "Optional: the local LLM reader, the smallest that passes the 15 events. Pick another with TOWER_LLM_MODEL." },
     { c: "python -m tower.run --notify dry-run", d: "Run the tower on the 15 events (writes runs/run1/)." },
     { c: "python tests/run_given.py", d: "Grade the 15 given events." },
     { c: "python tests/run_cases.py", d: "Run the 100 generated cases (--reader rules | llm | both)." },
@@ -118,7 +118,7 @@ export default function Guide() {
             <div className="flow-head"><span className="badge-ico"><Icon name="bolt" /></span><b>Tips</b></div>
             <ul>
               <li>Press <kbd>/</kbd> to search events or test cases; <kbd>Esc</kbd> clears it.</li>
-              <li>The live chip shows the reader and how fresh the data is.</li>
+              <li>The live chip shows the reader and when this page last loaded. It reloads on its own when the run or the test results change.</li>
               <li>On a test set, <b>Delete run</b> removes that result for good (it asks first).</li>
               {d.model && <li>This run was read by <b>{d.model}</b> with the rule check.</li>}
             </ul>

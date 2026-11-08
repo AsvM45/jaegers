@@ -1,6 +1,6 @@
 """How good is the model itself? Score the LLM reader alone against the expected graphs.
 
-    python tests/run_model.py                                  # qwen3:0.6b on held-out + given
+    python tests/run_model.py                                  # qwen2.5:0.5b on held-out + given
     TOWER_LLM_MODEL=qwen3:1.7b python tests/run_model.py       # another model
     python tests/run_model.py --suite holdout --limit 10       # a quick look
 

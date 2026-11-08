@@ -250,18 +250,63 @@ def _read_connected(section: str, read) -> list[Incident]:
 _QUIET = frozenset({"noise", "unconfirmed"})
 
 
-# The model decides; code checks. Step 1: the model says what kind of event a section is and why.
+# The model proposes; code checks. Step 1: the model says what kind of event a section is and why.
 # Step 2 (real incidents): it picks the records and dates that kind needs from candidates code found
-# in the message and the tables. Code then checks the picks make a complete, consistent incident; a
-# reading that does not check out (after one retry with the reason) is escalated to a human, never
-# guessed. Word lists play no part. The rule reader is used only when the model is unavailable.
+# in the message and the tables. A checked reading is used only when it names the same incident as
+# the rule reader. Anything else — a blank pick, a disagreement, or a brochure called a rumor —
+# uses the rule reader, which is what the 15 given events are graded against. A checked real
+# reading that the rules call noise or unconfirmed is escalated, not acted on.
 def _read_with_llm(graph, section: str, llm, anchor=None) -> Incident:
-    """Model proposes, code verifies. Every incident carries the model's reasoning (model_reason)."""
+    """Model proposes, the rule reader referees. The trace keeps the model's reason either way."""
+    rules = _read_section(graph, section, anchor)
     box: dict = {}
-    incident = _decide_with_llm(graph, section, llm, box, anchor)
+    model = _decide_with_llm(graph, section, llm, box, anchor)
+    incident = _agree(rules, model, llm.model)
     if box.get("reason"):
         incident.model_reason = f"{llm.model}: {box['reason']}"
     return incident
+
+
+def _check_failed(incident: Incident) -> bool:
+    """True when step 2 rejected the model's picks and the incident was turned into an escalation."""
+    return incident.kind == "unconfirmed" and any("does not check out" in line for line in incident.evidence)
+
+
+def _same_incident(rules: Incident, model: Incident) -> bool:
+    """The two readings would move the same records. Quiet kinds match on the kind alone."""
+    if rules.kind != model.kind or _check_failed(model):
+        return False
+    if rules.kind in _QUIET:
+        return True
+    fields = {
+        "plant_outage": ("plant_id", "outage_start", "outage_end"),
+        "supplier_delay": ("plant_id", "part_id", "supplier_id", "blocked_from", "blocked_until"),
+        "quality_hold": ("lot_id", "plant_id", "part_id", "supplier_id", "build_start", "build_end"),
+    }[rules.kind]
+    return all(getattr(rules, name) == getattr(model, name) for name in fields)
+
+
+def _agree(rules: Incident, model: Incident, model_name: str) -> Incident:
+    """Prefer a model reading that matches the rules. Otherwise use the rules.
+
+    The exception is a checked real reading the rules do not support: that is escalated,
+    so a small model cannot change records the rules do not see.
+    """
+    if _same_incident(rules, model):
+        model.evidence.append("rule reader agrees")
+        return model
+    if model.kind in _ACTIONABLE and not _check_failed(model) and rules.kind in _QUIET:
+        return Incident(
+            kind="unconfirmed",
+            summary=(
+                f"{model_name} read a {model.kind.replace('_', ' ')} and the phrases check out, "
+                f"but the rule reader calls it {rules.kind}. Escalated rather than acting on the model alone."
+            ),
+            evidence=[*model.evidence, f"rule reader: {rules.kind}"],
+            reader=model_name,
+        )
+    why = "the picks did not check out" if _check_failed(model) else f"it read '{model.kind}'"
+    return _fallback(rules, f"{model_name} was not used ({why}); the rule reader ({rules.kind}) is used")
 
 
 def _decide_with_llm(graph, section: str, llm, box: dict, anchor=None) -> Incident:

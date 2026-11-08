@@ -134,7 +134,9 @@ function EventDetail({ t }) {
           ))}</tbody>
         </table></div>
         {notes.length > 40 && <p className="note">{notes.length - 40} more in outbox.jsonl.</p>}
-      </> : <p className="note">No channel messages. Run the tower with <Mono>--notify dry-run</Mono> to see what Slack, Teams and email would get.</p>}
+      </> : <p className="note">{d.outbox.length
+        ? "No channel messages for this event."
+        : <>No channel messages. Run the tower with <Mono>--notify dry-run</Mono> to see what Slack, Teams and email would get.</>}</p>}
 
     </>
   );

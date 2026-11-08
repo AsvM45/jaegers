@@ -3748,7 +3748,7 @@
       }
     ],
     "summary": "The message reports a quality hold on lot LOT-0099 at Wacky Wheels Lexington (P_KY) for builds 2027-03-02 through 2027-03-03 and an unconfirmed report that is not safe to act on. Affected records: 121 quality records. The tower completed 1 lot hold, 30 stop-sales, and 61 customer notices.",
-    "seconds": 0.0
+    "seconds": 0.1
   },
   {
     "id": "H-106",

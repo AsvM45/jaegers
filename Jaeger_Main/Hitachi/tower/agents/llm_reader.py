@@ -1,4 +1,4 @@
-"""Small local LLM event reader (default Qwen3 0.6B), served by Ollama.
+"""Small local LLM event reader (default Qwen2.5 0.5B), served by Ollama.
 
 The model reads one message section and returns its incident kind plus the
 exact phrases that name the plant, part, supplier, lot, shipment, and the two
@@ -6,7 +6,7 @@ dates. It never returns ids or computed dates: plain code resolves the
 phrases through aliases.csv and the working-day calendar, and rejects any
 phrase that does not appear verbatim in the text.
 
-Setup:  ollama pull qwen3:0.6b   (Ollama must be running on localhost:11434)
+Setup:  ollama pull qwen2.5:0.5b   (Ollama must be running on localhost:11434)
 """
 
 from __future__ import annotations
@@ -16,10 +16,10 @@ import os
 import urllib.error
 import urllib.request
 
-# Qwen3 0.6B (752M parameters, 4-bit, 522 MB): the smallest model that gets 14/16 incident kinds
-# right, at ~3 s per call. Bigger models (Llama 3.2 1B, Qwen3 1.7B) pass more readings but give
-# the same actions, because code verifies every reading. Override with TOWER_LLM_MODEL.
-MODEL = os.environ.get("TOWER_LLM_MODEL", "qwen3:0.6b")
+# Qwen2.5 0.5B (494M parameters, 397 MB on disk): the smallest model that still passes the 15
+# given events. On its own it fills few fields, so a checked reading is used only when it matches
+# the rule reader; otherwise the rules decide. Override with TOWER_LLM_MODEL.
+MODEL = os.environ.get("TOWER_LLM_MODEL", "qwen2.5:0.5b")
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 
 KINDS = ("supplier_delay", "plant_outage", "quality_hold", "unconfirmed", "noise")
