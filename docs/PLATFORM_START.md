@@ -20,17 +20,17 @@
 - Consume versioned read-only trial schema from #8; empty registry shows **no runs yet**, synthetic fixtures visibly labeled.
 - No Databricks billable resources until permission and no cloud runtime dependency in final predictor.
 
-## C — Claude Code (issues #3 #2 #7, already claimed)
+## C — Claude Code (issues #3 #2 #7 #17 #9, already claimed; #9 PR #28)
 
 - `CLAUDE.md` imports root AGENTS; nested House Edge AGENTS applies. `.claude/skills/` contains relevant skills.
 - Existing PRs #19/#20/#21 and claimed worktrees take precedence. **Review or finish these**, do not create duplicate issue implementation.
 - Scope: fresh audit, QA and additive extension files; original `jaegers_entry` and existing A `research/*.py` read-only. Hand off source-level findings with uncertainty.
 
-## D — Grok Build (issue #9, later #12 #15)
+## D — Grok Build (issue #15, later #12 if unclaimed)
 
 - Official Grok Build documentation confirms **automatic support for root/nested AGENTS.md, CLAUDE.md and Claude Code instructions/skills**, so no duplicated conflicting core policy is needed; project-specific Grok skills may live in `.grok/skills/` if useful, but keep canonical text in repo docs.
-- Use `docs/GROK_START.md`. Claim **#9 only** before starting. Implement novel Bayesian/Dirichlet/transition models in unique `research/challengers/stat_*.py` files; never rewrite the shared `research/models.py`.
-- Grok should produce valid five-class distributions with tested as-of features and real grouped comparisons, not speculative novelty. After #9 review, may request #12/#15 if unclaimed; **Claude has claimed #17** and proposed [PR #22](https://github.com/AsvM45/jaegers/pull/22), so do not duplicate.
+- Use `docs/GROK_START.md`. Claim **#15 only** before starting; run distinct state-space/HMM/changepoint/temporal probability studies in unique `research/challengers/stat_temporal_*.py` and own tests. Claude already owns #9 with PR #28; do not duplicate its Dirichlet/Markov/decay models or rewrite shared `research/models.py`.
+- Grok should produce valid five-class distributions with tested as-of features and real grouped comparisons, not speculative novelty. After #15 review, may request #12 if unclaimed; **Claude has claimed #9 and #17** and proposed [PR #22](https://github.com/AsvM45/jaegers/pull/22), so do not duplicate.
 
 ## E — Cursor (issue #16, later #10/#11)
 
