@@ -1,0 +1,30 @@
+name: house-edge-ci
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "Jaeger_Main/House_Edge/**"
+      - ".github/workflows/house-edge-ci.yml"
+  pull_request:
+    paths:
+      - "Jaeger_Main/House_Edge/**"
+      - ".github/workflows/house-edge-ci.yml"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Jaeger_Main/House_Edge
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install pinned House Edge dependencies
+        run: python -m pip install -r requirements-research.txt
+      - name: Scorer, feature, and temporal checks
+        run: python -m pytest tests/test_release_smoke.py tests/test_temporal.py -q
+      - name: Local smoke command
+        run: python scripts/smoke_release.py --self-test
