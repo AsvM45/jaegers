@@ -104,13 +104,6 @@
   .entering .chart .bar { animation: grow 0.6s cubic-bezier(.2, .8, .2, 1) both; }
   @keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
   [hidden] { display: none !important; }
-  /* The network fades out toward the left, so the card's text always sits on a clean background. */
-  .hero-canvas { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 1.2s ease;
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 30%, #000 72%);
-            mask-image: linear-gradient(to right, transparent 0%, transparent 30%, #000 72%); }
-  .hero-canvas.on { opacity: 1; }
-  .hero > * { position: relative; }
-  .hero > .hero-canvas { position: absolute; }
   @media (prefers-reduced-motion: reduce) {
     .entering .card, .entering .draw, .entering .chart .bar, .pulse::after { animation: none !important; }
     .card { transition: none; }
@@ -714,7 +707,6 @@ function route() {
   } else {
     view.classList.remove("entering");
   }
-  if (p === "overview") window.mountHero?.(view.querySelector(".hero"));
 }
 // Numbers marked data-count rise from 0 to their value over ~0.8 s.
 function countUp(root) {
@@ -1542,163 +1534,6 @@ function renderGuide(view) {
 
 paintIcons();
 load();
-</script>
-<script type="module">
-// Overview hero: a small, slowly turning 3D network (nodes, links, and pulses travelling along
-// them), echoing the knowledge graph. three.js is the copy the orb graph already serves, so
-// nothing loads from the internet. It pauses when the tab is hidden or the card is off screen,
-// and draws one still frame for prefers-reduced-motion.
-import * as THREE from "/orb/vendor/three/three.module.js";
-
-const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const COLORS = [0x3987e5, 0x6c63ff, 0x2fd8ff, 0x9b7bff, 0x5cff9d];
-let renderer, scene, camera, group, canvas, host, resizeObs, seenObs, pulses = [], edges = [], running = false, onScreen = true;
-const mouse = { x: 0, y: 0 };
-
-function glow() {
-  const c = document.createElement("canvas"); c.width = c.height = 64;
-  const g = c.getContext("2d"), r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-  r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(0.25, "rgba(255,255,255,.75)");
-  r.addColorStop(0.6, "rgba(255,255,255,.12)"); r.addColorStop(1, "rgba(255,255,255,0)");
-  g.fillStyle = r; g.fillRect(0, 0, 64, 64);
-  return new THREE.CanvasTexture(c);
-}
-
-function build() {
-  canvas = document.createElement("canvas");
-  canvas.className = "hero-canvas";
-  canvas.setAttribute("aria-hidden", "true");
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-  camera.position.set(0, 0, 9);
-  group = new THREE.Group();
-  scene.add(group);
-
-  // Nodes: a Fibonacci sphere with a little jitter, fixed seed so it looks the same every load.
-  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const N = 70, pts = [];
-  for (let i = 0; i < N; i++) {
-    const y = 1 - (i / (N - 1)) * 2, r = Math.sqrt(1 - y * y), th = i * 2.399963;
-    const rad = 2.6 + (rnd() - 0.5) * 0.7;
-    pts.push(new THREE.Vector3(Math.cos(th) * r * rad, y * rad, Math.sin(th) * r * rad));
-  }
-  const pos = new Float32Array(N * 3), col = new Float32Array(N * 3), size = new Float32Array(N);
-  const c = new THREE.Color();
-  pts.forEach((p, i) => {
-    p.toArray(pos, i * 3);
-    c.setHex(COLORS[i % COLORS.length]).toArray(col, i * 3);
-    size[i] = i % 9 === 0 ? 0.55 : 0.28;
-  });
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-  geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
-  group.add(new THREE.Points(geo, new THREE.PointsMaterial({
-    size: 0.42, map: glow(), vertexColors: true, transparent: true, depthWrite: false,
-    blending: THREE.AdditiveBlending, opacity: 0.95,
-  })));
-
-  // Links: each node to its two nearest neighbours.
-  const seen = new Set(), lp = [];
-  pts.forEach((p, i) => {
-    pts.map((q, j) => [p.distanceToSquared(q), j]).filter(([, j]) => j !== i).sort((a, b) => a[0] - b[0]).slice(0, 2)
-      .forEach(([, j]) => {
-        const k = i < j ? `${i}-${j}` : `${j}-${i}`;
-        if (seen.has(k)) return;
-        seen.add(k); edges.push([i, j]);
-        lp.push(p.x, p.y, p.z, pts[j].x, pts[j].y, pts[j].z);
-      });
-  });
-  const lg = new THREE.BufferGeometry();
-  lg.setAttribute("position", new THREE.Float32BufferAttribute(lp, 3));
-  group.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({
-    color: 0x5a7dff, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false,
-  })));
-
-  // Pulses: bright points travelling along random links, like messages moving through the tower.
-  const pg = new THREE.BufferGeometry(), pp = new Float32Array(8 * 3);
-  pg.setAttribute("position", new THREE.BufferAttribute(pp, 3));
-  const pulseMesh = new THREE.Points(pg, new THREE.PointsMaterial({
-    size: 0.5, map: glow(), color: 0xbfe3ff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-  }));
-  group.add(pulseMesh);
-  for (let i = 0; i < 8; i++) pulses.push({ e: edges[Math.floor(rnd() * edges.length)], t: rnd(), v: 0.25 + rnd() * 0.35 });
-  group.userData = { pts, pg, rnd };
-
-  window.addEventListener("pointermove", (e) => {
-    mouse.x = (e.clientX / innerWidth) * 2 - 1;
-    mouse.y = (e.clientY / innerHeight) * 2 - 1;
-  }, { passive: true });
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) start(); });
-  resizeObs = new ResizeObserver(fit);
-  seenObs = new IntersectionObserver(([entry]) => { onScreen = entry.isIntersecting; if (onScreen) start(); });
-}
-
-function fit() {
-  if (!host) return;
-  const w = host.clientWidth, h = host.clientHeight;
-  if (!w || !h) return;
-  renderer.setSize(w, h, false);
-  canvas.style.width = `${w}px`; canvas.style.height = `${h}px`;
-  camera.aspect = w / h; camera.updateProjectionMatrix();
-  // Sit in the right part of the card, partly past its edge, clear of the text on the left.
-  const halfWidth = Math.tan((camera.fov * Math.PI) / 360) * camera.position.z * camera.aspect;
-  group.position.x = halfWidth * 0.62;
-  group.scale.setScalar(Math.min(1.05, Math.max(0.75, h / 340)));
-  draw(performance.now());
-}
-
-let last = 0;
-function draw(now) {
-  const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
-  const { pts, pg } = group.userData;
-  group.rotation.y += dt * 0.12;
-  group.rotation.x += ((mouse.y * 0.25) - group.rotation.x) * 0.03;
-  group.rotation.z += ((-mouse.x * 0.12) - group.rotation.z) * 0.03;
-  const arr = pg.attributes.position.array;
-  pulses.forEach((p, i) => {
-    p.t += dt * p.v;
-    if (p.t > 1) { p.t = 0; p.e = edges[Math.floor(group.userData.rnd() * edges.length)]; }
-    const a = pts[p.e[0]], b = pts[p.e[1]];
-    arr[i * 3] = a.x + (b.x - a.x) * p.t; arr[i * 3 + 1] = a.y + (b.y - a.y) * p.t; arr[i * 3 + 2] = a.z + (b.z - a.z) * p.t;
-  });
-  pg.attributes.position.needsUpdate = true;
-  renderer.render(scene, camera);
-}
-
-function loop(now) {
-  if (!running) return;
-  if (document.hidden || !onScreen || !host?.isConnected) { running = false; return; }
-  draw(now);
-  requestAnimationFrame(loop);
-}
-function start() {
-  if (reduce || running || !host?.isConnected) return;
-  running = true; last = performance.now();
-  requestAnimationFrame(loop);
-}
-
-// Called by the dashboard each time the Overview renders (its hero card is new each time).
-window.mountHero = (el) => {
-  if (!el) return;
-  try {
-    if (!renderer) build();
-  } catch (err) {   // no WebGL: the card keeps its plain gradient
-    console.warn("hero network disabled:", err);
-    window.mountHero = () => {};
-    return;
-  }
-  if (host) { resizeObs.unobserve(host); seenObs.unobserve(host); }
-  host = el;
-  host.prepend(canvas);
-  resizeObs.observe(host); seenObs.observe(host);
-  fit();
-  requestAnimationFrame(() => canvas.classList.add("on"));
-  start();
-};
-// The Overview may already be on screen when this module finishes loading.
-window.mountHero(document.querySelector(".hero"));
 </script>
 </body>
 </html>

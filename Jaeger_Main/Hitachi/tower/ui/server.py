@@ -7,7 +7,8 @@ From the Hitachi directory:
 
 Listens on http://127.0.0.1:8080
 
-    GET /                     the dashboard (dashboard.html)
+    GET /                     the dashboard (the React build in tower/ui/dist; dashboard.html if not built)
+    GET /assets/...           the React build's scripts and styles
     GET /api/events
     GET /api/ontology
     GET /api/traces
@@ -44,13 +45,15 @@ if HITACHI not in sys.path:
     sys.path.insert(0, HITACHI)
 
 DASHBOARD = os.path.join(HERE, "dashboard.html")
+# The React dashboard (tower/ui/web), built with `npm run build` into tower/ui/dist.
+DIST = os.path.join(HERE, "dist")
 ONTOLOGY_JSON = os.path.join(HITACHI, "runs", "ontology", "ontology.json")
 ORB_ROOT = os.path.join(HITACHI, "orb-graph", "public")
 ONTOLOGY_MMD = os.path.join(HITACHI, "tower", "ontology.mmd")
 STATIC_TYPES = {
     ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
     ".css": "text/css; charset=utf-8", ".json": "application/json", ".svg": "image/svg+xml",
-    ".png": "image/png", ".md": "text/markdown; charset=utf-8",
+    ".png": "image/png", ".ico": "image/x-icon", ".woff2": "font/woff2", ".md": "text/markdown; charset=utf-8",
 }
 # Test-suite run folders the knowledge graph may read traces from (suite id -> runs/ subfolder).
 SUITE_RUNS = {"given": "given", "generated": "tests", "holdout": "holdout", "holdout2": "holdout2"}
@@ -203,7 +206,10 @@ class Handler(BaseHTTPRequestHandler):
             path = path.rstrip("/") or "/"
         try:
             if path == "/":
-                return self._file(DASHBOARD, "text/html; charset=utf-8")
+                built = os.path.join(DIST, "index.html")
+                return self._file(built if os.path.isfile(built) else DASHBOARD, "text/html; charset=utf-8")
+            if split.path.startswith("/assets/"):
+                return self._static(os.path.join(DIST, "assets"), urllib.parse.unquote(split.path[len("/assets/"):]))
             if split.path == "/orb":
                 return self._redirect("/orb/")
             if split.path.startswith("/orb/"):
