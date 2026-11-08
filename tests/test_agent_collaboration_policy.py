@@ -39,4 +39,50 @@ class CollaborationTests(unittest.TestCase):
             self.event["pull_request"]["number"]=number
             self.assertEqual(check(self.event,self.paths,[],{}),[])
 
+
+    def test_merged_pr_head_reused(self):
+        self.event["pull_request"]["head"]["sha"] = "abc123"
+        merged = [{"number": 52, "merged_at": "2026-11-08T00:00:00Z",
+                   "head": {"sha": "abc123"}}]
+        errors = check(self.event, self.paths, self.comments, {}, merged_prs=merged)
+        self.assertTrue(any("already integrated" in x for x in errors))
+
+    def test_not_a_duplicate_if_different_head(self):
+        self.event["pull_request"]["head"]["sha"] = "new-unique"
+        merged = [{"number": 52, "merged_at": "2026-11-08T00:00:00Z",
+                   "head": {"sha": "old-unique"}}]
+        self.assertEqual(check(self.event, self.paths, self.comments, {},
+                               merged_prs=merged), [])
+
+    def test_ancestor_branch_rejected(self):
+        errors = check(self.event, self.paths, self.comments, {}, head_ancestor=True)
+        self.assertTrue(any("ancestor" in x for x in errors))
+
+    def test_claim_example_not_live(self):
+        example = [{"body": "Quoted example: `" + self.comments[0]["body"] + "`"}]
+        self.assertIsNone(latest_claim(example, self.branch))
+        self.assertTrue(any("Missing named" in x for x in
+                            check(self.event, self.paths, example, {})))
+
+    def test_handoff_then_new_claim(self):
+        comments = self.comments + [
+            {"body": "<!-- jaegers-handoff:v1 branch=" + self.branch + " -->"},
+            {"body": self.comments[0]["body"]},
+        ]
+        self.assertIsNotNone(latest_claim(comments, self.branch))
+        self.assertEqual(check(self.event, self.paths, comments, {}), [])
+
+    def test_multiple_issue_lines_rejected(self):
+        self.event["pull_request"]["body"] = self.body + "Issue: #65\n"
+        errors = check(self.event, self.paths, self.comments, {})
+        self.assertTrue(any("Exactly one" in x for x in errors))
+
+    def test_protected_source_from_wrong_agent(self):
+        self.event["pull_request"]["body"] = self.body.replace("Agent-ID: governance",
+                                                              "Agent-ID: rogue")
+        self.event["pull_request"]["head"]["ref"] = self.branch
+        protected = ["Jaeger_Main/House_Edge/jaegers_entry/jaeger_model.py"]
+        errors = check(self.event, protected, self.comments, {})
+        self.assertTrue(any("require release integrator" in x for x in errors))
+
 if __name__ == "__main__": unittest.main()
