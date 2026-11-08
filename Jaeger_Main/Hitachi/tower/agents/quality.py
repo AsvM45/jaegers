@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import date
 
 from tower.contracts import Incident, SpecialistResult, ToolCall
-from tower.graph import WorldGraph
+from tower.graph import PATH_KEEP, WorldGraph
 
 
 def plan_quality(graph: WorldGraph, incidents: list[Incident]) -> SpecialistResult:
@@ -27,17 +27,26 @@ def plan_quality(graph: WorldGraph, incidents: list[Incident]) -> SpecialistResu
             notes.append(selection)
             continue
 
-        vehicles = sorted(
-            graph.affected_vehicles(
-                lot["plant_id"],
-                lot["part_id"],
-                lot["first_build_date"],
-                lot["last_build_date"],
-            ),
-            key=lambda vehicle: vehicle["vin"],
+        vehicles = graph.affected_vehicles(
+            lot["plant_id"],
+            lot["part_id"],
+            lot["first_build_date"],
+            lot["last_build_date"],
         )
-        sold = sum(vehicle["status"] == "sold" for vehicle in vehicles)
-        in_stock = sum(vehicle["status"] == "in_stock" for vehicle in vehicles)
+        sold = 0
+        in_stock = 0
+        stock_vins: dict[str, list[str]] = {}
+        sold_customers: set[str] = set()
+        for vehicle in vehicles:
+            status = vehicle["status"]
+            if status == "sold":
+                sold += 1
+                customer_id = vehicle.get("customer_id")
+                if customer_id:
+                    sold_customers.add(customer_id)
+            elif status == "in_stock":
+                in_stock += 1
+                stock_vins.setdefault(vehicle["dealer_id"], []).append(vehicle["vin"])
         notes.append(f"{selection} {sold} sold, {in_stock} in stock.")
 
         calls.append(
@@ -47,12 +56,18 @@ def plan_quality(graph: WorldGraph, incidents: list[Incident]) -> SpecialistResu
                 reason=f"Place lot {lot['lot_id']} on quality hold.",
             )
         )
-        calls.extend(_stop_sale_calls(lot, vehicles))
-        calls.extend(_notify_calls(graph, lot, vehicles))
+        calls.extend(_stop_sale_calls(lot, stock_vins))
+        calls.extend(_notify_calls(graph, lot, sold_customers))
 
         affected_ids.append(lot["lot_id"])
         affected_ids.extend(vehicle["vin"] for vehicle in vehicles)
-        graph_paths.extend(graph.quality_paths(lot, vehicles))
+        stored, total = graph.quality_paths(lot, vehicles, limit=PATH_KEEP)
+        graph_paths.extend(stored)
+        if total > len(stored):
+            notes.append(
+                f"Stored {len(stored)} graph paths for lot {lot['lot_id']}. "
+                f"{total - len(stored)} further vehicle paths follow the same links and were not stored."
+            )
 
     return SpecialistResult(
         agent="quality",
@@ -134,14 +149,14 @@ def _tie_break(pool: list[dict], incident: Incident) -> tuple[dict, str]:
     if incident.build_start and incident.build_end:
         build_start = incident.build_start
         build_end = incident.build_end
-        ranked = sorted(
-            pool,
-            key=lambda lot: (-_overlap_days(lot, build_start, build_end), lot["lot_id"]),
-        )
-        lot = ranked[0]
-        days = _overlap_days(lot, build_start, build_end)
+        scored = [
+            (_overlap_days(item, build_start, build_end), item)
+            for item in pool
+        ]
+        scored.sort(key=lambda item: (-item[0], item[1]["lot_id"]))
+        days, lot = scored[0]
         day_word = "day" if days == 1 else "days"
-        tied = [item for item in ranked if _overlap_days(item, build_start, build_end) == days]
+        tied = [item for overlap, item in scored if overlap == days]
         if len(tied) > 1:
             detail = (
                 f"Tie-break among {listed}: {len(tied)} lots share the greatest inclusive overlap "
@@ -180,12 +195,7 @@ def _unmatched_note(incident: Incident) -> str:
     return f"No lot matched {target}. No hold was placed."
 
 
-def _stop_sale_calls(lot: dict, vehicles: list[dict]) -> list[ToolCall]:
-    by_dealer: dict[str, list[str]] = {}
-    for vehicle in vehicles:
-        if vehicle["status"] != "in_stock":
-            continue
-        by_dealer.setdefault(vehicle["dealer_id"], []).append(vehicle["vin"])
+def _stop_sale_calls(lot: dict, by_dealer: dict[str, list[str]]) -> list[ToolCall]:
     calls = []
     for dealer_id in sorted(by_dealer):
         vins = sorted(by_dealer[dealer_id])
@@ -202,19 +212,14 @@ def _stop_sale_calls(lot: dict, vehicles: list[dict]) -> list[ToolCall]:
     return calls
 
 
-def _notify_calls(graph: WorldGraph, lot: dict, vehicles: list[dict]) -> list[ToolCall]:
+def _notify_calls(graph: WorldGraph, lot: dict, customer_ids: set[str]) -> list[ToolCall]:
     part_name = graph.parts[lot["part_id"]]["name"]
     message = f"The {part_name} from lot {lot['lot_id']} is on quality hold."
-    customer_ids = sorted({
-        vehicle["customer_id"]
-        for vehicle in vehicles
-        if vehicle["status"] == "sold" and vehicle.get("customer_id")
-    })
     return [
         ToolCall(
             tool="crm.notify_customer",
             args={"customer_id": customer_id, "message": message},
             reason=f"Notify customer {customer_id} that lot {lot['lot_id']} is on quality hold.",
         )
-        for customer_id in customer_ids
+        for customer_id in sorted(customer_ids)
     ]

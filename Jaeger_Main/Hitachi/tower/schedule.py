@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from tower.calendar_util import LAST_IDX, date_to_idx, idx_to_date, next_working_day
+from tower.calendar_util import date_to_idx, idx_to_date, next_working_day
 from tower.graph import WorldGraph
 
 
@@ -26,7 +26,10 @@ class PlantSchedule:
             self.slots[(po["plant_id"], po["idx"])].add(po_id)
 
     def free_count(self, plant_id: str, idx: int) -> int:
-        return self.capacity[plant_id] - len(self.slots[(plant_id, idx)])
+        # A probe must not create an empty set for a day nobody has taken.
+        occupied = self.slots.get((plant_id, idx))
+        used = len(occupied) if occupied is not None else 0
+        return self.capacity[plant_id] - used
 
     def release(self, po_id: str) -> None:
         """Take an affected order off its current day so the slot can be reused."""
@@ -61,7 +64,3 @@ def restart_index(outage_end_iso: str) -> int:
     from datetime import date
 
     return date_to_idx(next_working_day(date.fromisoformat(outage_end_iso)))
-
-
-def window_indexes() -> range:
-    return range(0, LAST_IDX + 1)

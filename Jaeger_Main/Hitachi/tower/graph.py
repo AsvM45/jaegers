@@ -13,11 +13,16 @@ from __future__ import annotations
 import csv
 import os
 import re
+from bisect import bisect_left, bisect_right
 from collections import defaultdict
 from datetime import date
 
 from tower.calendar_util import date_to_idx
 from tower.contracts import Mention
+
+# One citation chain per customer order explodes on a wide outage. The trace
+# keeps this many paths; the rest follow the same links and are counted.
+PATH_KEEP = 32
 
 PACKAGE_DATA = os.path.join(
     os.path.dirname(__file__),
@@ -58,6 +63,30 @@ class WorldGraph:
             }
         self.customer_orders = {r["customer_order_id"]: r for r in _read(data_dir, "customer_orders.csv")}
         self.vehicles = {r["vin"]: r for r in _read(data_dir, "finished_vehicles.csv")}
+
+        # Future orders at a plant, sorted by build date, so a window is a slice.
+        self.future_by_plant: dict[str, list[dict]] = defaultdict(list)
+        for order in self.orders.values():
+            if order["idx"] >= 0:
+                self.future_by_plant[order["plant_id"]].append(order)
+        for rows in self.future_by_plant.values():
+            rows.sort(key=lambda order: (order["build_date"], order["production_order_id"]))
+
+        self.vehicles_by_plant: dict[str, list[dict]] = defaultdict(list)
+        for vehicle in self.vehicles.values():
+            self.vehicles_by_plant[vehicle["plant_id"]].append(vehicle)
+        for rows in self.vehicles_by_plant.values():
+            rows.sort(key=lambda vehicle: vehicle["build_date"])
+
+        self.shipments_by_route: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
+        for row in self.shipments.values():
+            self.shipments_by_route[(row["supplier_id"], row["part_id"], row["plant_id"])].append(row)
+        for rows in self.shipments_by_route.values():
+            rows.sort(key=lambda row: row["shipment_id"])
+
+        self.lots_by_part_plant: dict[tuple[str, str], list[dict]] = defaultdict(list)
+        for lot in self.lots.values():
+            self.lots_by_part_plant[(lot["part_id"], lot["plant_id"])].append(lot)
 
         self.models_by_part: dict[str, set[str]] = defaultdict(set)
         self.parts_by_model: dict[str, set[str]] = defaultdict(set)
@@ -105,6 +134,7 @@ class WorldGraph:
             r"(?<![A-Za-z0-9])(?:" + "|".join(pieces) + r")(?![A-Za-z0-9])",
             re.I,
         )
+        self._index_part_suffixes()
 
     def _add_alias(self, alias: str, entity_type: str, entity_id: str) -> None:
         key = alias.casefold()
@@ -120,11 +150,54 @@ class WorldGraph:
             key = row["alias"].casefold()
             self._alias_map[key] = (row["entity_type"], row["entity_id"])
 
+    def _index_part_suffixes(self) -> None:
+        """Whole-word tails of part aliases, at least two words, one part only.
+
+        "battery packs" is the tail of "60 kWh battery packs" and of no other
+        part, so it resolves. A tail shared by two parts, such as "wiring
+        harness", is left unresolved. The full alias is already in the exact map.
+        """
+        owners: dict[str, set[str]] = defaultdict(set)
+        for alias, (entity_type, entity_id) in self._alias_map.items():
+            if entity_type != "part":
+                continue
+            words = alias.split()
+            for length in range(2, len(words)):
+                suffix = " ".join(words[-length:])
+                if suffix in self._alias_map:
+                    continue
+                owners[suffix].add(entity_id)
+        self._part_suffixes = {
+            suffix: entity_id
+            for suffix, ids in owners.items()
+            if len(ids) == 1
+            for entity_id in ids
+        }
+        if not self._part_suffixes:
+            self._part_suffix_re = None
+            return
+        pieces = sorted((re.escape(suffix) for suffix in self._part_suffixes), key=len, reverse=True)
+        self._part_suffix_re = re.compile(
+            r"(?<![A-Za-z0-9])(?:" + "|".join(pieces) + r")(?![A-Za-z0-9])",
+            re.I,
+        )
+
     def resolve_mentions(self, text: str) -> list[Mention]:
         mentions = []
+        occupied: list[tuple[int, int]] = []
         for match in self._alias_re.finditer(text):
             entity_type, entity_id = self._alias_map[match.group(0).casefold()]
             mentions.append(Mention(match.group(0), entity_type, entity_id, match.start(), match.end()))
+            occupied.append((match.start(), match.end()))
+        if self._part_suffix_re is not None:
+            for match in self._part_suffix_re.finditer(text):
+                span = (match.start(), match.end())
+                if any(span[0] < stop and start < span[1] for start, stop in occupied):
+                    continue
+                entity_id = self._part_suffixes[match.group(0).casefold()]
+                mentions.append(Mention(match.group(0), "part", entity_id, match.start(), match.end()))
+                occupied.append(span)
+        mentions.sort(key=lambda item: (item.start, item.end))
         return mentions
 
     def plants_for_model(self, model: str) -> list[str]:
@@ -141,8 +214,12 @@ class WorldGraph:
         if shipment_id:
             row = self.shipments.get(shipment_id)
             return [row] if row else []
+        if supplier_id and part_id and plant_id:
+            rows = self.shipments_by_route.get((supplier_id, part_id, plant_id), ())
+        else:
+            rows = self.shipments.values()
         hits = []
-        for row in self.shipments.values():
+        for row in rows:
             if supplier_id and row["supplier_id"] != supplier_id:
                 continue
             if part_id and row["part_id"] != part_id:
@@ -167,8 +244,12 @@ class WorldGraph:
         if lot_id:
             row = self.lots.get(lot_id)
             return [row] if row else []
+        if part_id and plant_id:
+            rows = self.lots_by_part_plant.get((part_id, plant_id), ())
+        else:
+            rows = self.lots.values()
         hits = []
-        for row in self.lots.values():
+        for row in rows:
             if supplier_id and row["supplier_id"] != supplier_id:
                 continue
             if part_id and row["part_id"] != part_id:
@@ -190,37 +271,38 @@ class WorldGraph:
         """
         models = self.models_by_part.get(part_id, set())
         hits = [
-            po for po in self.orders.values()
-            if po["idx"] >= 0
-            and po["plant_id"] == plant_id
-            and po["model"] in models
-            and blocked_from <= po["build_date"] < blocked_until
+            po for po in self._dated_slice(self.future_by_plant.get(plant_id, ()), blocked_from, blocked_until, inclusive_end=False)
+            if po["model"] in models
         ]
-        hits.sort(key=lambda r: (r["idx"], r["production_order_id"]))
         return hits
 
     def affected_orders_outage(self, plant_id: str, start: str, end: str) -> list[dict]:
         """Every still-movable order at the plant on an outage day, inclusive."""
-        hits = [
-            po for po in self.orders.values()
-            if po["idx"] >= 0
-            and po["plant_id"] == plant_id
-            and start <= po["build_date"] <= end
-        ]
-        hits.sort(key=lambda r: (r["idx"], r["production_order_id"]))
-        return hits
+        return list(self._dated_slice(self.future_by_plant.get(plant_id, ()), start, end, inclusive_end=True))
 
     def affected_vehicles(self, plant_id: str, part_id: str, build_start: str, build_end: str) -> list[dict]:
         """Finished vehicles built at the plant, in the lot window, on models that use the part."""
         models = self.models_by_part.get(part_id, set())
         hits = [
-            vehicle for vehicle in self.vehicles.values()
-            if vehicle["plant_id"] == plant_id
-            and vehicle["model"] in models
-            and build_start <= vehicle["build_date"] <= build_end
+            vehicle for vehicle in self._dated_slice(
+                self.vehicles_by_plant.get(plant_id, ()), build_start, build_end, inclusive_end=True
+            )
+            if vehicle["model"] in models
         ]
-        hits.sort(key=lambda r: r["vin"])
+        hits.sort(key=lambda vehicle: vehicle["vin"])
         return hits
+
+    @staticmethod
+    def _dated_slice(rows, start: str, end: str, inclusive_end: bool) -> list[dict]:
+        """Rows are sorted by build_date. The slice is that order."""
+        if not rows:
+            return []
+        lo = bisect_left(rows, start, key=lambda row: row["build_date"])
+        if inclusive_end:
+            hi = bisect_right(rows, end, key=lambda row: row["build_date"])
+        else:
+            hi = bisect_left(rows, end, key=lambda row: row["build_date"])
+        return rows[lo:hi]
 
     def customer_orders_for(self, production_order_ids: list[str] | set[str]) -> list[dict]:
         wanted = set(production_order_ids)
@@ -228,88 +310,94 @@ class WorldGraph:
         hits.sort(key=lambda r: r["customer_order_id"])
         return hits
 
-    def delay_paths(self, shipment: dict, orders: list[dict], customer_orders: list[dict]) -> list[list[str]]:
-        """Citation paths: Shipment → Part → Model → ProductionOrder → CustomerOrder → Dealer / Customer."""
-        by_po: dict[str, list[dict]] = defaultdict(list)
-        for co in customer_orders:
-            by_po[co["production_order_id"]].append(co)
-        paths = []
-        models_seen = []
-        for model in sorted(self.models_by_part.get(shipment["part_id"], ())):
-            models_seen.append(f"Model {model} (BOM)")
+    def delay_paths(
+        self,
+        shipment: dict,
+        orders: list[dict],
+        customer_orders: list[dict],
+        limit: int = PATH_KEEP,
+    ) -> tuple[list[list[str]], int]:
+        """Citation paths: Shipment → Part → Model → ProductionOrder → CustomerOrder → Dealer / Customer.
+
+        Returns the stored paths and the full path count. Storage stops at `limit`.
+        """
+        by_po = _orders_by_po(customer_orders)
+        paths: list[list[str]] = []
+        total = 0
+        models_seen = [f"Model {model} (BOM)" for model in sorted(self.models_by_part.get(shipment["part_id"], ()))]
         if not orders:
-            return [[
+            _keep(paths, limit, [
                 f"Shipment {shipment['shipment_id']}",
                 f"Part {shipment['part_id']}",
                 *models_seen,
                 f"Plant {shipment['plant_id']}",
                 "No future production order in the blocked window",
-            ]]
+            ])
+            return paths, 1
         for po in orders:
-            linked = by_po.get(po["production_order_id"], [])
-            if not linked:
-                paths.append([
-                    f"Shipment {shipment['shipment_id']}",
-                    f"Part {shipment['part_id']}",
-                    f"Model {po['model']} (BOM)",
-                    f"Plant {po['plant_id']}",
-                    f"ProductionOrder {po['production_order_id']}",
-                    "No customer order",
-                ])
-                continue
-            for co in linked:
-                paths.append([
-                    f"Shipment {shipment['shipment_id']}",
-                    f"Part {shipment['part_id']}",
-                    f"Model {po['model']} (BOM)",
-                    f"Plant {po['plant_id']}",
-                    f"ProductionOrder {po['production_order_id']}",
-                    f"CustomerOrder {co['customer_order_id']}",
-                    f"Dealer {co['dealer_id']} / Customer {co['customer_id']}",
-                ])
-        return paths
+            head = [
+                f"Shipment {shipment['shipment_id']}",
+                f"Part {shipment['part_id']}",
+                f"Model {po['model']} (BOM)",
+                f"Plant {po['plant_id']}",
+                f"ProductionOrder {po['production_order_id']}",
+            ]
+            total += _link_paths(paths, limit, head, by_po.get(po["production_order_id"], []))
+        return paths, total
 
-    def outage_paths(self, plant_id: str, orders: list[dict], customer_orders: list[dict]) -> list[list[str]]:
-        by_po: dict[str, list[dict]] = defaultdict(list)
-        for co in customer_orders:
-            by_po[co["production_order_id"]].append(co)
-        paths = []
+    def outage_paths(
+        self,
+        plant_id: str,
+        orders: list[dict],
+        customer_orders: list[dict],
+        limit: int = PATH_KEEP,
+    ) -> tuple[list[list[str]], int]:
+        """Plant → ProductionOrder → CustomerOrder → Dealer / Customer. Storage stops at `limit`."""
+        by_po = _orders_by_po(customer_orders)
+        paths: list[list[str]] = []
+        total = 0
+        if not orders:
+            total = _keep(paths, limit, [
+                f"Plant {plant_id}",
+                "No future production order in the outage window",
+            ])
+            return paths, total
         for po in orders:
-            linked = by_po.get(po["production_order_id"], [])
-            if not linked:
-                paths.append([
-                    f"Plant {plant_id}",
-                    f"ProductionOrder {po['production_order_id']}",
-                    "No customer order",
-                ])
-                continue
-            for co in linked:
-                paths.append([
-                    f"Plant {plant_id}",
-                    f"ProductionOrder {po['production_order_id']}",
-                    f"CustomerOrder {co['customer_order_id']}",
-                    f"Dealer {co['dealer_id']} / Customer {co['customer_id']}",
-                ])
-        return paths
+            head = [
+                f"Plant {plant_id}",
+                f"ProductionOrder {po['production_order_id']}",
+            ]
+            total += _link_paths(paths, limit, head, by_po.get(po["production_order_id"], []))
+        return paths, total
 
-    def quality_paths(self, lot: dict, vehicles: list[dict]) -> list[list[str]]:
-        paths = [[
+    def quality_paths(self, lot: dict, vehicles: list[dict], limit: int = PATH_KEEP) -> tuple[list[list[str]], int]:
+        """Lot → vehicle → dealer or customer. Storage stops at `limit`, including the lot header."""
+        paths: list[list[str]] = []
+        total = _keep(paths, limit, [
             f"Lot {lot['lot_id']}",
             f"Part {lot['part_id']}",
             f"Supplier {lot['supplier_id']}",
             f"Plant {lot['plant_id']}",
-        ]]
+        ])
+        if not vehicles:
+            total += _keep(paths, limit, [
+                f"Lot {lot['lot_id']}",
+                f"Part {lot['part_id']}",
+                f"Plant {lot['plant_id']}",
+                "No finished vehicle in the lot window",
+            ])
+            return paths, total
         for vehicle in vehicles:
             tail = f"Dealer {vehicle['dealer_id']}"
             if vehicle["status"] == "sold" and vehicle.get("customer_id"):
                 tail = f"Dealer {vehicle['dealer_id']} / Customer {vehicle['customer_id']}"
-            paths.append([
+            total += _keep(paths, limit, [
                 f"Lot {lot['lot_id']}",
                 f"ProductionOrder {vehicle['production_order_id']}",
                 f"Vehicle {vehicle['vin']}",
                 tail,
             ])
-        return paths
+        return paths, total
 
     def counts(self) -> dict[str, int]:
         return {
@@ -327,3 +415,60 @@ class WorldGraph:
             "vehicles": len(self.vehicles),
             "aliases": len(self._alias_map),
         }
+
+    def ontology_export(self) -> dict:
+        """Nodes, edges, and the three citation chains a judge can replay."""
+        return {
+            "nodes": [
+                "Supplier", "Shipment", "Part", "Plant", "Model",
+                "ProductionOrder", "CustomerOrder", "Dealer", "Customer",
+                "Lot", "Vehicle",
+            ],
+            "edges": [
+                ["Supplier", "ships", "Shipment"],
+                ["Shipment", "part", "Part"],
+                ["Shipment", "plant", "Plant"],
+                ["Part", "BOM", "Model"],
+                ["Plant", "builds", "ProductionOrder"],
+                ["Model", "built as", "ProductionOrder"],
+                ["ProductionOrder", "promised as", "CustomerOrder"],
+                ["CustomerOrder", "sold by", "Dealer"],
+                ["CustomerOrder", "placed by", "Customer"],
+                ["Lot", "installed on", "Vehicle"],
+                ["ProductionOrder", "finished as", "Vehicle"],
+                ["Vehicle", "stocked at", "Dealer"],
+                ["Vehicle", "sold to", "Customer"],
+            ],
+            "chains": [
+                "Shipment → Part → Model (BOM) → ProductionOrder → CustomerOrder → Dealer / Customer",
+                "Plant → ProductionOrder → CustomerOrder → Dealer / Customer",
+                "Lot → ProductionOrder → Vehicle → Dealer / Customer",
+            ],
+            "counts": self.counts(),
+        }
+
+
+def _orders_by_po(customer_orders: list[dict]) -> dict[str, list[dict]]:
+    by_po: dict[str, list[dict]] = defaultdict(list)
+    for order in customer_orders:
+        by_po[order["production_order_id"]].append(order)
+    return by_po
+
+
+def _keep(paths: list[list[str]], limit: int, path: list[str]) -> int:
+    if len(paths) < limit:
+        paths.append(path)
+    return 1
+
+
+def _link_paths(paths: list[list[str]], limit: int, head: list[str], linked: list[dict]) -> int:
+    if not linked:
+        return _keep(paths, limit, [*head, "No customer order"])
+    total = 0
+    for order in linked:
+        total += _keep(paths, limit, [
+            *head,
+            f"CustomerOrder {order['customer_order_id']}",
+            f"Dealer {order['dealer_id']} / Customer {order['customer_id']}",
+        ])
+    return total

@@ -117,6 +117,13 @@
   .ontology p { margin: 0; }
   .ontology .chains { margin-top: 2px; }
 
+  .domains {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+  }
+
   .workspace {
     display: grid;
     grid-template-columns: 340px minmax(0, 1fr);
@@ -304,6 +311,32 @@
 
   .arrow { color: var(--muted); }
 
+  .path-svg {
+    display: block;
+    width: 100%;
+    max-width: 960px;
+    height: auto;
+    margin: 0 0 10px;
+    overflow: visible;
+  }
+
+  .path-svg .edge {
+    stroke: var(--line);
+    stroke-width: 1.5;
+    fill: none;
+  }
+
+  .path-svg .box {
+    fill: var(--chip);
+    stroke: var(--line);
+  }
+
+  .path-svg .box-label {
+    fill: var(--ink);
+    font-size: 11px;
+    font-family: var(--sans);
+  }
+
   .ids {
     display: flex;
     flex-wrap: wrap;
@@ -369,10 +402,11 @@
   <div class="title-row">
     <div>
       <h1>Wacky Wheels control tower</h1>
-      <p class="subtitle">Today in the simulation is Monday 2027-03-08.</p>
+      <p class="subtitle">Today in the simulation is Monday 2027-03-08. Reader: deterministic Python, no language model.</p>
     </div>
     <button type="button" class="refresh" id="refresh">Refresh</button>
   </div>
+  <div class="domains" id="domains" aria-label="Domains" hidden></div>
   <div class="ontology" id="ontology" hidden></div>
 </header>
 <div class="workspace">
@@ -391,6 +425,7 @@
     traces: new Map(),
     log: [],
     ontology: null,
+    domains: null,
     selected: null,
     feedError: ""
   };
@@ -400,6 +435,15 @@
   var feedHead = document.getElementById("feed-head");
   var detailEl = document.getElementById("detail");
   var ontologyEl = document.getElementById("ontology");
+  var domainsEl = document.getElementById("domains");
+
+  var FACT_BY_KIND = {
+    supplier_delay: "ShipmentDelayed",
+    plant_outage: "PlantDown",
+    quality_hold: "LotHeld",
+    noise: "Ignored",
+    unconfirmed: "Unconfirmed"
+  };
 
   document.getElementById("refresh").addEventListener("click", function () {
     load(state.selected);
@@ -438,6 +482,10 @@
   function clock(iso) {
     var match = String(iso || "").match(/T(\d{2}:\d{2})/);
     return match ? match[1] : String(iso || "");
+  }
+
+  function stamp(iso) {
+    return String(iso || "").replace("T", " ");
   }
 
   function excerpt(text) {
@@ -549,6 +597,40 @@
       if (generation !== loadGeneration) return;
       ontologyEl.hidden = true;
     });
+
+    getJson("/api/domains").then(function (body) {
+      if (generation !== loadGeneration) return;
+      state.domains = body;
+      renderDomains();
+    }).catch(function () {
+      if (generation !== loadGeneration) return;
+      state.domains = null;
+      renderDomains();
+    });
+  }
+
+  function factFor(kind) {
+    if (!Object.prototype.hasOwnProperty.call(FACT_BY_KIND, kind)) return "";
+    return FACT_BY_KIND[kind];
+  }
+
+  function renderDomains() {
+    domainsEl.textContent = "";
+    var rows = state.domains && Array.isArray(state.domains.domains) ? state.domains.domains : [];
+    var names = rows.filter(function (row) {
+      return row && row.id;
+    });
+    if (!names.length) {
+      domainsEl.hidden = true;
+      return;
+    }
+    domainsEl.hidden = false;
+    names.forEach(function (row) {
+      var fact = row.fact ? String(row.fact) : "";
+      var owns = row.owns ? String(row.owns) : "";
+      var title = [fact, owns].filter(Boolean).join(" · ");
+      domainsEl.append(el("span", { class: "chip", title: title || null }, [String(row.id)]));
+    });
   }
 
   function renderOntology() {
@@ -568,7 +650,10 @@
     });
     ontologyEl.hidden = false;
     ontologyEl.append(el("p", null, [countLine]));
-    chains.forEach(function (chain) {
+    var cited = Array.isArray(ontology.chains) && ontology.chains.length
+      ? ontology.chains
+      : chains;
+    cited.forEach(function (chain) {
       ontologyEl.append(el("p", { class: "chains" }, [chain]));
     });
   }
@@ -634,7 +719,7 @@
     body.append(
       el("h2", null, [event.event_id || "Event"]),
       el("p", { class: "meta" }, [
-        [event.received_at || "", event.source || ""].filter(Boolean).join(" · ")
+        [stamp(event.received_at), event.source || ""].filter(Boolean).join(" · ")
       ])
     );
     body.append(sectionMessage(trace && trace.text ? trace.text : event.text));
@@ -693,13 +778,12 @@
     }).map(function (key) {
       return key.replace(/_/g, " ") + ": " + formatValue(incident[key]);
     });
-    var children = [
-      el("div", null, [
-        el("span", { class: "chip" }, [incident.kind || "incident"]),
-        " ",
-        incident.summary || ""
-      ])
-    ];
+    var kind = incident.kind || "";
+    var fact = factFor(kind);
+    var head = [el("span", { class: "chip" }, [kind || "incident"])];
+    if (fact) head.push(" ", el("span", { class: "chip" }, [fact]));
+    head.push(" ", incident.summary || "");
+    var children = [el("div", null, head)];
     if (facts.length) children.push(el("p", { class: "args" }, [facts.join("\n")]));
     var evidence = Array.isArray(incident.evidence) ? incident.evidence.filter(Boolean) : [];
     if (evidence.length) {
@@ -708,20 +792,117 @@
     return el("div", { class: "incident" }, children);
   }
 
+  var SHOW_IDS = 48;
+  var SHOW_ROWS = 60;
+
+  function limitNote(shown, total, noun) {
+    if (total <= shown) return null;
+    return el("p", { class: "meta" }, [
+      "Showing the first " + shown + " of " + total + " " + noun + "."
+    ]);
+  }
+
+  function splitLabel(label) {
+    var space = label.indexOf(" ");
+    if (space > 0) return [label.slice(0, space), label.slice(space + 1)];
+    return [label];
+  }
+
+  function nodeWidth(parts) {
+    var longest = 0;
+    parts.forEach(function (part) {
+      if (part.length > longest) longest = part.length;
+    });
+    return Math.max(120, Math.min(260, longest * 7.2 + 16));
+  }
+
+  function drawPath(nodes) {
+    var gap = 22;
+    var height = 52;
+    var pad = 8;
+    var parts = nodes.map(splitLabel);
+    var widths = parts.map(nodeWidth);
+    var x = pad;
+    var xs = widths.map(function (width) {
+      var left = x;
+      x += width + gap;
+      return left;
+    });
+    var svgWidth = Math.max(320, x - gap + pad);
+    var ns = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("class", "path-svg");
+    svg.setAttribute("viewBox", "0 0 " + svgWidth + " 68");
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", nodes.join(" to "));
+    nodes.forEach(function (label, index) {
+      var left = xs[index];
+      var width = widths[index];
+      if (index) {
+        var line = document.createElementNS(ns, "line");
+        line.setAttribute("class", "edge");
+        line.setAttribute("x1", String(xs[index - 1] + widths[index - 1] + 4));
+        line.setAttribute("y1", "34");
+        line.setAttribute("x2", String(left - 4));
+        line.setAttribute("y2", "34");
+        svg.appendChild(line);
+      }
+      var box = document.createElementNS(ns, "rect");
+      box.setAttribute("class", "box");
+      box.setAttribute("x", String(left));
+      box.setAttribute("y", String((68 - height) / 2));
+      box.setAttribute("width", String(width));
+      box.setAttribute("height", String(height));
+      box.setAttribute("rx", "6");
+      svg.appendChild(box);
+      var lines = parts[index];
+      lines.forEach(function (line, lineIndex) {
+        var text = document.createElementNS(ns, "text");
+        text.setAttribute("class", "box-label");
+        text.setAttribute("x", String(left + width / 2));
+        text.setAttribute("y", String(lines.length === 1 ? 38 : 28 + lineIndex * 16));
+        text.setAttribute("text-anchor", "middle");
+        text.textContent = line;
+        svg.appendChild(text);
+      });
+    });
+    return svg;
+  }
+
+  function pickPaths(paths) {
+    var chosen = [];
+    var rest = [];
+    var seen = Object.create(null);
+    paths.forEach(function (path) {
+      var head = (path.nodes[0] || "").split(" ")[0];
+      if (head && !seen[head]) {
+        seen[head] = true;
+        chosen.push(path);
+      } else {
+        rest.push(path);
+      }
+    });
+    return chosen.concat(rest).slice(0, 6);
+  }
+
   function sectionGraph(trace) {
     var paths = pathsFor(trace);
     var children = [el("h3", null, ["Graph evidence"])];
     if (!paths.length) {
-      children.push(el("p", { class: "empty" }, ["No graph paths recorded."]));
+      var quiet = String(trace.summary || "").trim();
+      children.push(el("p", { class: "empty" }, [
+        quiet || "No graph paths recorded."
+      ]));
       return el("section", null, children);
     }
-    var shown = paths.slice(0, 6);
-    if (paths.length > 6) {
+    var shown = pickPaths(paths);
+    if (paths.length > shown.length) {
       children.push(el("p", { class: "meta" }, [
-        "Showing the first 6 of " + paths.length + " paths."
+        "Showing " + shown.length + " of " + paths.length + " paths, one chain shape first."
       ]));
     }
     shown.forEach(function (path) {
+      if (path.nodes.length) children.push(drawPath(path.nodes));
       var chain = el("div", { class: "chain" });
       if (path.agent) chain.append(el("span", { class: "agent-tag" }, [path.agent]));
       if (!path.nodes.length) {
@@ -750,7 +931,9 @@
       if (!ids.length) {
         block.push(el("p", { class: "empty" }, ["None."]));
       } else {
-        block.push(el("ul", { class: "ids" }, ids.map(function (id) {
+        var note = limitNote(SHOW_IDS, ids.length, "ids");
+        if (note) block.push(note);
+        block.push(el("ul", { class: "ids" }, ids.slice(0, SHOW_IDS).map(function (id) {
           return el("li", null, [id]);
         })));
       }
@@ -767,7 +950,9 @@
       children.push(el("p", { class: "empty" }, ["No actions recorded."]));
       return el("section", null, children);
     }
-    calls.forEach(function (call, index) {
+    var note = limitNote(SHOW_ROWS, calls.length, "actions");
+    if (note) children.push(note);
+    calls.slice(0, SHOW_ROWS).forEach(function (call, index) {
       var line = lines[index];
       var status = statusOf(line);
       var statusNode;
@@ -799,7 +984,9 @@
       children.push(el("p", { class: "empty" }, ["No audit lines for this event."]));
       return el("section", null, children);
     }
-    lines.forEach(function (line, index) {
+    var note = limitNote(SHOW_ROWS, lines.length, "audit lines");
+    if (note) children.push(note);
+    lines.slice(0, SHOW_ROWS).forEach(function (line, index) {
       var text = Object.keys(line).map(function (key) {
         return key + ": " + formatValue(line[key]);
       }).join("\n");

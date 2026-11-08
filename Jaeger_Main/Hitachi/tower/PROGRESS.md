@@ -18,7 +18,7 @@ Georgi and the coordinator share the structure: contracts, the knowledge graph, 
 
 Wacky Wheels has no parts buffer. A message is a supplier delay, a plant outage, a quality hold, noise, an unconfirmed report, or a compound of those. Confirmed incidents follow the handbook. Noise writes nothing. An unconfirmed report is `escalate` and nothing else. Only affected records change.
 
-Scoring is 50% action accuracy, 20% graph and reasoning, 10% agent architecture, 10% efficiency, 10% the control-tower view.
+Scoring is 50% action accuracy, 20% graph and reasoning, 10% agent architecture, 10% efficiency, 10% the control-tower view. No language model is used: the reader is deterministic Python. The one-page design card is `DESIGN.md`. The ontology export is `tower/ontology.mmd`.
 
 The feed has 15 events. The shapes match the six test cases: 3 delays, 3 outages, 3 quality holds, 3 noise, 1 compound, 2 unconfirmed.
 
@@ -46,10 +46,19 @@ The graph answers who is affected. Specialists turn that into tool calls. The co
 - Supply Chain Planner is in `tower/agents/supply_chain.py`. Checked through `Enterprise`: the Princeton camera delay moves 3 orders, all accepted; the Lexington outage moves 6, all accepted. Filling the home plant turns those 6 into transfers, and the tools accept them.
 - The coordinator read all 15 events and wrote `runs/run1/action_log.jsonl` (768 calls, all accepted) and `runs/run1/traces.json`.
 - A handbook check on that log found no mismatches: noise has no calls, the two rumors only escalate, every moved order is inside the incident window, each dealer is notified once with exactly its affected orders, loaners stay inside tier and pool limits, and the three quality lots are LOT-0130, LOT-0017, and LOT-0191, each matching the stated build window.
-- The UI is still writing.
+- The control tower page is `tower/ui/` and serves the run at http://127.0.0.1:8080.
 
-## Not started
+## Step 4 — Break and fix
 
-- A full run of the 15 events into `runs/run1/action_log.jsonl`
-- Review of that log against the handbook, event by event
-- Demo path: event arrives, graph path, agents act, audit trail
+An adversarial suite in `tower/tests/test_adversarial.py` found six handbook breaks. The fixes are in the reader, the calendar, and the supply planner: an explicit "not confirmed" escalates before an outage or delay is acted on, labeled ETAs are not taken in word order, "March 32" is skipped, a bulletin that only names a known lot still holds that lot, and a transfer cannot land inside another plant's outage. `python -m unittest tower.tests.test_adversarial` covers these cases. Hearsay is classified before a quality hold or an outage, so a lot bulletin or a plant window that is still a rumor is escalated. The 15 stored event classifications are unchanged: only E-02 and E-13 are unconfirmed. An overload with every plant dark still keeps each day inside its slot count. When the whole window is dark, no build is moved and the dealers of the affected orders are still notified. Forty copies of one outage move each order once. A later pass shortened the repeated scans in the reader, the graph, the slot board, and the three specialists. Window lookups now slice orders and vehicles by date, and a shipment route is indexed by supplier, part, and plant. A specialist stores 32 graph paths and counts the rest. The page draws the first 48 ids and the first 60 actions, and the run drops each event's slot map after the calls are logged. The 15 stored classifications still match, and the suite stayed at 36 passed. `tower/tests/FINDINGS.md` now records the fixed breaks instead of the first failed run.
+
+## Diagnostic — scoring bottlenecks, not CPU
+
+The 15-event pipeline is not slow: graph load 90 ms, all 15 events 29 ms, slowest E-01 at 7 ms. Quality holds are the write-heavy events (E-03 is 188 calls). Zero failed or wasted read tools.
+
+What actually costs points, and what changed:
+
+- Action log (50%): a Sunday new ETA no longer drops the delay. Friday builds move to Monday. A transfer may land before the restart; that is Rule 3, not a bug. The stored 768-call log still matches the handbook checker (PROBLEMS 0). Classifications of the 15 events are unchanged.
+- Graph (20%): cited paths are drawn as SVG on the page. Ontology export is `tower/ontology.json` and `tower/ontology.mmd`. traces.json compacted 876 KB → 558 KB.
+- Efficiency (10%): no language model. Cited in the page subtitle and `DESIGN.md`.
+- UX (10%): design card `DESIGN.md`, demo still of E-01 at `runs/screenshots/e01-compound.png`. Relative dates now use the event `received_at` day.

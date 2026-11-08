@@ -1,20 +1,36 @@
 """Control-tower coordinator.
 
 Understand the message, ask the specialist that owns each real incident, then
-call Enterprise in a fixed order: supply, quality, dealer. Noise writes
-nothing. An unconfirmed report is escalate and nothing else. A confirmed
-incident that produces no successful write is escalated once.
+send the accepted tool calls through the enterprise gateway in a fixed order:
+supply, quality, dealer. Noise writes nothing. An unconfirmed report is
+escalate and nothing else. A confirmed incident is escalated once when a
+write was attempted and every write failed. A confirmed incident with
+nothing to write is left alone.
+
+Every Enterprise.call goes through tower.gateway. The gateway records a call
+that is not in enterprise.TOOLS, or whose arguments do not match that schema,
+and does not send it. A second identical write in the same event is not sent
+either. Reads and escalate are not part of that ledger.
 """
 
 from __future__ import annotations
 
-from enterprise import ToolError
 from tower.agents.dealer_customer import plan_dealer_customer
 from tower.agents.quality import plan_quality
 from tower.agents.supply_chain import plan_supply
 from tower.agents.understand import understand
+from tower.calendar_util import event_day
 from tower.contracts import EventTrace, ToolCall
+from tower.gateway import Gateway, _arg_ok, _execute, _schema_ok, _write_key
 from tower.schedule import LoanerPools, PlantSchedule
+
+__all__ = [
+    "handle_event",
+    "_execute",
+    "_schema_ok",
+    "_arg_ok",
+    "_write_key",
+]
 
 _REAL = frozenset({"supplier_delay", "plant_outage", "quality_hold"})
 _SUPPLY = frozenset({"supplier_delay", "plant_outage"})
@@ -35,19 +51,19 @@ _WRITE_WORDS = {
 
 def handle_event(graph, enterprise, event: dict) -> EventTrace:
     """Classify one event, plan it, and execute the accepted tool calls."""
-    incidents = understand(graph, event["text"])
+    incidents = understand(graph, event["text"], anchor=event_day(event.get("received_at")))
     real = [incident for incident in incidents if incident.kind in _REAL]
     classification = "+".join(incident.kind for incident in incidents)
     results = []
     executed: list[tuple[ToolCall, bool]] = []
+    door = Gateway(enterprise)
 
     if not real:
         if any(incident.kind == "unconfirmed" for incident in incidents):
             reason = " ".join(
                 incident.summary for incident in incidents if incident.kind == "unconfirmed"
             )
-            _execute(
-                enterprise,
+            door.execute(
                 event["event_id"],
                 ToolCall(tool="escalate", args={"reason": reason}, reason=reason),
                 executed,
@@ -85,14 +101,18 @@ def handle_event(graph, enterprise, event: dict) -> EventTrace:
         if dealer_result is not None:
             planned.extend(dealer_result.calls)
 
+        attempted_writes = 0
         successful_writes = 0
         for call in planned:
-            if _execute(enterprise, event["event_id"], call, executed) and call.writes:
+            ok = door.execute(event["event_id"], call, executed)
+            if not call.writes:
+                continue
+            attempted_writes += 1
+            if ok:
                 successful_writes += 1
-        if successful_writes == 0:
+        if attempted_writes and successful_writes == 0:
             reason = _failed_write_reason(real, executed)
-            _execute(
-                enterprise,
+            door.execute(
                 event["event_id"],
                 ToolCall(tool="escalate", args={"reason": reason}, reason=reason),
                 executed,
@@ -119,17 +139,6 @@ def handle_event(graph, enterprise, event: dict) -> EventTrace:
         summary=summary,
         guardrail=_GUARDRAIL,
     )
-
-
-def _execute(enterprise, event_id: str, call: ToolCall, executed: list[tuple[ToolCall, bool]]) -> bool:
-    """Run one call. A tool failure is recorded and does not stop the rest."""
-    try:
-        enterprise.call(event_id, call.tool, call.args)
-    except ToolError:
-        executed.append((call, False))
-        return False
-    executed.append((call, True))
-    return True
 
 
 def _failed_write_reason(real, executed: list[tuple[ToolCall, bool]]) -> str:
@@ -211,6 +220,9 @@ def _affected_sentence(supply_result, quality_result, dealer_result) -> str:
 
 def _done_sentence(executed: list[tuple[ToolCall, bool]], successful_writes: int) -> str:
     if successful_writes == 0:
+        attempted = any(call.writes for call, _ok in executed)
+        if not attempted:
+            return "No operational write was required."
         return (
             "No operational write succeeded, so the tower escalated the incident "
             "instead of leaving it unlogged."

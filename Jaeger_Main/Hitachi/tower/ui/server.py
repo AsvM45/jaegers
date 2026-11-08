@@ -12,6 +12,8 @@ Listens on http://127.0.0.1:8080
     GET /api/ontology
     GET /api/traces
     GET /api/log
+    GET /api/domains
+    GET /api/ontology.mmd
 """
 
 from __future__ import annotations
@@ -28,7 +30,10 @@ HITACHI = os.path.abspath(os.path.join(HERE, "..", ".."))
 if HITACHI not in sys.path:
     sys.path.insert(0, HITACHI)
 
+from tower.domains import payload as domain_payload
+
 INDEX = os.path.join(HERE, "index.html")
+ONTOLOGY_MMD = os.path.join(HERE, "..", "ontology.mmd")
 EVENTS = os.path.join(HITACHI, "Data", "hack_the_highway_package", "data", "events.json")
 TRACES = os.path.join(HITACHI, "runs", "run1", "traces.json")
 LOG = os.path.join(HITACHI, "runs", "run1", "action_log.jsonl")
@@ -43,7 +48,10 @@ RELATIONSHIPS = [
 ]
 
 _ontology = None
+_ontology_bytes = None
 _ontology_lock = threading.Lock()
+_file_cache: dict[str, tuple[tuple[int, int], bytes]] = {}
+_file_cache_lock = threading.Lock()
 
 
 class TowerServer(ThreadingHTTPServer):
@@ -75,6 +83,30 @@ def read_jsonl(path):
     return rows
 
 
+def cached_bytes(path: str, encode) -> bytes | None:
+    """Encoded file bytes. A new mtime or size rebuilds them."""
+    try:
+        stat = os.stat(path)
+    except OSError:
+        return None
+    token = (stat.st_mtime_ns, stat.st_size)
+    with _file_cache_lock:
+        hit = _file_cache.get(path)
+        if hit is not None and hit[0] == token:
+            return hit[1]
+    body = encode(path)
+    with _file_cache_lock:
+        _file_cache[path] = (token, body)
+    return body
+
+
+def json_file_bytes(path: str, reader) -> bytes:
+    body = cached_bytes(path, lambda name: json.dumps(reader(name), ensure_ascii=False).encode("utf-8"))
+    if body is None:
+        raise FileNotFoundError(path)
+    return body
+
+
 def ontology_payload():
     global _ontology
     if _ontology is not None:
@@ -83,11 +115,26 @@ def ontology_payload():
         if _ontology is None:
             from tower.graph import WorldGraph
 
+            graph = WorldGraph()
+            export = graph.ontology_export()
             _ontology = {
-                "counts": WorldGraph().counts(),
+                "counts": export["counts"],
                 "relationships": list(RELATIONSHIPS),
+                "nodes": export["nodes"],
+                "edges": export["edges"],
+                "chains": export["chains"],
             }
         return _ontology
+
+
+def ontology_bytes() -> bytes:
+    global _ontology_bytes
+    if _ontology_bytes is not None:
+        return _ontology_bytes
+    with _ontology_lock:
+        if _ontology_bytes is None:
+            _ontology_bytes = json.dumps(ontology_payload(), ensure_ascii=False).encode("utf-8")
+        return _ontology_bytes
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -97,15 +144,25 @@ class Handler(BaseHTTPRequestHandler):
             path = path.rstrip("/") or "/"
         try:
             if path == "/":
-                return self._file(INDEX, "text/html; charset=utf-8")
+                page = cached_bytes(INDEX, lambda name: open(name, "rb").read())
+                if page is None:
+                    raise FileNotFoundError(INDEX)
+                return self._bytes(page, "text/html; charset=utf-8")
             if path == "/api/events":
-                return self._json(read_json(EVENTS))
+                return self._bytes(json_file_bytes(EVENTS, read_json), "application/json; charset=utf-8")
             if path == "/api/ontology":
-                return self._json(ontology_payload())
+                return self._bytes(ontology_bytes(), "application/json; charset=utf-8")
             if path == "/api/traces":
-                return self._json(read_json(TRACES) if os.path.isfile(TRACES) else [])
+                return self._bytes(json_file_bytes(TRACES, read_json), "application/json; charset=utf-8")
             if path == "/api/log":
-                return self._json(read_jsonl(LOG) if os.path.isfile(LOG) else [])
+                return self._bytes(json_file_bytes(LOG, read_jsonl), "application/json; charset=utf-8")
+            if path == "/api/domains":
+                return self._json(domain_payload())
+            if path == "/api/ontology.mmd":
+                body = cached_bytes(ONTOLOGY_MMD, lambda name: open(name, "rb").read())
+                if body is None:
+                    raise FileNotFoundError(ONTOLOGY_MMD)
+                return self._bytes(body, "text/plain; charset=utf-8")
         except FileNotFoundError as exc:
             return self._json({"error": "missing file", "detail": str(exc)}, 500)
         except json.JSONDecodeError as exc:
@@ -114,10 +171,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"error": "read failed", "detail": str(exc)}, 500)
         self._json({"error": "not found"}, 404)
 
-    def _file(self, path, content_type):
-        with open(path, "rb") as handle:
-            body = handle.read()
-        self.send_response(200)
+    def _bytes(self, body: bytes, content_type: str, code: int = 200):
+        self.send_response(code)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
@@ -125,13 +180,11 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _json(self, payload, code=200):
-        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-        self.send_response(code)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
-        self.end_headers()
-        self.wfile.write(body)
+        self._bytes(
+            json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            "application/json; charset=utf-8",
+            code,
+        )
 
     def log_message(self, fmt, *args):
         return

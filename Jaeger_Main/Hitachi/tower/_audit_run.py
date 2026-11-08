@@ -79,8 +79,13 @@ def main() -> None:
             new_idx = date_to_idx(date.fromisoformat(info[1]))
             if info[0] == "reschedule" and new_idx < expected[order_id]:
                 add(event_id, f"{order_id} rescheduled to {info[1]} before the constraint")
-            if info[0] == "reschedule" and graph.orders[order_id]["plant_id"] != graph.orders[order_id]["plant_id"]:
-                pass
+            if info[0] == "transfer":
+                dest = info[2]
+                model = graph.orders[order_id]["model"]
+                if dest not in graph.plants_by_model.get(model, []):
+                    add(event_id, f"{order_id} transferred to {dest} which does not build {model}")
+                if dest == graph.orders[order_id]["plant_id"]:
+                    add(event_id, f"{order_id} transfer stayed at {dest}")
 
         customer_orders = graph.customer_orders_for(expected)
         by_dealer = defaultdict(set)
