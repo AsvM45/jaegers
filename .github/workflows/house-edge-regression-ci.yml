@@ -1,0 +1,74 @@
+name: House Edge full regression (research and dashboard)
+
+on:
+  pull_request:
+    paths:
+      - "Jaeger_Main/House_Edge/**"
+      - "dashboard/**"
+      - "tests/test_dashboard_*.py"
+      - ".github/workflows/house-edge-regression-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "Jaeger_Main/House_Edge/**"
+      - "dashboard/**"
+      - "tests/test_dashboard_*.py"
+      - ".github/workflows/house-edge-regression-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: house-edge-regression-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  research-regression:
+    name: House Edge entire research test suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: Jaeger_Main/House_Edge
+    env:
+      PYTHONHASHSEED: "0"
+      OMP_NUM_THREADS: "2"
+      OPENBLAS_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+    steps:
+      - name: Checkout code without write credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configure Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install pinned House Edge research and model dependencies
+        run: python -m pip install --disable-pip-version-check --no-input -r requirements-models.txt
+      - name: Execute complete House Edge pytest suite
+        run: python -m pytest tests -q --tb=short
+
+  dashboard-regression:
+    name: Dashboard complete regression test suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONHASHSEED: "0"
+      OMP_NUM_THREADS: "2"
+      OPENBLAS_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+    steps:
+      - name: Checkout code without write credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configure Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install pinned analytics dependencies
+        run: python -m pip install --disable-pip-version-check --no-input -r Jaeger_Main/House_Edge/requirements-analytics.txt
+      - name: Execute every dashboard regression test
+        run: python -m pytest -q tests/test_dashboard_*.py --tb=short
