@@ -130,14 +130,42 @@ JAEGERS respects competition rules and budgetary constraints:
 | `gold_predictions` | `2,304` | `3` models × `768` validation queries (`p_0, p_1, p_2, p_5, p_20`) |
 | `monitoring_machine_summary` / `v_machine_summary` | `9` | Persistent table and Unity Catalog view across splits × machine types |
 
-### 4.3 Live MLflow Experiment & Run IDs
-- **Experiment Path:** `/Shared/jaegers_house_edge_experiments` (`experiment_id = 4062806637201469`)
-- **Logged Runs (Full DAG Run `888066060424343` / Stagewise Run `12718307334842`):**
-  1. `gold_empirical_decay_peer_baseline` (`empirical_dirichlet`): Run ID `8f04cbec276044c9a99ae5c3569d227d` (stagewise `b012fbece8334cc49fbba9e9401e18f4`) — `mean_brier = 0.550263` (`0.11005` per-class MSE), `log_loss = 1.063994`, `ece_calibration = 0.020798`
-  2. `gold_468_causal_no_signal_challenger` (`causal_lag_expert`): Run ID `8ae86a39ba9448e29c67d5c8a8398be5` (stagewise `82a89a8757194a22a585d75b2512ce70`) — `mean_brier = 0.553299`, `log_loss = 1.102625`, `ece_calibration = 0.030645`
-  3. `gold_471_regime_mixture_stacker` (`regime_mixture`): Run ID `21c2911be6ff4e38a21a0174c40b0910` (stagewise `6148fa24f05b45aa8d2456eedd8c7b7a`) — `mean_brier = 0.557804`, `log_loss = 1.144818`, `ece_calibration = 0.033818`
+### 4.3 Live MLflow Experiment, Per-Class Briers & Provenance Quantification
+- **Experiment Path:** `/Shared/jaegers_house_edge_experiments` (`experiment_id = 4062806637201469`, artifact root `dbfs:/databricks/mlflow-tracking/4062806637201469`)
+- **Evaluation Provenance Clarification:**
+  - The 3 live MLflow runs below evaluate predictions on the `768` queries of `validation/queries.csv` against the realized discrete outcomes $y_i \in \{0, 1, 2, 5, 20\}$ in `validation/labels.csv` (`data_hash = a714c4f0db927474`).
+  - `mean_brier` is the multi-class sum $\frac{1}{N}\sum_{i=1}^{768}\sum_{c \in \{0,1,2,5,20\}} (p_{ic} - \mathbb{I}[y_i = c])^2 \in [0, 2]$ (dividing by 5 yields the per-class MSE $\approx 0.11005$).
+  - Because `validation/labels.csv` contains single sampled outcomes rather than the hidden generator probability vectors $\pi_i$, and because the public validation split is development-exposed, these scores represent **development-exposed sampled-outcome public validation Brier**, which must not be conflated with hidden true-vector Brier or train-only `GroupKFold` (`sampled_outcome_group_cv`).
 
-### 4.4 Offline Unit Test Suite
+| Run ID (Full DAG `888066060424343`) | Model Name & Type | Hyperparameters (`params`) | Overall & Condition Brier (`metrics`) | Per-Class Brier (`class_brier_c`) |
+|---|---|---|---|---|
+| `8f04cbec276044c9a99ae5c3569d227d` (stagewise `b012fbece8334cc49fbba9e9401e18f4`) | `gold_empirical_decay_peer_baseline` (`empirical_dirichlet`) | `lam=0.5`, `prior=laplace_0.5`, `causal=True`, `stack_lr=0.0`, `feature_groups=windows,decays,transitions,peers`, `seed=42` | `mean_brier=0.550263` (`0.110053`/class), `log_loss=1.063994`, `ece=0.020798`; `stable=0.545882`, `short_history=0.535253`, `drift=0.585213`, `shared_change=0.534705` | `0x: 0.208212`, `1x: 0.131643`, `2x: 0.128685`, `5x: 0.069942`, `20x: 0.011781` |
+| `8ae86a39ba9448e29c67d5c8a8398be5` (stagewise `82a89a8757194a22a585d75b2512ce70`) | `gold_468_causal_no_signal_challenger` (`causal_lag_expert`) | `lam=50.0`, `prior=empirical_dirichlet_decay_peer`, `causal=True`, `stack_lr=0.2`, `feature_groups=historical_468_no_signal`, `seed=42` | `mean_brier=0.553299` (`0.110660`/class), `log_loss=1.102625`, `ece=0.030645`; `stable=0.543443`, `short_history=0.536244`, `drift=0.599976`, `shared_change=0.533533` | `0x: 0.207015`, `1x: 0.131911`, `2x: 0.132444`, `5x: 0.070118`, `20x: 0.011811` |
+| `21c2911be6ff4e38a21a0174c40b0910` (stagewise `6148fa24f05b45aa8d2456eedd8c7b7a`) | `gold_471_regime_mixture_stacker` (`regime_mixture`) | `lam=35.0`, `prior=empirical_dirichlet_decay_peer`, `causal=True`, `stack_lr=0.25`, `feature_groups=all_471_gold`, `seed=42` | `mean_brier=0.557804` (`0.111561`/class), `log_loss=1.144818`, `ece=0.033818`; `stable=0.545082`, `short_history=0.540599`, `drift=0.607967`, `shared_change=0.537568` | `0x: 0.207971`, `1x: 0.132902`, `2x: 0.134518`, `5x: 0.070504`, `20x: 0.011910` |
+
+### 4.4 Task-Level Telemetry, Failed Debug Runs & Technical Clarifications
+
+#### A. Full 6-Task DAG Run `888066060424343` (`run_duration = 242,789 ms`, `PERFORMANCE_OPTIMIZED`)
+| Task Key | Task Run ID | Execution Duration | Setup Duration | Result State |
+|---|---|---|---|---|
+| `bronze_ingest` | `1068285881427297` | `55,000 ms` | `3,000 ms` | `TERMINATED / SUCCESS` |
+| `silver_clean_and_validate` | `462109200643361` | `27,000 ms` | `1,000 ms` | `TERMINATED / SUCCESS` |
+| `gold_asof_features` | `721483717655508` | `76,000 ms` | `1,000 ms` | `TERMINATED / SUCCESS` |
+| `verify_feature_parity` | `542657622420507` | `27,000 ms` | `1,000 ms` | `TERMINATED / SUCCESS` |
+| `mlflow_track_models` | `845188882182422` | `30,000 ms` | `1,000 ms` | `TERMINATED / SUCCESS` |
+| `refresh_monitoring_views` | `392260434307954` | `15,000 ms` | `1,000 ms` | `TERMINATED / SUCCESS` |
+
+#### B. Unsuccessful / Debug Runs & Fixes Applied
+1. **Run `332344859953641` (`bronze_ingest` — FAILED)**: Raised `NameError: name '__file__' is not defined` because Databricks Serverless `spark_python_task` executes scripts via `exec(compile(...))` without `__file__`. Fixed across all 5 scripts via `_resolve_src_dir()`.
+2. **Run `552742672000825` (`verify_feature_parity` — FAILED after writing `gold_parity_audit`)**: Passed parity audit (`max_abs_difference = 0.0`), persisted `workspace.house_edge.gold_parity_audit`, and then called `sys.exit(0)`, which the Serverless IPython wrapper treated as an uncaught `SystemExit: 0` exception. Fixed by removing `sys.exit(0)` on success in `src/parity.py`.
+3. **Run `350393923129904` (`mlflow_track_models` — FAILED)**: Raised `AnalysisException: [CONFIG_NOT_AVAILABLE.WITHOUT_SUGGESTION] Configuration spark.mlflow.modelRegistryUri is not available (SQLSTATE: 42K0I)` when `MlflowClient()` queried `spark.conf.get("spark.mlflow.modelRegistryUri")` over Spark Connect. Fixed in `src/session.py` by setting `MLFLOW_TRACKING_URI="databricks"` and `MLFLOW_REGISTRY_URI="databricks-uc"` on Databricks runtimes.
+
+#### C. Scientific & Architectural Clarifications
+- **Numerical Parity vs. Bitwise Tolerance:** `verify_feature_parity` enforces a numerical gate of `tolerance = 1e-5` on `float32` features; on the 150-query × 471-feature live audit (`gold_parity_audit`) and future-spin perturbation check, the observed discrepancy was `max_abs_difference = 0.0` (`mean_abs_difference = 0.0`) because both paths execute the identical NumPy floating-point operations per episode.
+- **PySpark Shuffle Semantics (`applyInPandas`):** `df_combined.groupBy("episode_id").applyInPandas(...)` performs one Spark `Exchange hashpartitioning(episode_id)` shuffle to co-locate all queries and spins for an episode into the same worker partition; once co-located, cross-machine peer features (`peers/*`) are computed in memory without a second cross-machine join shuffle.
+- **Cloud Spend vs. Offline Testing & Runtime Independence:** Offline unit tests (`tests/test_databricks_*.py`) run locally with zero cloud spend via `mock_engine.py`. Live Serverless runs on `dbc-b8d39219-3689.cloud.databricks.com` consumed bounded AWS Databricks free-trial credits (`0.29275 DBU` recorded in `system.billing.usage` on `2026-11-07` plus ~9 minutes of cumulative Serverless Python task execution on `2026-11-08`, well within the $20 initial pilot bound). The competition submission package (`jaegers_entry/`) has zero runtime dependency on Databricks cloud APIs, executing offline with standard local Python scientific libraries.
+
+### 4.5 Offline Unit Test Suite
 
 | Component | Path | Test Suite | Result |
 |---|---|---|---|

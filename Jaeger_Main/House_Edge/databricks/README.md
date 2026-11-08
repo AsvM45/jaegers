@@ -56,12 +56,12 @@ In competitive forecasting, lookahead leakage is catastrophic. The Gold feature 
 $$\text{Observations joined} = \{ \text{spin} \in \text{history} \mid \text{spin.tick} < \text{query.cutoff} \}$$
 Any observation at $t \ge \text{cutoff}$ is strictly excluded. Perturbation tests prove that mutating future spins produces **0.00** numerical change in generated features.
 
-### B. Bitwise Parity with Zero-Shuffle Distributed UDFs
-To ensure models trained offline score identically in production, features are computed via an episode-partitioned Grouped Map Pandas UDF (`applyInPandas`). Because all 8 machines for a given episode reside within the same episode partition, cross-machine peer statistics are calculated locally in memory with **zero network shuffle**:
+### B. Episode-Partitioned Distributed UDFs & Numerical Parity (`Bitwise Parity`)
+To ensure models trained offline score consistently with the Lakehouse feature store, features are computed via an episode-partitioned Grouped Map Pandas UDF (`applyInPandas`). Spark executes a single `Exchange hashpartitioning(episode_id)` shuffle stage to co-locate all 8 machines and spin history for an episode onto the same worker partition, after which cross-machine peer statistics (`peers/*`) are calculated in memory without a second cross-machine join shuffle:
 - **Historical Groups (10):** `type` (3), `lags` (48), `pairs` (280), `windows` (18), `decays` (18), `transitions` (48), `missingness` (11), `changes` (7), `peers` (11), `type_lag` (24).
 - **Query Group (1):** `current_signal` (3).
 - **Total:** 471 canonical features.
-- **Parity Tolerance:** $\max |X_{\text{spark}} - X_{\text{numpy}}| < 10^{-6}$ (exact bitwise parity).
+- **Parity Tolerance & Live Measurement:** Gate threshold $\max |X_{\text{spark}} - X_{\text{numpy}}| < 10^{-5}$; on the 150-query × 471-feature live audit (`workspace.house_edge.gold_parity_audit`), the measured `float32` difference was `max_abs_difference = 0.0` (`mean_abs_difference = 0.0`).
 
 ### C. MLflow Experiment Tracking & Governance
 The `HouseEdgeMLflowTracker` module tracks:
