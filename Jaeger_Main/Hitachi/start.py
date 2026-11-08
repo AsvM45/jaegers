@@ -16,6 +16,7 @@ Works from any directory. Steps, in order:
     3. python tests/run_given.py                -> runs/given/       (Test reports, given suite)
     4. python tests/run_cases.py                -> runs/tests/       (Test reports, generated suite)
        python tests/run_cases.py --cases tests/holdout_cases.json --out runs/holdout   (held-out suite)
+       python tests/run_cases.py --cases tests/stress_cases.json --out runs/stress   (149 stress cases)
        python tests/run_model.py                -> runs/model/       (only with --model-test)
     5. python -m tower.ontology                 -> runs/ontology/    (Knowledge graph tables)
     6. Serve tower/ui/dashboard.html and open it.
@@ -134,6 +135,8 @@ def main() -> None:
                                                   "--cases", "tests/holdout_cases.json", "--out", "runs/holdout"]),
             ("Held-out tests, set 2 (100 cases)", ["tests/run_cases.py", "--reader", test_reader,
                                                   "--cases", "tests/holdout2_cases.json", "--out", "runs/holdout2"]),
+            ("Stress tests (149 cases)", ["tests/run_cases.py", "--reader", test_reader,
+                                          "--cases", "tests/stress_cases.json", "--out", "runs/stress"]),
             ("Ontology export", ["-m", "tower.ontology"]),
         ]
         if cli.model_test:

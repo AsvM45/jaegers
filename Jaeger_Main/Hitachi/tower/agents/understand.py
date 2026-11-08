@@ -23,6 +23,9 @@ from tower.contracts import Incident
 _MARKER = re.compile(r"\((\d+)\)")
 # The same list written without the opening parenthesis: "1) ... 2) ...".
 _MARKER_BARE = re.compile(r"(?:(?<=\s)|^)(\d)\)\s")
+# "A) ... B) ..." and "First, ... Second, ...".
+_LETTER = re.compile(r"(?:(?<=\s)|^)([A-D])\)\s")
+_ORDINAL = re.compile(r"(?:(?<=\s)|^)(First|Second|Third),", re.I)
 # A sentence that starts a second, separate item: "Also, ...", "Separately, ...".
 _CONNECTOR = re.compile(r"(?<=[.!?])\s+(?:also|separately|in addition|additionally|and another thing|unrelated)[,:]\s+", re.I)
 # Restart wording after an outage ("the line restarts the following working day", "back up
@@ -45,12 +48,22 @@ _QUALITY = (
     # Not a bare "on hold": a shipment can be "on hold at customs". Placing a lot on hold is quality.
     r"(?:place\w*\s+(?:\w+\s+){0,3}on|put\s+(?:\w+\s+){0,3}on) hold", r"hold (?:the |this |that )?lots?",
     r"stop[- ]sale",
+    # A lot can be quarantined, or a defect named, without the word "quality".
+    r"quarantin\w*", r"\bqa hold\b", r"field reports?", r"\bflagged\b",
+    r"porosit\w*", r"checksum", r"water ingress", r"delamination", r"contaminated grease",
+    r"undersized fasteners", r"torque spec", r"seal leaks?", r"thread pitch", r"mislabeled",
+    r"excess solder", r"brittle plastic", r"intermittent shorts?",
 )
 _OUTAGE = (
     r"outages?", r"power (?:failure|cut|loss|outage)", r"blackout",
-    r"(?:production|builds?|the line|lines?|assembly|plant|operations?) (?:is |are |was |were |has |have |will be )?"
-    r"(?:stopped|halted|suspended|shut down|down|offline|idle|dark|paused)",
+    # Words may sit between the subject and the verb: "production at Lexington is suspended".
+    r"(?:production|builds?|the line|lines?|assembly|plant|operations?)"
+    r"(?:\s+[\w'’-]+){0,5}\s+"
+    r"(?:is |are |was |were |has |have |will be )?"
+    r"(?:stopped|halted|suspended|shut down|down|offline|idle|dark|paused|closed)",
     r"(?:we're|we are|we'll be|will be|is|are|was|went|going|stays?) (?:dark|down|offline|idle)",
+    # "we're losing Princeton for the 16th through the 18th" is the plant, not a parts shortage.
+    r"(?:we(?:'re| are)|they(?:'re| are))\s+losing\b",
     r"shut ?down", r"shutdown", r"stoppage", r"standstill",
     r"(?:lost|losing|halt\w*|stop\w*|suspend\w*|no) (?:all )?(?:production|builds?|output)",
     _NEG + r" (?:build|produce|run (?:the line|production))",
@@ -59,9 +72,12 @@ _OUTAGE = (
 _DELAY = (
     r"delay\w*", r"late", r"later than", r"behind schedule", r"running behind",
     r"(?:new|revised|updated|adjusted) (?:eta|arrival|delivery|ship) ?(?:date|time)?", r"\beta\b",
-    r"slip\w*", r"push\w* (?:back|out|to)", r"postpon\w*", r"(?:arrival|delivery|shipment) (?:moved|moves|changed)",
-    _NEG + r" (?:make it|arrive|land|deliver|ship|be there|reach)",
-    r"(?:will now|now|instead) (?:arrive|land|ship|deliver|come)",
+    r"slip\w*", r"\bslid\b", r"push\w* (?:back|out|to)", r"postpon\w*", r"reschedul\w*",
+    r"(?:arrival|delivery|shipment) (?:moved|moves|changed)",
+    _NEG + r" (?:make it|arriv\w*|land\w*|deliver\w*|ship\w*|show|be there|reach)",
+    r"(?:won'?t|will not|does(?:n't| not)|do(?:n't| not))\s+show",
+    r"(?:will now|now|instead) (?:arriv\w*|land\w*|ship\w*|deliver\w*|come|com\w*)",
+    r"now quoting", r"revised (?:date|eta|delivery|arrival)", r"\bno longer\b", r"missed the\b",
     r"waiting (?:on|for)", r"(?:originally|original|was|were|had been) (?:due|scheduled|planned|expected|set)",
     r"original (?:drop|date|eta|delivery)",
 )
@@ -81,6 +97,7 @@ _TROUBLE = (
     r"trouble", r"wrong", r"(?:off|up) with", r"strikes?", r"walkout", r"defect\w*", r"quality",
     r"outages?", r"(?:lose|lost|losing|loses) power", r"down", r"shut\w*", r"stop\w*", r"recall\w*",
     r"disrupt\w*", r"bottleneck", r"backlog",
+    r"miss(?:es|ed|ing)?\s+(?:a\s+|the\s+)?(?:deliver\w*|shipment\w*)",
 )
 
 
@@ -141,11 +158,12 @@ def _read_connected(section: str, read) -> list[Incident]:
     readings = [read(part) for part in parts if part]
     if len(readings) == 2 and all(r.kind != "noise" for r in readings):
         return readings
-    # One half is noise ("Stock markets closed higher. Also, <outage>"): keep the half that is
-    # about something, unless the whole reads better as one item.
+    # One half is chatter ("Stock markets closed higher. Also, <outage>"). Keep that half so a
+    # date in the chatter ("today") is not treated as the first day of the outage. When the whole
+    # message agrees with that half, the whole is the one that swallowed the chatter.
     whole = read(section)
     useful = [r for r in readings if r.kind != "noise"]
-    if whole.kind == "noise" and len(useful) == 1:
+    if len(useful) == 1 and (whole.kind == "noise" or useful[0].kind == whole.kind):
         return useful
     return [whole]
 
@@ -512,25 +530,53 @@ def _field_diffs(built: Incident, rules: Incident) -> list[str]:
     ]
 
 
+def _chunks(text: str, marks: list) -> list[str]:
+    """Text after each list marker. A header before the first marker is dropped."""
+    chunks = []
+    for index, mark in enumerate(marks):
+        stop = marks[index + 1].start() if index + 1 < len(marks) else len(text)
+        chunk = text[mark.end():stop].strip()
+        if chunk:
+            chunks.append(chunk)
+    return chunks or [text]
+
+
 def _sections(text: str) -> list[str]:
-    """Numbered parts of a compound message ("(1) ... (2) ..." or "1) ... 2) ..."), or the whole text."""
+    """Parts of a compound message, or the whole text when it is not a list.
+
+    Recognized lists: "(1) ... (2) ...", "1) ... 2) ...", "A) ... B) ...", and
+    "First, ... Second, ...". A single marker is not a list.
+    """
     marks = list(_MARKER.finditer(text))
     if len(marks) < 2:
         bare = list(_MARKER_BARE.finditer(text))
         # Only a real list: the markers count up 1, 2, ...
         if len(bare) >= 2 and [int(m.group(1)) for m in bare] == list(range(1, len(bare) + 1)):
             marks = bare
-    # A single "(1)" is not a list; it is more likely a stray parenthesis.
+    if len(marks) < 2:
+        letters = list(_LETTER.finditer(text))
+        got = [m.group(1).upper() for m in letters]
+        if len(got) >= 2 and got == [chr(ord("A") + i) for i in range(len(got))]:
+            marks = letters
+    if len(marks) < 2:
+        ordinals = list(_ORDINAL.finditer(text))
+        names = [m.group(1).lower() for m in ordinals]
+        if len(names) >= 2 and names == ["first", "second", "third"][: len(names)]:
+            marks = ordinals
     if len(marks) < 2:
         return [text]
-    chunks = []
-    for index, mark in enumerate(marks):
-        stop = marks[index + 1].start() if index + 1 < len(marks) else len(text)
-        # Text before "(1)" (e.g. "Morning digest, two items.") is a header and is dropped.
-        chunk = text[mark.end():stop].strip()
-        if chunk:
-            chunks.append(chunk)
-    return chunks or [text]
+    return _chunks(text, marks)
+
+
+def _name_closed(section: str, plant) -> bool:
+    """True when 'closed' follows the plant name ('Lexington closed', 'San Antonio plant closed').
+
+    'Markets closed' does not: the word has to sit next to the resolved plant.
+    """
+    if plant is None:
+        return False
+    tail = section[plant.end: plant.end + 40]
+    return re.match(r"(?:\W+(?:plant|line))?\W+closed\b", tail, re.I) is not None
 
 
 # The rule reader. Kinds are tried in priority order; each needs its keywords AND the fields to
@@ -556,6 +602,9 @@ def _read_section(graph, section: str, anchor=None) -> Incident:
     lot = picked["lot"][0]
     supplier = picked["supplier"][0]
     shipment = picked["shipment"][0]
+    # "Lexington closed 16 Mar" names no outage verb; the plant name itself is the subject.
+    if _name_closed(section, plant):
+        outage_hits = [*outage_hits, "closed"]
 
     # Hearsay first: a fully specified sentence that is still a rumor is escalated, never acted on.
     hearsay = _hits(section, _HEARSAY, folded)

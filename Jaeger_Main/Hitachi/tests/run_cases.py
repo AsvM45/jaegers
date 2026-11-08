@@ -342,7 +342,8 @@ def run(reader_name, cases, truth, graph):
 
 
 # runs/ folder -> the dashboard's suite id.
-SUITE_OF_FOLDER = {"given": "given", "tests": "generated", "holdout": "holdout", "holdout2": "holdout2"}
+SUITE_OF_FOLDER = {"given": "given", "tests": "generated", "holdout": "holdout", "holdout2": "holdout2",
+                    "stress": "stress"}
 
 
 def log_run(folder, reader, results):
@@ -361,7 +362,8 @@ def log_run(folder, reader, results):
 def report(all_results, cases):
     """Write runs/tests/REPORT.md: a pass/fail table per reader, then details per case."""
     title = {"cases.json": "generated tests", "holdout_cases.json": "held-out tests, set 1",
-             "holdout2_cases.json": "held-out tests, set 2"}.get(CASES_NAME, CASES_NAME)
+             "holdout2_cases.json": "held-out tests, set 2",
+             "stress_cases.json": "stress tests"}.get(CASES_NAME, CASES_NAME)
     lines = [f"# Hitachi control tower — {title}", "",
              f"{len(cases)} cases from `tests/{CASES_NAME}`, graded by `tests/run_cases.py` against "
              "expected effects computed from the CSVs (not from tower/graph.py).", ""]
@@ -394,7 +396,7 @@ def report(all_results, cases):
                 lines.append(f"- warn: {x}")
             lines.append("")
     path = os.path.join(OUT, "REPORT.md")
-    open(path, "w").write("\n".join(lines) + "\n")
+    open(path, "w", encoding="utf-8").write("\n".join(lines) + "\n")
     return path
 
 

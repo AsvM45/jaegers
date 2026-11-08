@@ -395,6 +395,7 @@ class QualityTests(TowerTest):
             "adv-quality-part-only",
             "Quality alert: the infotainment chip is faulty.",
         )
+        # A part with no plant, lot, or dates is not safe to act on. Escalate it; write nothing.
         self.assert_no_writes(trace.calls)
         self.assert_one_escalate(trace.calls)
 

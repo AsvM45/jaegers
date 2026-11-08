@@ -677,7 +677,7 @@
 {"event_id": "T-13", "tool": "crm.notify_customer", "args": {"customer_id": "C6935", "message": "The leather seat set from lots LOT-0089 and LOT-0090 is on quality hold."}, "ok": true}
 {"event_id": "T-13", "tool": "crm.notify_customer", "args": {"customer_id": "C6980", "message": "The leather seat set from lots LOT-0089 and LOT-0090 is on quality hold."}, "ok": true}
 {"event_id": "T-14", "tool": "escalate", "args": {"reason": "The message reads like an incident (quality bulletin, defect, place the lot on hold) but is not specific enough to act on: it names LOT-0999, which is not in the company records. It is escalated for a human to confirm."}, "ok": true}
-{"event_id": "T-19", "tool": "escalate", "args": {"reason": "The report is not safe to act on because it is unconfirmed (no dates, might, heard, can't confirm) and does not name a specific shipment, outage, or lot to change."}, "ok": true}
+{"event_id": "T-19", "tool": "escalate", "args": {"reason": "The report is not safe to act on because it is unconfirmed (no dates) and does not name a specific shipment, outage, or lot to change."}, "ok": true}
 {"event_id": "T-20", "tool": "escalate", "args": {"reason": "The report is not safe to act on because it is unconfirmed (unverified, no official word, claims) and does not name a specific shipment, outage, or lot to change."}, "ok": true}
 {"event_id": "T-21", "tool": "mes.reschedule", "args": {"production_order_id": "PO-0407", "new_date": "2027-03-19"}, "ok": true}
 {"event_id": "T-21", "tool": "mes.reschedule", "args": {"production_order_id": "PO-0409", "new_date": "2027-03-19"}, "ok": true}
@@ -906,7 +906,7 @@
 {"event_id": "T-23", "tool": "dealer.notify", "args": {"dealer_id": "D47", "customer_order_ids": ["CO-01849"], "message": "Princeton (P_IN) cannot build from 2027-03-17 through 2027-03-18 inclusive. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."}, "ok": true}
 {"event_id": "T-23", "tool": "dealer.notify", "args": {"dealer_id": "D49", "customer_order_ids": ["CO-01845"], "message": "Princeton (P_IN) cannot build from 2027-03-17 through 2027-03-18 inclusive. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."}, "ok": true}
 {"event_id": "T-23", "tool": "crm.assign_loaner", "args": {"customer_order_id": "CO-01845"}, "ok": true}
-{"event_id": "T-23", "tool": "escalate", "args": {"reason": "The report is not safe to act on because it is unconfirmed (rumor, nothing confirmed, no dates, no details, may be) and does not name a specific shipment, outage, or lot to change."}, "ok": true}
+{"event_id": "T-23", "tool": "escalate", "args": {"reason": "The report is not safe to act on because it is unconfirmed (nothing confirmed, rumor, may be off, no dates) and does not name a specific shipment, outage, or lot to change."}, "ok": true}
 {"event_id": "T-24", "tool": "mes.reschedule", "args": {"production_order_id": "PO-0332", "new_date": "2027-03-24"}, "ok": true}
 {"event_id": "T-24", "tool": "mes.reschedule", "args": {"production_order_id": "PO-0335", "new_date": "2027-03-24"}, "ok": true}
 {"event_id": "T-24", "tool": "dealer.notify", "args": {"dealer_id": "D03", "customer_order_ids": ["CO-01896", "CO-01899"], "message": "Atlas (SUP-07) will deliver heavy-duty wiring harness (HARN-B) to Princeton (P_IN) late, blocking builds from 2027-03-22 until 2027-03-24. Shipment SH-0207 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."}, "ok": true}
@@ -1335,8 +1335,8 @@
 {"event_id": "T-35", "tool": "dealer.notify", "args": {"dealer_id": "D36", "customer_order_ids": ["CO-00296"], "message": "Volt Harness Systems (SUP-05) will deliver compact wiring harness (HARN-C) to Wacky Wheels San Antonio (P_TX) late, blocking builds from 2027-03-22 until 2027-03-23. Shipment SH-0023 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."}, "ok": true}
 {"event_id": "T-35", "tool": "crm.assign_loaner", "args": {"customer_order_id": "CO-00296"}, "ok": true}
 {"event_id": "T-35", "tool": "dealer.notify", "args": {"dealer_id": "D47", "customer_order_ids": ["CO-00293"], "message": "Volt Harness Systems (SUP-05) will deliver compact wiring harness (HARN-C) to Wacky Wheels San Antonio (P_TX) late, blocking builds from 2027-03-22 until 2027-03-23. Shipment SH-0023 matches the original ETA. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."}, "ok": true}
-{"event_id": "T-37", "tool": "escalate", "args": {"reason": "The report is not safe to act on because it is unconfirmed (no dates, people say, not sure) and does not name a specific shipment, outage, or lot to change."}, "ok": true}
-{"event_id": "T-38", "tool": "escalate", "args": {"reason": "The report is not safe to act on because it is unconfirmed (rumors, could be) and does not name a specific shipment, outage, or lot to change."}, "ok": true}
+{"event_id": "T-37", "tool": "escalate", "args": {"reason": "The report is not safe to act on because it is unconfirmed (no dates) and does not name a specific shipment, outage, or lot to change."}, "ok": true}
+{"event_id": "T-38", "tool": "escalate", "args": {"reason": "The report is not safe to act on because it is unconfirmed (rumors) and does not name a specific shipment, outage, or lot to change."}, "ok": true}
 {"event_id": "T-39", "tool": "quality.hold_lot", "args": {"lot_id": "LOT-0054"}, "ok": true}
 {"event_id": "T-39", "tool": "dealer.stop_sale", "args": {"dealer_id": "D01", "vins": ["AUR0001167", "AUR0001231"]}, "ok": true}
 {"event_id": "T-39", "tool": "dealer.stop_sale", "args": {"dealer_id": "D02", "vins": ["AUR0001186", "AUR0001227", "AUR0001306", "AUR0001326", "AUR0001368"]}, "ok": true}
@@ -2125,7 +2125,7 @@
 {"event_id": "T-53", "tool": "dealer.notify", "args": {"dealer_id": "D45", "customer_order_ids": ["CO-01788", "CO-01804"], "message": "Wacky Wheels Princeton (P_IN) cannot build from 2027-03-16 through 2027-03-16 inclusive. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."}, "ok": true}
 {"event_id": "T-53", "tool": "dealer.notify", "args": {"dealer_id": "D46", "customer_order_ids": ["CO-01798"], "message": "Wacky Wheels Princeton (P_IN) cannot build from 2027-03-16 through 2027-03-16 inclusive. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."}, "ok": true}
 {"event_id": "T-53", "tool": "crm.assign_loaner", "args": {"customer_order_id": "CO-01798"}, "ok": true}
-{"event_id": "T-55", "tool": "escalate", "args": {"reason": "The report is not safe to act on because it is unconfirmed (not confirmed, no dates, could slip, hinted) and does not name a specific shipment, outage, or lot to change."}, "ok": true}
+{"event_id": "T-55", "tool": "escalate", "args": {"reason": "The report is not safe to act on because it is unconfirmed (not confirmed, no dates) and does not name a specific shipment, outage, or lot to change."}, "ok": true}
 {"event_id": "T-56", "tool": "mes.reschedule", "args": {"production_order_id": "PO-0253", "new_date": "2027-03-31"}, "ok": true}
 {"event_id": "T-56", "tool": "mes.reschedule", "args": {"production_order_id": "PO-0254", "new_date": "2027-03-31"}, "ok": true}
 {"event_id": "T-56", "tool": "mes.reschedule", "args": {"production_order_id": "PO-0255", "new_date": "2027-04-01"}, "ok": true}
@@ -4067,7 +4067,7 @@
 {"event_id": "T-91", "tool": "dealer.notify", "args": {"dealer_id": "D47", "customer_order_ids": ["CO-02815", "CO-02841", "CO-02870"], "message": "Wacky Wheels Greensboro (P_NC) cannot build from 2027-03-11 through 2027-03-16 inclusive. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."}, "ok": true}
 {"event_id": "T-91", "tool": "crm.assign_loaner", "args": {"customer_order_id": "CO-02841"}, "ok": true}
 {"event_id": "T-91", "tool": "dealer.notify", "args": {"dealer_id": "D49", "customer_order_ids": ["CO-02882", "CO-02899"], "message": "Wacky Wheels Greensboro (P_NC) cannot build from 2027-03-11 through 2027-03-16 inclusive. Platinum and Gold customers receive a loaner while this dealer's pool has cars left."}, "ok": true}
-{"event_id": "T-92", "tool": "escalate", "args": {"reason": "The report is not safe to act on because it is unconfirmed (rumor, unverified, possible) and does not name a specific shipment, outage, or lot to change."}, "ok": true}
+{"event_id": "T-92", "tool": "escalate", "args": {"reason": "The report is not safe to act on because it is unconfirmed (rumor) and does not name a specific shipment, outage, or lot to change."}, "ok": true}
 {"event_id": "T-93", "tool": "mes.reschedule", "args": {"production_order_id": "PO-0407", "new_date": "2027-03-18"}, "ok": true}
 {"event_id": "T-93", "tool": "mes.reschedule", "args": {"production_order_id": "PO-0410", "new_date": "2027-03-18"}, "ok": true}
 {"event_id": "T-93", "tool": "mes.reschedule", "args": {"production_order_id": "PO-0413", "new_date": "2027-03-19"}, "ok": true}
