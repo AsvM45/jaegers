@@ -1,5 +1,8 @@
 # JAEGERS — TAMU Datathon 2026
 
+> **Agents start here (offline-friendly):** [root boot capsule](AGENT_START_HERE.md) · [House Edge boot capsule](Jaeger_Main/House_Edge/AGENT_START_HERE.md) · [live issue board #18](https://github.com/AsvM45/jaegers/issues/18). Same essential instructions are duplicated across the five platform-native files.
+
+
 Multi-project student engineering repository with two independent challenge areas:
 
 - [House Edge — probabilistic slot forecasting](Jaeger_Main/House_Edge/)
