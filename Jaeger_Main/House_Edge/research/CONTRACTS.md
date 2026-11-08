@@ -78,6 +78,15 @@ SQLite: `research_runs/<round>/registry.sqlite`. Tables:
 
 Trial ID hashes canonical configuration plus source, data, fold and environment
 identity. Completed trials are reused; interrupted attempts get a new directory.
+Runtime identity includes allowlisted NumPy/BLAS dispatch controls, Python hash
+policy and host architecture/processor. `execution_policy` records the actual worker
+CPU/thread caps (including Optuna's serial two-CPU worker). These fields distinguish
+trial IDs and paired-comparison contexts. Old contexts remain intact; they are not
+silently reused as if the newly recorded numeric policy had been known.
+Feature-cache keys independently include their builder's numeric runtime environment,
+including inherited thread caps. A new trial policy cannot silently use a cache from
+an older context. These conservative fields may cause intentional cache misses;
+they do not establish universal cross-host floating-point parity.
 Git HEAD and entry README/dependency text are retained as provenance but do not
 invalidate an otherwise identical numerical trial. Worker source snapshots and
 model/parameter bytes remain part of the identity. A specialist factory named
@@ -95,6 +104,25 @@ Dashboard agents should read SQLite in read-only mode, or read `registry.json` p
 referenced result.json files. Do not write the registry or load model pickles for UI.
 Missing metrics stay missing; never render a sampled-label Brier value as official
 points, or a format-checked test CSV as a scored test result.
+
+### Portable export, version 1
+
+`python -m research.registry --root <existing-registry> --out <export-folder>` reads
+the source SQLite database in read-only mode and writes only the destination.
+Normal scheduler exports also maintain `exports/v1/registry.json` beside the unchanged
+legacy list. The portable envelope has `schema="jaegers.experiment_registry"`,
+`schema_version=1`, `trials` and `content_sha256` (canonical SHA-256 of the other fields).
+Records contain parsed hyperparameters, explicit family/provenance, source/data/fold
+identity, attempt/status/error, sampled Brier by condition, per-episode/calibration
+data, full result evidence and terminal-attempt artifact hashes. Running attempts
+are unsealed. Failed-trial metrics stay null. Official points and condition loss
+ratios stay null: core workers evaluate sampled-label grouped CV only.
+
+The folder works directly with the dashboard DirectoryStore, with no source database,
+model pickle or original artifact directories. Identical exports have identical bytes.
+A changed sealed attempt or incompatible prior export schema is rejected before the
+previous snapshot is overwritten. Retries use distinct attempt numbers. Export data
+is local evidence, not automatically published or an organizer submission.
 
 ## Release boundaries
 

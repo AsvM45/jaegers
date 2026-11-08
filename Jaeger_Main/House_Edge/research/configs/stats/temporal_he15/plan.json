@@ -1,0 +1,30 @@
+{
+  "issue": "AsvM45/jaegers#15",
+  "agent": "claude-stats",
+  "preregistered": "2026-11-07 ~21:45 CT, committed before any HE-15 result was computed",
+  "motivation": "HE-09/HE-17: payout-size modelling is the gap (#9 Markov over-predicts 20x by 65%; size experts worth ~1.4 points; train-only size regimes cost ~0.6). Test whether regime-switching models learned from history alone recover that structure without validation-derived constants.",
+  "candidates": {
+    "stat_temporal_hmm": {
+      "idea": "Per-machine-type hidden Markov model with K states emitting the five payout classes. Parameters (initial, transition, emission) learned by Baum-Welch on FIT-split histories (ticks < cutoff). Missing ticks advance the chain with no emission (never 0x). Prediction: forward-filter the machine's own ticks < cutoff, one transition step, emission mixture.",
+      "hyperparameters": "K in {2,3}; 3 deterministic restarts (seed 0..2), 40 EM iterations; K chosen by FIT-split query-label log score",
+      "expected": "about the counting baselines (~31 official points): no lag structure, so regimes alone should not close much of the gap"
+    },
+    "stat_temporal_factorized": {
+      "idea": "P(win) from the HE-09 five-class lag-context mixture (1 - p_0), times P(size | win) from a per-type size-regime HMM whose chain runs over ticks and emits only on observed wins (4 size classes). Losses and missing ticks emit nothing.",
+      "hyperparameters": "size HMM K in {2,3} by FIT-split query-label log score; lag mixture as in HE-09",
+      "expected": "better than stat_markov (43.98) and better-calibrated 20x; still below the champion (no stacker, no peer evidence)"
+    },
+    "stat_temporal_ar1": {
+      "idea": "Bounded temporal baseline: per class k, P(y_c=k) = mu_k + phi_k^(gap) * (x_last - mu_k), where x_last is the class indicator at the last observed tick, mu_k a decayed per-machine mean shrunk to the type mean, phi_k a per-type lag-1 coefficient fit by least squares on FIT-split histories. Clipped to [1e-4, 1] and renormalised onto the simplex.",
+      "hyperparameters": "decay 0.97, shrinkage strength 10 (fixed, not tuned)",
+      "expected": "weak; a sanity baseline, not a contender"
+    }
+  },
+  "not_run": "SARIMA/SARIMAX: only if training-only seasonality tests justify; scalar expected-payout ARIMA is excluded by the issue.",
+  "baselines": ["champion (jaegers_entry, read-only)", "FrequencyModel (lane A)", "HE-09 stat_markov"],
+  "evaluations": {
+    "R": "#8 registry, 4 condition-stratified whole-episode train folds, sampled-label five-class Brier (not official points)",
+    "A": "fit on TRAIN, official slot_forecasting.rounds.score_round on VALIDATION (development-exposed for the champion only)"
+  },
+  "decision_rule": "No promotion. Interesting only if both R and A improve on the champion with R interval excluding 0. Convergence failures, runtime and negative results are reported."
+}

@@ -1,0 +1,15 @@
+{
+  "name": "he15_temporal_registry",
+  "strategy": "grid",
+  "seed": 0,
+  "folds": 4,
+  "budget": {"workers": 2, "trials": 6, "seconds": 7200, "trial_seconds": 2400},
+  "candidates": [
+    {"family": "jaeger", "causal": false},
+    {"family": "frequency", "params": {"strength": 20, "decay": 1}},
+    {"family": "stat_markov", "factory": "research.challengers.stat_he09_registry:factory", "model": "stat_markov", "supervision": "query"},
+    {"family": "stat_temporal_hmm", "factory": "research.challengers.stat_temporal_models:factory", "model": "stat_temporal_hmm", "supervision": "query"},
+    {"family": "stat_temporal_factorized", "factory": "research.challengers.stat_temporal_models:factory", "model": "stat_temporal_factorized", "supervision": "query"},
+    {"family": "stat_temporal_ar1", "factory": "research.challengers.stat_temporal_models:factory", "model": "stat_temporal_ar1", "supervision": "query"}
+  ]
+}

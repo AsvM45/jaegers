@@ -35,11 +35,11 @@
 - Use `docs/GROK_START.md`. Claim **#15 only** before starting; run distinct state-space/HMM/changepoint/temporal probability studies in unique `research/challengers/stat_temporal_*.py` and own tests. Claude already owns #9 with PR #28; do not duplicate its Dirichlet/Markov/decay models or rewrite shared `research/models.py`.
 - Grok should produce valid five-class distributions with tested as-of features and real grouped comparisons, not speculative novelty. After #15 review, may request #12 if unclaimed; **Claude has claimed #9 and #17** and proposed [PR #22](https://github.com/AsvM45/jaegers/pull/22), so do not duplicate.
 
-## E — Cursor (issue #16, later #10/#11)
+## E — Cursor (fresh available issue #46; previous #16/#10/#11/#12 closed)
 
 - Cursor supports root/nested `AGENTS.md`; additionally `.cursor/rules/jaegers-agent.mdc` is present for discoverable ownership/issue reminders.
-- Current #16 is **CLAIMED** on `agent/cursor-he16-ci`; do not start #10/#11 until #16 handoff and explicit issue claim.
-- Cursor CI files are unique to the #16 issue. Do not edit `tests/test_temporal.py`, champion, A's runner, or Claude's QA tests in parallel.
+- #16 CI, #10 supervised ML, #11 temporal and #12 ensemble tasks are **closed and integrated**. **Do not repeat them.** New [#46 independent frozen submission portability witness](https://github.com/AsvM45/jaegers/issues/46) is **reserved and requires Cursor's own claim** in a different worktree/branch. User reports a **10:30 AM Sunday Nov 8 operational target**; confirm House Edge round-specific organizer time before relying on it.
+- Cursor's #46 exclusive files are `Jaeger_Main/House_Edge/tools/cursor_portability_probe.py`, `Jaeger_Main/House_Edge/tests/test_cursor_portability_probe.py` and `docs/release/CURSOR_PORTABILITY_REPORT.md`. Everything else, including `research_runs` and the original champion, is read-only. See `.cursor/rules/jaegers-agent.mdc` and deadline handoff.
 
 ## Evidence / session handoff template
 
