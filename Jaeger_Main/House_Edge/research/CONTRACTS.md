@@ -14,6 +14,7 @@ in `research/adapters.py`. Public interface:
 
 `research.models` re-exports these adapters for existing consumers, while remaining
 a package for specialist modules. The implementations live only in `adapters.py`.
+Likewise, `research.features` re-exports `feature_api` for existing feature consumers.
 
 ```python
 model.fit(queries, history, labels)  # returns self
