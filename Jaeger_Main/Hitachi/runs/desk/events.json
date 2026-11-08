@@ -1,14 +1,1 @@
-[
-  {
-    "event_id": "A-001",
-    "received_at": "2027-03-08T12:01:00",
-    "source": "ops chat",
-    "text": "there was a supplier delay"
-  },
-  {
-    "event_id": "A-002",
-    "received_at": "2027-03-08T12:02:00",
-    "source": "ops chat",
-    "text": "another supplier delay"
-  }
-]
+[]

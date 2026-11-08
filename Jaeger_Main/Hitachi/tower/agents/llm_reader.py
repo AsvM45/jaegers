@@ -128,7 +128,7 @@ if os.environ.get("TOWER_CLASSIFY_HINTS", "1") == "1":
 _CLASSIFY_SCHEMA = {
     "type": "object",
     "properties": {
-        "reason": {"type": "string", "minLength": 25},
+        "reason": {"type": "string", "minLength": 25, "maxLength": 240},
         "kind": {"type": "string", "enum": list(KINDS)},
     },
     "required": ["reason", "kind"],
@@ -215,7 +215,8 @@ class LLMReader:
         """Step 1: {"kind", "reason"} for one message section."""
         payload = {
             "model": self.model, "stream": False, "format": _CLASSIFY_SCHEMA,
-            "options": {"temperature": 0, "seed": 7},
+            # A hard stop on length: a runaway reason can no longer stall a message.
+            "options": {"temperature": 0, "seed": 7, "num_predict": 160},
             "messages": [{"role": "system", "content": _CLASSIFY_SYSTEM}, {"role": "user", "content": section}],
         }
         return self._post(payload, check_kind=True, keys=("kind", "reason"))
