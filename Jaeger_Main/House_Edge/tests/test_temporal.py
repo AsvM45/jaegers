@@ -2,7 +2,7 @@ from collections import defaultdict
 from copy import deepcopy
 import numpy as np
 import pytest
-from research.models import core_module, JaegerModel, validate_predictions
+from research.adapters import core_module, JaegerModel, validate_predictions
 
 
 def fixture(cutoff=64):

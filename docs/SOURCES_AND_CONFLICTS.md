@@ -1,8 +1,25 @@
-# Provenance and official references
+# House Edge sources and unresolved conflicts
 
-- Exact public repository inspected: https://github.com/AsvM45/jaegers, HEAD b78abe75db15688e652b30b9d5388a151f2b7acd (2026-11-07T22:45:10Z).
-- Official House Edge kit is already tracked under `Jaeger_Main/House_Edge`: `RULES.md`, `DATA.md`, `EXPERIMENTS.md`, `public/metadata.json`, `check_submission.py`, `slot_forecasting/rounds.py`, `build_entry.py`.
-- Older uploaded `House Edge — Participant Guide` describes 80/20 and different portal; actual 60/40 kit describes Google Forms. Do not silently replace one with another. Confirm with organizer.
-- Source conversations, both uploaded user MD exports: archived OUTSIDE repo overlay at `reference_inputs/`; best-effort context, not proof of current repo runtime.
-- Official Codex/Astra context guidance: https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra ; skills and AGENTS.md: https://developers.openai.com/blog/skills-agents-sdk ; plan mode: https://developers.openai.com/blog/run-long-horizon-tasks-with-codex ; project config trust: https://developers.openai.com/plugins/build/plugins .
-- The 55.12/60 is from GitHub commit title only; no generated current HEAD predictions were locally executed as part of this remote inspection. Uncommitted teammates' local changes are unknown.
+## Controlling sources
+
+- Actual working source and released organizer kit under `Jaeger_Main/House_Edge`:
+  RULES.md, DATA.md, README.md, public/metadata.json, checker, round scorer and builder.
+- Measured execution evidence and current branch/owner: [CURRENT_STATE.md](CURRENT_STATE.md).
+- Named issue ownership: [GitHub coordination #18](https://github.com/AsvM45/jaegers/issues/18).
+- Evaluation definitions: [VALIDATION_PROTOCOL.md](VALIDATION_PROTOCOL.md).
+
+Earlier GitHub/conversation snapshots are historical context, not current execution
+attestation. The original commit score claim has since been independently reproduced;
+platform-specific measured values are maintained only in CURRENT_STATE.
+
+## Unresolved organizer-only questions
+
+The supplied kit says 60 main/40 adaptation and Google Forms. An older separate guide
+says 80/20 and another portal. Human release issue #5 must record authoritative
+organizer confirmation. No new organizer announcement or receipt has been verified.
+
+Historical availability of query signal is not independently documented. Validation
+constants were derived from released targets; published rules allow public validation
+for selection, but that does not make the same targets an independent audit.
+
+Keep credentials, organizer-private communications and receipts off public GitHub.

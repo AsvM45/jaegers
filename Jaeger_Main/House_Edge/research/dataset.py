@@ -3,8 +3,8 @@ import csv
 from pathlib import Path
 import numpy as np
 from .common import digest, file_hash, tree_hashes, write_json
-from .features import FeatureComputer, HISTORICAL_GROUPS
-from .models import core_module, PAYOUTS
+from .feature_api import FeatureComputer, HISTORICAL_GROUPS
+from .adapters import core_module, PAYOUTS
 
 
 def read_labels(folder):
@@ -37,7 +37,7 @@ def conditions(folder):
 def build_cache(data, cache, stride=8, max_rows=24):
     data, cache = Path(data).resolve(), Path(cache).resolve()
     folder = data / "train"
-    identity = {"inputs": tree_hashes(folder), "features": file_hash(Path(__file__).with_name("features.py")),
+    identity = {"inputs": tree_hashes(folder), "features": file_hash(Path(__file__).with_name("feature_api.py")),
                 "dataset": file_hash(__file__), "stride": stride, "max_rows": max_rows}
     key = digest(identity)
     destination = cache / key

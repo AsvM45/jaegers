@@ -6,7 +6,7 @@ if [[ ! -x .runtime/uv-linux/uv ]]; then
   curl -fL --retry 2 https://github.com/astral-sh/uv/releases/download/0.13.7/uv-x86_64-unknown-linux-gnu.tar.gz -o .runtime/uv-linux.tar.gz
   tar -xzf .runtime/uv-linux.tar.gz --strip-components=1 -C .runtime/uv-linux
 fi
-runtime="${JAEGERS_LINUX_RUNTIME:-/tmp/jaegers-house-edge-runtime}"
+runtime="${JAEGERS_LINUX_RUNTIME:-/var/tmp/jaegers-house-edge-runtime}"
 mkdir -p "$runtime"
 export UV_PYTHON_INSTALL_DIR="$runtime/python"
 export UV_CACHE_DIR="$runtime/cache"

@@ -22,6 +22,9 @@ def compare(first, second):
 def reproduce(entry, data, out, repeat=True):
     require_python()
     entry, data, out = (Path(x).resolve() for x in (entry, data, out))
+    if (entry.parent/"manifest.json").exists():
+        from .freeze import verify_frozen
+        verify_frozen(entry.parent,data)
     out.mkdir(parents=True, exist_ok=False)
     report = {"environment": environment(), "entry_sha256": tree_hashes(entry),
               "data_sha256": tree_hashes(data), "status": "RUNNING",

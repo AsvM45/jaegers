@@ -1,0 +1,2 @@
+# Bash bootstrap/reproduction scripts must survive Windows checkouts.
+*.sh text eol=lf

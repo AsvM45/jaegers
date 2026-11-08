@@ -45,7 +45,11 @@ config = json.loads(Path("/submission/reproduce.json").read_text())
 if config["image"] != "python":
     raise ValueError("Unsupported reproduction environment")
 result = subprocess.run(config["command"], cwd="/submission", timeout=1790)
+scratch_bytes = sum(p.stat().st_size for p in Path("/tmp").rglob("*") if p.is_file())
+if scratch_bytes > 128*1024**2:
+    raise RuntimeError("Scratch usage exceeded 128 MiB")
 evidence.update(status="SUCCEEDED" if result.returncode == 0 else "FAILED", returncode=result.returncode,
+                scratch_bytes_after_run=scratch_bytes, scratch_limit_hard_enforced=False,
                 wall_seconds=time.monotonic()-started,
                 peak_child_rss_mib=resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss/1024)
 Path("/output/environment.json").write_text(json.dumps(evidence, indent=2)+"\n")

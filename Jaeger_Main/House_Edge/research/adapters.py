@@ -1,4 +1,4 @@
-"""Adapters around existing forecasting code; all outputs are five-class probabilities."""
+"""Integration-owned adapters; new model families belong under research/models/."""
 import importlib.util
 from pathlib import Path
 import tempfile

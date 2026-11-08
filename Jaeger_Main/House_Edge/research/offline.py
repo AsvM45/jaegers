@@ -2,7 +2,7 @@
 import argparse
 from pathlib import Path
 import sys
-from .common import ROOT, require_python
+from .common import ROOT, require_python, write_json
 from .process import run
 from .release import verify
 
@@ -10,7 +10,12 @@ from .release import verify
 def offline(release, data):
     require_python()
     release, data = Path(release).resolve(), Path(data).resolve()
-    output = release / "linux_output"
+    attempt = 1
+    while (release / "offline" / f"attempt-{attempt:04d}").exists():
+        attempt += 1
+    attempt_root = release / "offline" / f"attempt-{attempt:04d}"
+    attempt_root.mkdir(parents=True,exist_ok=False)
+    output = attempt_root / "output"
     output.mkdir(exist_ok=False)
     executable = Path(sys.executable).absolute()
     base = Path(sys.base_prefix).resolve()
@@ -19,18 +24,23 @@ def offline(release, data):
     for path in ("/usr", "/lib", "/lib64", "/etc"):
         if Path(path).exists():
             command += ["--ro-bind", path, path]
-    command += ["--proc", "/proc", "--dev", "/dev", "--size", "134217728", "--tmpfs", "/tmp"]
+    command += ["--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp"]
     for path in (base, venv):
         command += ["--ro-bind", str(path), str(path)]
     command += ["--ro-bind", str(release / "extracted"), "/submission",
                 "--ro-bind", str(data), "/data", "--bind", str(output), "/output",
                 "--ro-bind", str(ROOT / "tools/offline_runner.py"), "/runner.py",
+                "--setenv", "TMP", "/tmp", "--setenv", "TEMP", "/tmp", "--setenv", "TMPDIR", "/tmp",
                 "--setenv", "PATH", str(venv / "bin")+":/usr/bin:/bin",
                 "--chdir", "/submission", str(executable), "/runner.py"]
-    run(command, ROOT, release / "linux_sandbox", timeout=1800)
+    run(command, ROOT, attempt_root / "process", timeout=1800)
     if sum(p.stat().st_size for p in output.rglob("*") if p.is_file()) > 32*1024**2:
         raise ValueError("Output scratch limit exceeded")
-    result = verify(release, output / "submission.csv", output / "environment.json")
+    try:
+        result = verify(release, output / "submission.csv", output / "environment.json")
+    except Exception as exc:
+        write_json(attempt_root/"verification_failure.json",{"status":"FAILED", "error":str(exc)})
+        raise
     print(result["status"], result["parity"], flush=True)
     return result
 

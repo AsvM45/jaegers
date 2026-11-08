@@ -1,0 +1,13 @@
+{
+  "name": "optuna_smoke",
+  "strategy": "optuna",
+  "seed": 0,
+  "folds": 4,
+  "budget": {"workers": 1, "trials": 3, "seconds": 300, "trial_seconds": 90},
+  "base": {"family": "frequency"},
+  "optuna_space": {
+    "params.strength": {"type": "float", "low": 2, "high": 100, "log": true},
+    "params.decay": {"choices": [0.9, 0.97, 0.995, 1.0]},
+    "params.peer": {"choices": [0, 0.1]}
+  }
+}
