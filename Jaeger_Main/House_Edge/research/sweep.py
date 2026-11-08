@@ -45,7 +45,7 @@ def candidates(spec):
     return unique
 
 
-def identity(data, folds):
+def identity(data, folds, worker_cpus=2):
     numerical = ("__init__.py", "common.py", "dataset.py", "feature_api.py", "learners.py", "adapters.py", "metrics.py",
                  "worker.py", "sweep.py", "registry.py", "process.py")
     metadata=json.loads((Path(data)/"metadata.json").read_text())
@@ -58,7 +58,10 @@ def identity(data, folds):
             "scorer_sha256":tree_hashes(ROOT/"slot_forecasting"),
             "champion_sha256":tree_hashes(ROOT / "jaegers_entry"),
             "train_sha256":tree_hashes(Path(data)/"train"), "metadata_sha256":file_hash(Path(data)/"metadata.json"),
-            "split_manifest_sha256":digest(folds), "environment":environment()}
+            "split_manifest_sha256":digest(folds), "environment":environment(),
+            "execution_policy": {"cpus_per_worker": worker_cpus,
+                "thread_limits": {key: str(worker_cpus) for key in (
+                    "OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS")}}}
 
 
 def snapshot_source(destination, provenance):
@@ -125,6 +128,7 @@ def sweep(spec, data, root, retry=False):
     registry = Registry(root)
     budget = spec.get("budget",{})
     workers = min(2,max(1,int(budget.get("workers",1))))
+    worker_cpus = 2 if spec.get("strategy") == "optuna" else 2 // workers
     maximum = int(budget.get("trials",3))
     wall = float(budget.get("seconds",1800))
     timeout = float(budget.get("trial_seconds",600))
@@ -142,7 +146,7 @@ def sweep(spec, data, root, retry=False):
             write_json(round_file,round_identity)
         queries,_ = core_module().read_split(str(data/"train"))
         folds = episode_folds(queries,conditions(data/"train"),int(spec.get("folds",4)))
-        provenance = identity(data,folds)
+        provenance = identity(data,folds,worker_cpus)
         write_json(root/"splits"/(digest(folds)+".json"),folds)
         prepared = candidates(spec)
         check_configs = prepared + ([spec["base"]] if spec.get("strategy") == "optuna" else [])
@@ -171,7 +175,7 @@ def sweep(spec, data, root, retry=False):
                 remaining = wall-(time.perf_counter()-started)
                 if remaining <= 0:
                     raise optuna.TrialPruned("Wall budget exhausted")
-                execute(registry,trial_id,config,provenance,data,folds,cache,min(timeout,remaining),0,2,retry)
+                execute(registry,trial_id,config,provenance,data,folds,cache,min(timeout,remaining),0,worker_cpus,retry)
                 row = next(r for r in registry.rows() if r["id"] == trial_id)
                 if row["status"] != "SUCCEEDED":
                     raise optuna.TrialPruned("Recorded trial did not complete successfully")
@@ -193,7 +197,7 @@ def sweep(spec, data, root, retry=False):
                         trial_id = registry.register(spec["name"],config,provenance)
                         slot=slots.pop(0)
                         future=executor.submit(execute,registry,trial_id,config,provenance,data,folds,cache,
-                                               min(timeout,remaining),slot,2//workers,retry)
+                                               min(timeout,remaining),slot,worker_cpus,retry)
                         pending[future]=slot
                     if pending:
                         done,_ = wait(pending,return_when=FIRST_COMPLETED)

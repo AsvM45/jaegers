@@ -66,7 +66,13 @@ def environment():
         except importlib.metadata.PackageNotFoundError:
             packages[name] = None
     return {"python": platform.python_version(), "executable": sys.executable,
-            "platform": platform.platform(), "packages": packages}
+            "platform": platform.platform(), "machine": platform.machine(),
+            "processor": platform.processor(), "packages": packages,
+            "numeric_environment": {name: os.environ.get(name) for name in (
+                "NPY_DISABLE_CPU_FEATURES", "OPENBLAS_CORETYPE", "MKL_CBWR",
+                "MKL_ENABLE_INSTRUCTIONS", "BLIS_ARCH_TYPE", "OMP_DYNAMIC",
+                "MKL_DYNAMIC", "PYTHONHASHSEED", "OMP_NUM_THREADS",
+                "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS")}}
 
 
 def require_python():
