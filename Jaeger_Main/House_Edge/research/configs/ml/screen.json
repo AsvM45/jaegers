@@ -1,0 +1,13 @@
+{
+  "seed": 0,
+  "fold_count": 4,
+  "holdout_fold": 0,
+  "query_groups": ["type", "lags", "missingness", "current_signal"],
+  "historical_groups": ["type", "lags", "missingness"],
+  "historical_stride": 8,
+  "historical_max_rows": 4,
+  "families": {
+    "logistic": {"C": 1.0},
+    "hist_boost": {"iters": 40, "lr": 0.05, "leaves": 15, "l2": 1.0}
+  }
+}
