@@ -7,6 +7,7 @@ from pathlib import Path
 import platform
 import subprocess
 import sys
+import time
 from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,7 +41,16 @@ def write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n", encoding="utf-8")
-    os.replace(temporary, path)
+    # OneDrive/Windows readers can briefly deny a rename even after our file is
+    # closed. Keep atomic replacement; retry boundedly rather than writing in place.
+    for attempt in range(10):
+        try:
+            os.replace(temporary, path)
+            break
+        except PermissionError:
+            if attempt == 9:
+                raise
+            time.sleep(min(.05 * 2**attempt, .5))
 
 
 def git(*args):
@@ -49,7 +59,8 @@ def git(*args):
 
 def environment():
     packages = {}
-    for name in ("numpy", "scipy", "scikit-learn", "joblib", "threadpoolctl", "psutil"):
+    for name in ("numpy", "scipy", "scikit-learn", "joblib", "threadpoolctl", "psutil",
+                 "optuna", "xgboost", "lightgbm", "statsmodels", "hmmlearn"):
         try:
             packages[name] = importlib.metadata.version(name)
         except importlib.metadata.PackageNotFoundError:

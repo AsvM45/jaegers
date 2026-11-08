@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from itertools import combinations
 import numpy as np
-from .models import PAYOUTS
+from .adapters import PAYOUTS
 
 
 @dataclass(frozen=True)

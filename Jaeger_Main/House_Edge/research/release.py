@@ -3,6 +3,7 @@ import argparse
 import json
 from pathlib import Path
 import shutil
+import shlex
 import sys
 from .common import ROOT, environment, file_hash, require_python, tree_hashes, write_json
 from .process import run
@@ -15,12 +16,17 @@ def stage(entry, data, predictions, out):
     out.mkdir(parents=True, exist_ok=False)
     source = out / "source"
     shutil.copytree(entry, source, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    for name in ("README.md", "requirements.txt"):
+        target = source / name
+        if target.exists():
+            target.chmod(target.stat().st_mode | 0o200)
     shutil.copyfile(ROOT / "requirements-runtime.txt", source / "requirements.txt")
+    declared_command = json.loads((source / "reproduce.json").read_text())["command"]
     metadata = json.loads((data / "metadata.json").read_text())
     readme = f"""# JAEGERS House Edge {metadata['round']} candidate
 
 Season: {metadata['season_id']}. CPython 3.13; exact dependencies in requirements.txt.
-Command from ZIP root: python predict.py --data /data --out /output/submission.csv
+Command from ZIP root: {shlex.join(declared_command)}
 The command fits expert priors and a gradient-boosted win stacker on /data/train,
 then forecasts /data/test using earlier same-episode history. Settings: params.json.
 Stacker random_state=0, early_stopping=False. No downloads or external APIs at inference.
@@ -54,6 +60,8 @@ def verify(release, reproduced, sandbox_evidence):
     report = json.loads((release / "release.json").read_text())
     if file_hash(release / "code.zip") != report["zip_sha256"] or file_hash(release / "submission.csv") != report["csv_sha256"]:
         raise ValueError("Release artifact bytes changed")
+    if any((release / "offline").glob("attempt-*/verification_failure.json")):
+        raise ValueError("Release has a recorded verification failure; preserve it and stage a separate candidate")
     parity = compare(release / "submission.csv", reproduced)
     evidence = json.loads(Path(sandbox_evidence).read_text())
     required = ("network_disabled", "submission_read_only", "data_read_only", "python_313",
@@ -64,6 +72,18 @@ def verify(release, reproduced, sandbox_evidence):
         raise ValueError("Offline reproduction failed")
     report.update(status="OFFLINE_PACKAGE_VERIFIED", offline_verified=True, parity=parity,
                   offline_evidence=evidence, reproduced_sha256=file_hash(reproduced))
+    write_json(release / "verification.json", report)
+    return report
+
+
+def record_failure(release, attempt_root, error):
+    """Invalidate the latest verification pointer while preserving every attempt."""
+    release, attempt_root = Path(release), Path(attempt_root)
+    failure = {"status": "FAILED", "error": str(error)}
+    write_json(attempt_root / "verification_failure.json", failure)
+    report = json.loads((release / "release.json").read_text())
+    report.update(status="OFFLINE_VERIFICATION_FAILED", offline_verified=False,
+                  failed_attempt=str(attempt_root.relative_to(release)), failure=failure)
     write_json(release / "verification.json", report)
     return report
 

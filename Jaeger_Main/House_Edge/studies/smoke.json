@@ -1,0 +1,12 @@
+{
+  "name": "smoke",
+  "strategy": "grid",
+  "seed": 0,
+  "folds": 4,
+  "budget": {"workers": 1, "trials": 3, "seconds": 600, "trial_seconds": 180},
+  "candidates": [
+    {"family": "frequency", "params": {"strength": 20, "decay": 1}},
+    {"family": "frequency", "params": {"strength": 10, "decay": 0.97, "peer": 0.1}},
+    {"family": "logistic", "groups": ["type", "lags", "windows", "decays", "missingness"], "params": {"C": 0.1}}
+  ]
+}

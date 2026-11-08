@@ -1,30 +1,49 @@
-# JAEGERS — House Edge (main round)
+# JAEGERS House Edge ? main-round entry
 
-- Team: JAEGERS
-- Round: main
-- Season ID: 5fffdc4d0c700bbf61c3f911
-- Environment: `python` image (Python 3.13) + `numpy==2.5.3` (requirements.txt)
+Python 3.13. Exact tested runtime dependencies are in `requirements.txt`.
+The verified reference environment is CPython 3.13.18 Linux; see the repository's
+`docs/CURRENT_STATE.md` for current measured evidence and artifact locations.
 
-## Recreate the forecast
+## Reproduce
 
-Run from the folder containing `predict.py`:
+From this entry directory, after provisioning dependencies:
 
 ```sh
 python predict.py --data /data --out /output/submission.csv
 ```
 
-- Reads `/data/test/queries.csv` and `/data/test/history.csv`; writes the CSV to `--out`.
-- Required files: `jaeger_model.py`, `params.json` (settings chosen on public validation).
-- No training step and no randomness: fully deterministic. Runtime ~5 s on 1 CPU.
-- Validation check: `python predict.py --data public --split validation --out val.csv`
-  then `python check_submission.py val.csv --split validation` (≈51.1 / 60).
+The command reads `/data/train` to fit an expert prior and a gradient-boosted win
+stacker, then reads `/data/test` to forecast every query. It deterministically refits;
+there is no saved checkpoint. Settings are in `params.json`. Stacker random_state=0,
+early_stopping=False. Prediction never downloads packages or calls external APIs.
 
-## Method (short)
+Organizers provision dependencies before inference. The entry and data are read-only;
+only `/tmp` and `/output` are writable. Budget: two CPUs, 16 GiB RAM, 30 minutes.
+A reference cold Linux run completed in about 42 seconds with about 251 MiB peak
+child RSS. Measurements apply to that recorded machine/runtime, not every host.
 
-P(payout) = P(win) × P(size | win). P(win) comes from an online mixture of
-"lag-context experts" (single lags and lag pairs 1–8, binary or 0/1/2+ categories):
-each keeps exponentially forgotten win counts per context on the machine's own
-history; experts are weighted by forgotten log-likelihood on that machine plus its
-episode siblings. P(size | win) mixes the two size regimes per machine type using a
-forgotten likelihood ratio from the machine's recent wins. Only ticks strictly
-before each cutoff are used; missing ticks are treated as unknown.
+Generate reference forecasts in Linux. Windows and Linux builds produced materially
+different predictions despite matching package versions; do not upload a Windows CSV
+with an unverified Linux reproducer. Compare actual normalized probabilities <=1e-8.
+
+From the House Edge kit directory, score public validation with:
+
+```sh
+python jaegers_entry/predict.py --data public --split validation --out validation.csv
+python check_submission.py validation.csv --data public --split validation
+```
+
+Test checking verifies schema and IDs only. Build the source ZIP with the supplied
+`build_entry.py`; keep generated CSVs and ZIPs separate and preserve their hashes.
+
+## Model and provenance
+
+The existing model combines 73 lag-context experts, recency-discounted win counts,
+sibling expert evidence, short-history smoothing, conditional payout-size regimes,
+size-context experts, and a HistGradientBoostingClassifier stacker.
+
+Size regimes and parameter selection used released public validation targets, so
+public scores are development-exposed. Historical stacker rows also reuse final
+query-time signal, whose earlier availability is unresolved. These facts are recorded
+for independent audit; code reproduction does not establish organizer eligibility or
+receipt. The original model and parameters remain unchanged and separately frozen.

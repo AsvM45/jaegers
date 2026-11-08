@@ -1,0 +1,14 @@
+{
+  "name": "random_smoke",
+  "strategy": "random",
+  "seed": 17,
+  "folds": 4,
+  "budget": {"workers": 2, "trials": 3, "seconds": 180, "trial_seconds": 60},
+  "base": {"family": "frequency", "walk_forward_ticks": [64, 128]},
+  "space": {
+    "params.strength": [2, 7, 40],
+    "params.decay": [0.9, 0.995],
+    "params.peer": [0, 0.2],
+    "params.window": [null, 24]
+  }
+}

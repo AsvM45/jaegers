@@ -3,8 +3,8 @@ import json
 from pathlib import Path
 import numpy as np
 from .common import digest
-from .features import FeatureComputer, feature_columns, validate_groups
-from .models import Serializable, validate_predictions
+from .feature_api import FeatureComputer, feature_columns, validate_groups, REGISTRY
+from .adapters import Serializable, validate_predictions
 
 
 def estimator(family, params, seed):
@@ -47,7 +47,7 @@ def estimator(family, params, seed):
 class HistoricalModel(Serializable):
     def __init__(self, family, groups, params=None, cache=None, supervision="historical", seed=0, calibration=None):
         validate_groups(groups, historical=supervision != "query")
-        self.family, self.groups, self.params = family, list(groups), dict(params or {})
+        self.family, self.groups, self.params = family, [g for g in REGISTRY if g in groups], dict(params or {})
         self.cache, self.supervision, self.seed, self.calibration = cache, supervision, seed, calibration
         self.temperature = 1.
 

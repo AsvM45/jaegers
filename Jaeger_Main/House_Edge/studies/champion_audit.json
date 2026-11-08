@@ -1,0 +1,12 @@
+{
+  "name": "champion_audit",
+  "strategy": "grid",
+  "seed": 0,
+  "folds": 4,
+  "budget": {"workers": 1, "trials": 3, "seconds": 1200, "trial_seconds": 400},
+  "candidates": [
+    {"family": "jaeger", "causal": false},
+    {"family": "jaeger", "causal": true},
+    {"family": "jaeger", "causal": true, "params": {"stack": false}}
+  ]
+}

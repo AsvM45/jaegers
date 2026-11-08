@@ -7,7 +7,7 @@ import psutil
 from .common import now, write_json
 
 
-def run(command, cwd, out, timeout=1800, memory_gib=16, cpus=2, env=None):
+def run(command, cwd, out, timeout=1800, memory_gib=16, cpus=2, env=None, slot=0):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=False)
     record = {"command": [str(x) for x in command], "cwd": str(cwd), "started_at": now(),
@@ -15,6 +15,9 @@ def run(command, cwd, out, timeout=1800, memory_gib=16, cpus=2, env=None):
               "status": "RUNNING"}
     write_json(out / "process.json", record)
     child_env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
+    scratch = out.resolve() / "tmp"
+    scratch.mkdir()
+    child_env.update(TMP=str(scratch), TEMP=str(scratch), TMPDIR=str(scratch))
     for key in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
         child_env[key] = str(cpus)
     child_env.update(env or {})
@@ -26,8 +29,11 @@ def run(command, cwd, out, timeout=1800, memory_gib=16, cpus=2, env=None):
         monitored = psutil.Process(proc.pid)
         try:
             allowed = monitored.cpu_affinity()
-            monitored.cpu_affinity(allowed[:cpus])
-            record["cpu_affinity"] = allowed[:cpus]
+            selected = allowed[slot*cpus:slot*cpus+cpus]
+            if not selected:
+                raise ValueError("Requested CPU slot exceeds available CPUs")
+            monitored.cpu_affinity(selected)
+            record["cpu_affinity"] = selected
         except (AttributeError, psutil.Error):
             record["cpu_affinity"] = None
         try:

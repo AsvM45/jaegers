@@ -1,0 +1,8 @@
+{
+  "name": "champion_anchor",
+  "strategy": "grid",
+  "seed": 0,
+  "folds": 4,
+  "budget": {"workers": 1, "trials": 1, "seconds": 600, "trial_seconds": 540},
+  "candidates": [{"family": "jaeger", "causal": false}]
+}
