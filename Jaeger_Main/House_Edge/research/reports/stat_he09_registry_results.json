@@ -1,0 +1,166 @@
+{
+ "study": "he09_registry",
+ "metric": "sampled observed-outcome five-class Brier, 4 condition-stratified whole-episode train folds (NOT official points)",
+ "trials": {
+  "jaeger": {
+   "trial_id": "896a115b5a3e018f7e3a5492bfa0e000b4630809b3d0d694aaeb66632a047ea8",
+   "status": "SUCCEEDED",
+   "mean_brier": 0.36229114510320604,
+   "by_condition": {
+    "drift": 0.32040617474480115,
+    "shared_change": 0.31676315605469535,
+    "short_history": 0.4453007263102524,
+    "stable": 0.3666945233030751
+   },
+   "wall_seconds": 76.19334509997861,
+   "validation_target_exposure": true,
+   "historical_signal_policy": "unsupported_copied_signal"
+  },
+  "frequency": {
+   "trial_id": "acf704e718bcd9a936f90843cc83d4bea860284657859ac23729b68838b89b49",
+   "status": "SUCCEEDED",
+   "mean_brier": 0.5705298414375183,
+   "by_condition": {
+    "drift": 0.5516674431828994,
+    "shared_change": 0.5542586943915921,
+    "short_history": 0.6224154778587518,
+    "stable": 0.5537777503168299
+   },
+   "wall_seconds": 1.5910478000005241,
+   "validation_target_exposure": false,
+   "historical_signal_policy": "omitted"
+  },
+  "stat_dirichlet": {
+   "trial_id": "3ef11bb25b214e2d45aaf122c45533b55bb761064dbe168261294bd08612e26f",
+   "status": "SUCCEEDED",
+   "mean_brier": 0.5627418530706187,
+   "by_condition": {
+    "drift": 0.5302366922498937,
+    "shared_change": 0.5512520146157304,
+    "short_history": 0.6244814902071488,
+    "stable": 0.5449972152097021
+   },
+   "wall_seconds": 3.461685700021917,
+   "validation_target_exposure": false,
+   "historical_signal_policy": "omitted"
+  },
+  "stat_decay_bma": {
+   "trial_id": "6306c918cf287ca87d098a07a82ca4c24e7a2e82ed94d2edca7fb4182509ec55",
+   "status": "SUCCEEDED",
+   "mean_brier": 0.5643828023639006,
+   "by_condition": {
+    "drift": 0.539082471470693,
+    "shared_change": 0.5504190439663562,
+    "short_history": 0.6194460076602261,
+    "stable": 0.5485836863583268
+   },
+   "wall_seconds": 3.238154000020586,
+   "validation_target_exposure": false,
+   "historical_signal_policy": "omitted"
+  },
+  "stat_markov": {
+   "trial_id": "049612440418129b7fd7b88f657300f9382f1d676d058475a39f8e2f7362ac0f",
+   "status": "SUCCEEDED",
+   "mean_brier": 0.4177348982956062,
+   "by_condition": {
+    "drift": 0.4006486030848333,
+    "shared_change": 0.3710498454528343,
+    "short_history": 0.514845751999938,
+    "stable": 0.3843953926448192
+   },
+   "wall_seconds": 21.399782100023003,
+   "validation_target_exposure": false,
+   "historical_signal_policy": "omitted"
+  }
+ },
+ "paired_vs": {
+  "frequency_vs_jaeger": {
+   "mean_delta_brier": 0.20823869633431225,
+   "ci95": [
+    0.1864407709436783,
+    0.23026425146175394
+   ],
+   "episodes": 96,
+   "bootstrap": 4000,
+   "seed": 0,
+   "supported_improvement": false
+  },
+  "stat_dirichlet_vs_jaeger": {
+   "mean_delta_brier": 0.20045070796741274,
+   "ci95": [
+    0.18019601199476232,
+    0.22096043783153732
+   ],
+   "episodes": 96,
+   "bootstrap": 4000,
+   "seed": 0,
+   "supported_improvement": false
+  },
+  "stat_decay_bma_vs_jaeger": {
+   "mean_delta_brier": 0.20209165726069453,
+   "ci95": [
+    0.18178779906930198,
+    0.22214453905689327
+   ],
+   "episodes": 96,
+   "bootstrap": 4000,
+   "seed": 0,
+   "supported_improvement": false
+  },
+  "stat_markov_vs_jaeger": {
+   "mean_delta_brier": 0.055443753192400205,
+   "ci95": [
+    0.042353497686187826,
+    0.06811756183449652
+   ],
+   "episodes": 96,
+   "bootstrap": 4000,
+   "seed": 0,
+   "supported_improvement": false
+  },
+  "jaeger_vs_frequency": {
+   "mean_delta_brier": -0.20823869633431225,
+   "ci95": [
+    -0.23026425146175394,
+    -0.18644077094367828
+   ],
+   "episodes": 96,
+   "bootstrap": 4000,
+   "seed": 0,
+   "supported_improvement": true
+  },
+  "stat_dirichlet_vs_frequency": {
+   "mean_delta_brier": -0.007787988366899538,
+   "ci95": [
+    -0.015567516930937891,
+    0.00018021213167747937
+   ],
+   "episodes": 96,
+   "bootstrap": 4000,
+   "seed": 0,
+   "supported_improvement": false
+  },
+  "stat_decay_bma_vs_frequency": {
+   "mean_delta_brier": -0.006147039073617755,
+   "ci95": [
+    -0.012596151015053333,
+    0.0003419887014741241
+   ],
+   "episodes": 96,
+   "bootstrap": 4000,
+   "seed": 0,
+   "supported_improvement": false
+  },
+  "stat_markov_vs_frequency": {
+   "mean_delta_brier": -0.1527949431419121,
+   "ci95": [
+    -0.17393234635163118,
+    -0.13218955404741628
+   ],
+   "episodes": 96,
+   "bootstrap": 4000,
+   "seed": 0,
+   "supported_improvement": true
+  }
+ }
+}
