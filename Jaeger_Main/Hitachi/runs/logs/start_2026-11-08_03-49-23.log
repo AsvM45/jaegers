@@ -1,0 +1,6 @@
+python start.py    (log: runs/logs/start_2026-11-08_03-49-23.log)
+Reader: LLM qwen3:0.6b + rule check (Ollama is running with qwen3:0.6b)
+The LLM steps take a few minutes. Use --rules for a run in seconds.
+
+▶ Control tower on the 15 events
+  $ python -m tower.run --reader llm --notify dry-run

@@ -1,0 +1,711 @@
+[
+ {
+  "suite": "holdout2",
+  "id": "H2-001",
+  "category": "plant_outage",
+  "text": "Emergency: a boiler failure at Wacky Wheels Lexington. Assembly paused March 26th through March 30th.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_KY",
+     "outage_start": "2027-03-26",
+     "outage_end": "2027-03-30"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_KY",
+     "outage_start": "2027-03-26",
+     "outage_end": "2027-03-30"
+    }
+   ],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "section": "Emergency: a boiler failure at Wacky Wheels Lexington. Assembly paused March 26th through March 30th.",
+    "fields": {
+     "kind": "plant_outage",
+     "plant": "Wacky Wheels Lexington",
+     "part": "boiler",
+     "supplier": "Wacky Wheels",
+     "lot_id": "",
+     "shipment_id": "",
+     "start_date": "March 26th",
+     "end_date": "March 30th",
+     "reason": "A plant is down, causing assembly to pause."
+    }
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 6.4
+ },
+ {
+  "suite": "holdout2",
+  "id": "H2-002",
+  "category": "noise",
+  "text": "A car magazine review praises the ride quality of our Summit model.",
+  "expected": {
+   "incidents": [],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "section": "A car magazine review praises the ride quality of our Summit model.",
+    "fields": {
+     "kind": "noise",
+     "plant": "",
+     "part": "Summit",
+     "supplier": "",
+     "lot_id": "",
+     "shipment_id": "",
+     "start_date": "",
+     "end_date": "",
+     "reason": "A car magazine review praises the ride quality of our Summit model."
+    }
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 6.2
+ },
+ {
+  "suite": "holdout2",
+  "id": "H2-003",
+  "category": "compound",
+  "text": "Ridgeline missed the the 22nd delivery of harness A to Wacky Wheels Greensboro. Revised date: 2027-03-23. Separately, ridgeline Wire issued a defect notice for HARN-B supplied to the Huntsille plant, production dates March 4th through March 5th: seal leaks.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "supplier_delay",
+     "supplier_id": "SUP-16",
+     "part_id": "HARN-A",
+     "plant_id": "P_NC",
+     "blocked_from": "2027-03-22",
+     "blocked_until": "2027-03-23"
+    },
+    {
+     "kind": "quality_hold",
+     "lots": [
+      "LOT-0280"
+     ]
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [
+    {
+     "kind": "quality_hold",
+     "lots": [
+      "LOT-0280"
+     ]
+    }
+   ],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "section": "Ridgeline missed the the 22nd delivery of harness A to Wacky Wheels Greensboro. Revised date: 2027-03-23. Separately, ridgeline Wire issued a defect notice for HARN-B supplied to the Huntsille plant, production dates March 4th through March 5th: seal leaks.",
+    "fields": {
+     "kind": "quality_hold",
+     "plant": "Huntsille",
+     "part": "HARN-B",
+     "supplier": "Ridgeline",
+     "lot_id": "LOT-0001",
+     "shipment_id": "SH-0001",
+     "start_date": "March 4",
+     "end_date": "March 5",
+     "reason": "A defect notice was issued for a part supplied to the Huntsille plant, indicating a seal leak during production."
+    }
+   }
+  ],
+  "kinds_ok": false,
+  "fields_ok": false,
+  "output_ok": false,
+  "mismatches": [
+   "Type: expected quality_hold, supplier_delay; model read quality_hold.",
+   "Production orders moved: expected 1, model's reading gives 0 (1 missing, 0 extra).",
+   "Dealers notified: expected 8, model's reading gives 0 (8 missing, 0 extra).",
+   "Loaners: expected 2, model's reading gives 0 (2 missing, 0 extra)."
+  ],
+  "seconds": 9.6
+ },
+ {
+  "suite": "holdout2",
+  "id": "H2-004",
+  "category": "compound",
+  "text": "A) Inbound 16-inch rims (Ironwood) to the Jackson plant: original delivery 15 Mar; now arriving Tue 16 March because of a machine breakdown at their site. B) Reminder to fill out the employee engagement survey.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "supplier_delay",
+     "supplier_id": "SUP-14",
+     "part_id": "WHEEL-16",
+     "plant_id": "P_MS",
+     "blocked_from": "2027-03-15",
+     "blocked_until": "2027-03-16"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [
+    {
+     "kind": "supplier_delay",
+     "supplier_id": "SUP-14",
+     "part_id": "WHEEL-16",
+     "plant_id": "P_MS",
+     "blocked_from": "2027-03-15",
+     "blocked_until": "2027-03-16"
+    }
+   ],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "section": "A) Inbound 16-inch rims (Ironwood) to the Jackson plant: original delivery 15 Mar; now arriving Tue 16 March because of a machine breakdown at their site. B) Reminder to fill out the employee engagement survey.",
+    "fields": {
+     "kind": "supplier_delay",
+     "plant": "Jackson",
+     "part": "rims",
+     "supplier": "Ironwood",
+     "lot_id": "",
+     "shipment_id": "",
+     "start_date": "15 Mar",
+     "end_date": "Tue 16 March",
+     "reason": "A supplier says a part shipment will arrive late with an old and a new date."
+    }
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 9.2
+ },
+ {
+  "suite": "holdout2",
+  "id": "H2-005",
+  "category": "supplier_delay",
+  "text": "Update on SH-0096 (SEAT-VAN): no longer Monday the 29th, expect 31 Mar. Destination the Lexigton plant. Shipper Harbor.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "supplier_delay",
+     "supplier_id": "SUP-15",
+     "part_id": "SEAT-VAN",
+     "plant_id": "P_KY",
+     "blocked_from": "2027-03-29",
+     "blocked_until": "2027-03-31"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": true
+  },
+  "model_said": [
+   {
+    "section": "Update on SH-0096 (SEAT-VAN): no longer Monday the 29th, expect 31 Mar. Destination the Lexigton plant. Shipper Harbor.",
+    "fields": {
+     "kind": "supplier_delay",
+     "plant": "Lexigton",
+     "part": "SEAT-VAN",
+     "supplier": "Shipper Harbor",
+     "lot_id": "",
+     "shipment_id": "SH-0096",
+     "start_date": "Monday the 29th",
+     "end_date": "2027-03-18",
+     "reason": "A supplier says a part shipment will arrive late with an old and a new date."
+    },
+    "retry": "first reading failed (end_date 'next Thursday' is 2027-03-18, which is not a date in the message); retried with that feedback",
+    "problem": "end_date '2027-03-18' is 2027-03-18, which is not a date in the message"
+   }
+  ],
+  "kinds_ok": false,
+  "fields_ok": false,
+  "output_ok": false,
+  "mismatches": [
+   "Type: expected supplier_delay; model read none + escalate.",
+   "Production orders moved: expected 2, model's reading gives 0 (2 missing, 0 extra).",
+   "Dealers notified: expected 14, model's reading gives 0 (14 missing, 0 extra).",
+   "Loaners: expected 4, model's reading gives 0 (4 missing, 0 extra)."
+  ],
+  "seconds": 17.5
+ },
+ {
+  "suite": "holdout2",
+  "id": "H2-006",
+  "category": "unconfirmed",
+  "text": "Could be a problem with paint supply, no details yet.",
+  "expected": {
+   "incidents": [],
+   "escalate": true
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": true
+  },
+  "model_said": [
+   {
+    "section": "Could be a problem with paint supply, no details yet.",
+    "fields": {
+     "kind": "unconfirmed",
+     "plant": "none",
+     "part": "none",
+     "supplier": "none",
+     "lot_id": "",
+     "shipment_id": "",
+     "start_date": "",
+     "end_date": "",
+     "reason": "Could be a problem with paint supply, no details yet."
+    }
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 6.0
+ },
+ {
+  "suite": "holdout2",
+  "id": "H2-007",
+  "category": "plant_outage",
+  "text": "Princeton is idle 2027-03-17 to Monday the 22nd due to an ammonia leak.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_IN",
+     "outage_start": "2027-03-17",
+     "outage_end": "2027-03-22"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_IN",
+     "outage_start": "2027-03-17",
+     "outage_end": "2027-03-22"
+    }
+   ],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "section": "Princeton is idle 2027-03-17 to Monday the 22nd due to an ammonia leak.",
+    "fields": {
+     "kind": "plant_outage",
+     "plant": "Princeton",
+     "part": "nope",
+     "supplier": "Acme",
+     "lot_id": "LOT-00123",
+     "shipment_id": "SH-00123",
+     "start_date": "2027-03-17",
+     "end_date": "Monday the 22nd",
+     "reason": "due to an ammonia leak."
+    }
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 9.1
+ },
+ {
+  "suite": "holdout2",
+  "id": "H2-008",
+  "category": "unconfirmed",
+  "text": "Hearing Lexington might go down for maintenance soon, no dates.",
+  "expected": {
+   "incidents": [],
+   "escalate": true
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "section": "Hearing Lexington might go down for maintenance soon, no dates.",
+    "fields": {
+     "kind": "noise",
+     "plant": "Hearing Lexington",
+     "part": "",
+     "supplier": "",
+     "lot_id": "",
+     "shipment_id": "",
+     "start_date": "",
+     "end_date": "",
+     "reason": "Hearing Lexington might go down for maintenance soon."
+    }
+   }
+  ],
+  "kinds_ok": false,
+  "fields_ok": false,
+  "output_ok": false,
+  "mismatches": [
+   "Type: expected none + escalate; model read none."
+  ],
+  "seconds": 6.9
+ },
+ {
+  "suite": "holdout2",
+  "id": "H2-009",
+  "category": "plant_outage",
+  "text": "Emergency: a boiler failure at the Lexington plant. Assembly paused Thursday the 25th through March 30th.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_KY",
+     "outage_start": "2027-03-25",
+     "outage_end": "2027-03-30"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_KY",
+     "outage_start": "2027-03-25",
+     "outage_end": "2027-03-30"
+    }
+   ],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "section": "Emergency: a boiler failure at the Lexington plant. Assembly paused Thursday the 25th through March 30th.",
+    "fields": {
+     "kind": "plant_outage",
+     "plant": "Lexington",
+     "part": "boiler",
+     "supplier": "Acme",
+     "lot_id": "",
+     "shipment_id": "",
+     "start_date": "Thursday the 25th",
+     "end_date": "March 30",
+     "reason": "A plant outage has been reported."
+    }
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 6.7
+ },
+ {
+  "suite": "holdout2",
+  "id": "H2-010",
+  "category": "supplier_delay",
+  "text": "Per Volt, harness C for the San Antonio plant got pushed out a few days: 2027-03-15 -> 2027-03-18.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "supplier_delay",
+     "supplier_id": "SUP-05",
+     "part_id": "HARN-C",
+     "plant_id": "P_TX",
+     "blocked_from": "2027-03-15",
+     "blocked_until": "2027-03-18"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_TX",
+     "outage_start": "2027-03-15",
+     "outage_end": "2027-03-18"
+    }
+   ],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "section": "Per Volt, harness C for the San Antonio plant got pushed out a few days: 2027-03-15 -> 2027-03-18.",
+    "fields": {
+     "kind": "plant_outage",
+     "plant": "San Antonio",
+     "part": "harness C",
+     "supplier": "Per Volt",
+     "lot_id": "",
+     "shipment_id": "",
+     "start_date": "2027-03-15",
+     "end_date": "2027-03-18",
+     "reason": "A plant or line is down, dark, offline, halted, shut down or cannot build."
+    }
+   }
+  ],
+  "kinds_ok": false,
+  "fields_ok": false,
+  "output_ok": false,
+  "mismatches": [
+   "Type: expected supplier_delay; model read plant_outage.",
+   "Production orders moved: expected 3, model's reading gives 12 (0 missing, 9 extra).",
+   "Dealers notified: expected 21, model's reading gives 37 (0 missing, 16 extra).",
+   "Loaners: expected 7, model's reading gives 23 (0 missing, 16 extra)."
+  ],
+  "seconds": 8.3
+ },
+ {
+  "suite": "holdout2",
+  "id": "H2-011",
+  "category": "quality_hold",
+  "text": "Please quarantine LOT-0350: seal leaks in 20-inch all-season tires. the Greensoro plant builds February 25th through Monday the 1st.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "quality_hold",
+     "lots": [
+      "LOT-0350"
+     ]
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [
+    {
+     "kind": "quality_hold",
+     "lots": [
+      "LOT-0350"
+     ]
+    }
+   ],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "section": "Please quarantine LOT-0350: seal leaks in 20-inch all-season tires. the Greensoro plant builds February 25th through Monday the 1st.",
+    "fields": {
+     "kind": "quality_hold",
+     "plant": "Greensoro",
+     "part": "tires",
+     "supplier": "Acme",
+     "lot_id": "LOT-0350",
+     "shipment_id": "",
+     "start_date": "February 25th",
+     "end_date": "Monday the 1st",
+     "reason": "Seal leaks in 20-inch all-season tires built in a stated date range."
+    }
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 8.9
+ },
+ {
+  "suite": "holdout2",
+  "id": "H2-012",
+  "category": "supplier_delay",
+  "text": "Inbound 20-inch all-season tire (Brightline Rubber) to the Greensboro plant: original delivery 3/22; now arriving 3/25 because of a strike at their warehouse.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "supplier_delay",
+     "supplier_id": "SUP-01",
+     "part_id": "TIRE-20",
+     "plant_id": "P_NC",
+     "blocked_from": "2027-03-22",
+     "blocked_until": "2027-03-25"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": true
+  },
+  "model_said": [
+   {
+    "section": "Inbound 20-inch all-season tire (Brightline Rubber) to the Greensboro plant: original delivery 3/22; now arriving 3/25 because of a strike at their warehouse.",
+    "fields": {
+     "kind": "supplier_delay",
+     "plant": "Greensboro",
+     "part": "all-season tires",
+     "supplier": "Brightline Rubber",
+     "lot_id": "",
+     "shipment_id": "",
+     "start_date": "3/22",
+     "end_date": "3/25",
+     "reason": "A supplier says a part shipment will arrive late with an old and a new date."
+    },
+    "retry": "first reading failed (delay needs a shipment, or a supplier, part, and plant); retried with that feedback",
+    "problem": "delay needs a shipment, or a supplier, part, and plant"
+   }
+  ],
+  "kinds_ok": false,
+  "fields_ok": false,
+  "output_ok": false,
+  "mismatches": [
+   "Type: expected supplier_delay; model read none + escalate.",
+   "Production orders moved: expected 3, model's reading gives 0 (3 missing, 0 extra).",
+   "Dealers notified: expected 19, model's reading gives 0 (19 missing, 0 extra).",
+   "Loaners: expected 8, model's reading gives 0 (8 missing, 0 extra)."
+  ],
+  "seconds": 14.1
+ },
+ {
+  "suite": "holdout2",
+  "id": "H2-013",
+  "category": "noise",
+  "text": "Reminder to fill out the employee engagement survey.",
+  "expected": {
+   "incidents": [],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "section": "Reminder to fill out the employee engagement survey.",
+    "fields": {
+     "kind": "noise",
+     "plant": "",
+     "part": "",
+     "supplier": "",
+     "lot_id": "",
+     "shipment_id": "",
+     "start_date": "",
+     "end_date": "",
+     "reason": "Reminder to fill out the employee engagement survey."
+    }
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 6.4
+ },
+ {
+  "suite": "holdout2",
+  "id": "H2-014",
+  "category": "quality_hold",
+  "text": "Ironwood Wheels issued a defect notice for 20-inch alloy wheel supplied to Wacky Wheels San Antonio, production dates 4 Mar through 2027-03-05: excess solder.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "quality_hold",
+     "lots": [
+      "LOT-0048"
+     ]
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [
+    {
+     "kind": "quality_hold",
+     "lots": [
+      "LOT-0048"
+     ]
+    }
+   ],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "section": "Ironwood Wheels issued a defect notice for 20-inch alloy wheel supplied to Wacky Wheels San Antonio, production dates 4 Mar through 2027-03-05: excess solder.",
+    "fields": {
+     "kind": "quality_hold",
+     "plant": "Wacky Wheels San Antonio",
+     "part": "20-inch alloy wheel",
+     "supplier": "Ironwood Wheels",
+     "lot_id": "LOT-2027-03-05",
+     "shipment_id": "",
+     "start_date": "4 Mar",
+     "end_date": "2027-03-05",
+     "reason": "A part or lot is defective for vehicles built in a stated date range."
+    }
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 9.0
+ },
+ {
+  "suite": "holdout2",
+  "id": "H2-015",
+  "category": "plant_outage",
+  "text": "Wacky Wheels Huntsville is idle Fri 26 March to Tuesday the 30th due to a conveyor motor burnout.",
+  "expected": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_AL",
+     "outage_start": "2027-03-26",
+     "outage_end": "2027-03-30"
+    }
+   ],
+   "escalate": false
+  },
+  "predicted": {
+   "incidents": [
+    {
+     "kind": "plant_outage",
+     "plant_id": "P_AL",
+     "outage_start": "2027-03-26",
+     "outage_end": "2027-03-30"
+    }
+   ],
+   "escalate": false
+  },
+  "model_said": [
+   {
+    "section": "Wacky Wheels Huntsville is idle Fri 26 March to Tuesday the 30th due to a conveyor motor burnout.",
+    "fields": {
+     "kind": "plant_outage",
+     "plant": "Huntsville",
+     "part": "conveyor motor",
+     "supplier": "Wacky Wheels",
+     "lot_id": "",
+     "shipment_id": "",
+     "start_date": "Fri 26 March",
+     "end_date": "Tue the 30th",
+     "reason": "A plant is down from a conveyor motor burnout."
+    }
+   }
+  ],
+  "kinds_ok": true,
+  "fields_ok": true,
+  "output_ok": true,
+  "mismatches": [],
+  "seconds": 7.6
+ }
+]

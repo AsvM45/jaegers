@@ -27,14 +27,16 @@ FIELDS = ("plant", "part", "supplier", "lot_id", "shipment_id", "start_date", "e
 
 # JSON schema passed to Ollama's 'format' option: the model must answer with exactly these keys,
 # and 'kind' must be one of KINDS.
+# "reason" comes first and must be a real sentence: the model explains what the message says and
+# why, before it labels it (the docx asks for a reason behind every decision).
 _SCHEMA = {
     "type": "object",
     "properties": {
+        "reason": {"type": "string", "minLength": 25},
         "kind": {"type": "string", "enum": list(KINDS)},
         **{name: {"type": "string"} for name in FIELDS},
-        "reason": {"type": "string"},
     },
-    "required": ["kind", *FIELDS, "reason"],
+    "required": ["reason", "kind", *FIELDS],
 }
 
 # Instructions for the model. It only labels the message and copies phrases; ids and dates are
@@ -46,12 +48,13 @@ Classify the message as exactly one kind:
 - quality_hold: a part or lot is defective for vehicles built in a stated date range.
 - unconfirmed: a rumor or vague report with no confirmed details or dates.
 - noise: anything not about operations (brochures, prices, far-away weather).
-Wording cues: "we're dark", "power failure", "lost production", "outage" mean plant_outage.
-"waiting on", "can't make it", "new ETA", "delayed", "will now arrive" mean supplier_delay.
-"quality alert", "faulty", "contamination", "suspect" mean quality_hold.
-"rumor", "not confirmed", "someone mentioned" mean unconfirmed.
+How each kind is usually worded:
+- plant_outage: a plant or line is down, dark, offline, halted, shut down or cannot build; an outage or power failure.
+- supplier_delay: a delivery is late, delayed, slipping or postponed; a new or revised ETA or arrival date.
+- quality_hold: parts are defective, faulty, contaminated, cracked or out of spec; a lot to hold or a recall.
+- unconfirmed: hearsay or hedging (heard, might, apparently, rumor, not confirmed) about a possible problem.
 
-Then copy phrases from the message. Copy them EXACTLY as written. Never invent, translate or compute a value.
+Then copy phrases from the message. Copy names EXACTLY as written. Never invent a name, id or date.
 Use "" when the message does not say it.
 - plant: words naming the plant (city, state or id).
 - part: words naming the part.
@@ -59,8 +62,9 @@ Use "" when the message does not say it.
 - lot_id: a lot id such as LOT-0123.
 - shipment_id: a shipment id such as SH-0123.
 - start_date: supplier_delay = the original arrival date; plant_outage = the first day down; quality_hold = the first build date.
-- end_date: supplier_delay = the new arrival date; plant_outage = the last day down; quality_hold = the last build date.
-- reason: one short sentence on why you chose the kind.
+- end_date: supplier_delay = the new arrival date; plant_outage = the last day down, or the day work resumes if that is all it says; quality_hold = the last build date.
+Copy each date as written. A day written without a month ("the 24th") may be given with its month ("March 24").
+- reason (answer this first): one or two sentences saying what the message reports and why that makes it this kind, or why it is noise or unconfirmed.
 Answer with JSON only."""
 
 # One worked example (few-shot). The names are invented; if the model copies them into a real
@@ -70,6 +74,7 @@ _EXAMPLE_IN = (
     "but the truck broke down, new ETA next Thursday."
 )
 _EXAMPLE_OUT = {
+    "reason": "A supplier says a part shipment will arrive late, with the original and the new date, so it is a supplier delay.",
     "kind": "supplier_delay",
     "plant": "Denver",
     "part": "brake kits",
@@ -78,7 +83,6 @@ _EXAMPLE_OUT = {
     "shipment_id": "",
     "start_date": "Tuesday Mar 9",
     "end_date": "next Thursday",
-    "reason": "A supplier says a part shipment will arrive late with an old and a new date.",
 }
 
 
@@ -97,8 +101,11 @@ class LLMReader:
 
     # One HTTP call to the local Ollama server per message section. Temperature 0 and a fixed seed
     # give the same answer every run.
-    def extract(self, section: str) -> dict:
+    def extract(self, section: str, previous: dict | None = None, problem: str | None = None) -> dict:
         """Ask the model for kind + phrases. Returns every key as a stripped string ("" if absent).
+
+        With previous and problem, this is the one retry: the model sees its last answer and why it
+        failed the checks ("end_date 'March 25th' is not a date in the message") and answers again.
 
         Raises LLMUnavailable when Ollama cannot be reached, and ValueError when the answer is
         not usable JSON. The caller (understand.py) treats both as "use the rule reader".
@@ -115,6 +122,13 @@ class LLMReader:
                 {"role": "user", "content": section},
             ],
         }
+        if previous is not None:
+            payload["messages"] += [
+                {"role": "assistant", "content": json.dumps(previous)},
+                {"role": "user", "content": (
+                    f"That answer does not check out: {problem}. Read the message again and answer with "
+                    "corrected JSON. Copy names and dates from the message; never invent one.")},
+            ]
         if self.model.startswith("qwen3"):
             payload["think"] = False  # Qwen3 thinks by default; extraction does not need it.
         request = urllib.request.Request(

@@ -68,6 +68,8 @@ class Incident:
     # Who produced this reading: the model name when its output was verified,
     # or "rules" when the deterministic reader was used.
     reader: str = "rules"
+    # The model's own explanation of this section, whether or not its reading was used.
+    model_reason: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         """Plain dict for traces.json; every field is already JSON-safe."""
@@ -84,6 +86,8 @@ class ToolCall:
     tool: str
     args: dict[str, Any]
     reason: str
+    # The agent that planned the call (roster id). Set by the coordinator when it accepts the plan.
+    agent: str = ""
 
     @property
     def writes(self) -> bool:
@@ -92,7 +96,8 @@ class ToolCall:
         return self.tool in WRITE_TOOLS
 
     def to_dict(self) -> dict[str, Any]:
-        return {"tool": self.tool, "args": self.args, "reason": self.reason, "writes": self.writes}
+        return {"tool": self.tool, "args": self.args, "reason": self.reason, "writes": self.writes,
+                "agent": self.agent}
 
 
 # What a specialist hands back to the coordinator: the affected records, the graph paths that
@@ -132,6 +137,8 @@ class EventTrace:
     calls: list[ToolCall]
     summary: str
     guardrail: str
+    # Coordinator <-> agent messages, in order: who was asked what, and what came back.
+    handoffs: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -145,4 +152,5 @@ class EventTrace:
             "calls": [c.to_dict() for c in self.calls],
             "summary": self.summary,
             "guardrail": self.guardrail,
+            "handoffs": self.handoffs,
         }

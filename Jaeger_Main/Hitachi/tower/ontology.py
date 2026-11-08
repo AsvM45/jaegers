@@ -18,6 +18,7 @@ _HITACHI = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _HITACHI not in sys.path:
     sys.path.insert(0, _HITACHI)
 
+from tower.calendar_util import TODAY  # noqa: E402
 from tower.graph import WorldGraph  # noqa: E402
 
 # Node type -> (CSV file, id column).
@@ -92,7 +93,7 @@ def build() -> dict:
                       "via": list(col) if isinstance(col, tuple) else col, "count": count})
     aliases = _rows(data, "aliases.csv")
     return {
-        "today": "2027-03-08",
+        "today": TODAY.isoformat(),
         "nodes": nodes,
         "edges": edges,
         "aliases": {"count": len(aliases), "resolves_to": sorted({a["entity_type"] for a in aliases})},

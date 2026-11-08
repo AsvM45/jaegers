@@ -7,21 +7,32 @@ From the Hitachi directory:
 
 Listens on http://127.0.0.1:8080
 
-    GET /
+    GET /                     the dashboard (dashboard.html)
     GET /api/events
     GET /api/ontology
     GET /api/traces
     GET /api/log
     GET /api/outbox     messages dispatched to Slack, Teams, Gmail, Outlook... for the run
     GET /api/channels   which channels are configured (names and kinds only, never secrets)
+    GET /api/ontology_export   node and edge types for the ontology diagram
+    GET /runs/<...>.md         a Markdown report the test runs wrote (download from the Tests page)
+    GET /api/logs[?name=...]   saved start.py output (runs/logs/), list or one file
+    GET /api/agents            the coordinator and the three specialist agents (role, tools, rules)
+    GET /api/test_reports      expected vs actual outcome for every test case, per reader
+    GET /api/knowledge_graph?view=network|schema|event&event=E-01[&run=given/rules]
+                               {nodes, links} for the orb graph
+    GET /orb/...               the orb graph viewer (orb-graph/public), embedded on the Ontology page
+    DELETE /api/test_reports/<suite>/<reader>   delete one report folder under runs/
 """
 
 from __future__ import annotations
 
 import json
 import os
+import socket
 import sys
 import threading
+import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -30,7 +41,16 @@ HITACHI = os.path.abspath(os.path.join(HERE, "..", ".."))
 if HITACHI not in sys.path:
     sys.path.insert(0, HITACHI)
 
-INDEX = os.path.join(HERE, "index.html")
+DASHBOARD = os.path.join(HERE, "dashboard.html")
+ONTOLOGY_JSON = os.path.join(HITACHI, "runs", "ontology", "ontology.json")
+ORB_ROOT = os.path.join(HITACHI, "orb-graph", "public")
+STATIC_TYPES = {
+    ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
+    ".css": "text/css; charset=utf-8", ".json": "application/json", ".svg": "image/svg+xml",
+    ".png": "image/png", ".md": "text/markdown; charset=utf-8",
+}
+# Test-suite run folders the knowledge graph may read traces from (suite id -> runs/ subfolder).
+SUITE_RUNS = {"given": "given", "generated": "tests", "holdout": "holdout", "holdout2": "holdout2"}
 EVENTS = os.path.join(HITACHI, "Data", "hack_the_highway_package", "data", "events.json")
 # TOWER_RUN_DIR=runs/live shows the live channel feed instead of the batch run.
 RUN_DIR = os.path.join(HITACHI, os.environ.get("TOWER_RUN_DIR", os.path.join("runs", "run1")))
@@ -57,6 +77,9 @@ class TowerServer(ThreadingHTTPServer):
     """Bind without a reverse-DNS lookup, which can stall on some networks."""
 
     def server_bind(self):
+        # Set what TCPServer.server_bind would have, so a restart can rebind a port in TIME_WAIT.
+        if self.allow_reuse_address:
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind(self.server_address)
         host, port = self.server_address[:2]
         self.server_name = host
@@ -97,17 +120,58 @@ def ontology_payload():
         if _ontology is None:
             from tower.graph import WorldGraph
 
-            graph = WorldGraph()
             _ontology = {
-                "counts": graph.counts(),
+                "counts": WorldGraph().counts(),
                 "relationships": list(RELATIONSHIPS),
-                # Plant list for the dashboard's plant-network map.
-                "plants": [
-                    {k: p[k] for k in ("plant_id", "name", "city", "slots_per_day")}
-                    for p in graph.plants.values()
-                ],
             }
         return _ontology
+
+
+def ontology_export():
+    """The exported ontology from runs/ontology/, or a fresh build if it has not been exported."""
+    if os.path.isfile(ONTOLOGY_JSON):
+        return read_json(ONTOLOGY_JSON)
+    from tower.ontology import build
+
+    return build()
+
+
+def knowledge_payload(query):
+    """Orb-graph data for ?view=network|schema|event. An event reads the tower run's traces, or a
+    test report's with run=<suite>/<reader>."""
+    from tower.ui import knowledge
+
+    view = (query.get("view") or ["network"])[0]
+    if view == "schema":
+        return knowledge.schema(ontology_export())
+    if view == "event":
+        event_id = (query.get("event") or [""])[0]
+        traces = TRACES
+        run = (query.get("run") or [""])[0]
+        if run:
+            suite, _, reader = run.partition("/")
+            parent = os.path.join(HITACHI, "runs", SUITE_RUNS.get(suite, ""))
+            if suite not in SUITE_RUNS or not os.path.isdir(parent) or reader not in os.listdir(parent):
+                raise FileNotFoundError(f"no test run {run}")
+            traces = os.path.join(parent, reader, "traces.json")
+        return knowledge.event(traces, event_id)
+    return knowledge.network()
+
+
+LOG_DIR = os.path.join(HITACHI, "runs", "logs")
+
+
+def logs_payload(name: str | None):
+    """The saved start.py outputs (runs/logs/*.log), newest first; with name, that file's text."""
+    files = sorted((f for f in os.listdir(LOG_DIR) if f.endswith(".log")), reverse=True) if os.path.isdir(LOG_DIR) else []
+    if name:
+        if name not in files:
+            raise FileNotFoundError(name)
+        with open(os.path.join(LOG_DIR, name), encoding="utf-8", errors="replace") as handle:
+            return {"name": name, "text": handle.read()[-400_000:]}
+    return [{"name": f, "size": os.path.getsize(os.path.join(LOG_DIR, f)),
+             "updated": time.strftime("%Y-%m-%d %H:%M", time.localtime(os.path.getmtime(os.path.join(LOG_DIR, f))))}
+            for f in files]
 
 
 def channels_payload():
@@ -123,18 +187,24 @@ def channels_payload():
     }
 
 
-# Read-only JSON API over the run output. index.html fetches these endpoints and renders the event
+# Read-only JSON API over the run output. dashboard.html fetches these endpoints and renders the event
 # feed, graph paths, actions and audit trail.
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         """Route a GET. Missing run files return [] (the tower has not run yet), not an error."""
         # Ignore any query string, and treat "/api/log/" the same as "/api/log".
-        path = urllib.parse.urlsplit(self.path).path
+        split = urllib.parse.urlsplit(self.path)
+        path = split.path
+        query = urllib.parse.parse_qs(split.query)
         if path != "/":
             path = path.rstrip("/") or "/"
         try:
             if path == "/":
-                return self._file(INDEX, "text/html; charset=utf-8")
+                return self._file(DASHBOARD, "text/html; charset=utf-8")
+            if split.path == "/orb":
+                return self._redirect("/orb/")
+            if split.path.startswith("/orb/"):
+                return self._static(ORB_ROOT, urllib.parse.unquote(split.path[len("/orb/"):]) or "index.html")
             if path == "/api/events":
                 return self._json(read_json(EVENTS))
             if path == "/api/ontology":
@@ -147,6 +217,22 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(read_jsonl(OUTBOX) if os.path.isfile(OUTBOX) else [])
             if path == "/api/channels":
                 return self._json(channels_payload())
+            if path == "/api/ontology_export":
+                return self._json(ontology_export())
+            if split.path.startswith("/runs/") and split.path.endswith(".md"):
+                return self._static(os.path.join(HITACHI, "runs"), urllib.parse.unquote(split.path[len("/runs/"):]))
+            if path == "/api/logs":
+                return self._json(logs_payload((query.get("name") or [None])[0]))
+            if path == "/api/agents":
+                from tower.agents.roster import roster
+
+                return self._json(roster())
+            if path == "/api/knowledge_graph":
+                return self._json(knowledge_payload(query))
+            if path == "/api/test_reports":
+                from tower.ui import reports
+
+                return self._json(reports.payload())
         except FileNotFoundError as exc:
             return self._json({"error": "missing file", "detail": str(exc)}, 500)
         except json.JSONDecodeError as exc:
@@ -154,6 +240,44 @@ class Handler(BaseHTTPRequestHandler):
         except OSError as exc:
             return self._json({"error": "read failed", "detail": str(exc)}, 500)
         self._json({"error": "not found"}, 404)
+
+    def do_DELETE(self):
+        """DELETE /api/test_reports/<suite>/<reader> removes that report's folder under runs/.
+
+        Only same-host requests are accepted: the Host header must be this server, which blocks
+        DNS-rebinding pages, and browsers will not send a cross-site DELETE without a CORS
+        preflight, which this server never answers.
+        """
+        host = (self.headers.get("Host") or "").split(":")[0]
+        if host not in ("127.0.0.1", "localhost"):
+            return self._json({"error": "forbidden"}, 403)
+        parts = [urllib.parse.unquote(p) for p in urllib.parse.urlsplit(self.path).path.strip("/").split("/")]
+        if len(parts) != 4 or parts[:2] != ["api", "test_reports"]:
+            return self._json({"error": "not found"}, 404)
+        from tower.ui import reports
+
+        try:
+            removed = reports.delete(parts[2], parts[3])
+        except OSError as exc:
+            return self._json({"error": "delete failed", "detail": str(exc)}, 500)
+        if not removed:
+            return self._json({"error": "no such report"}, 404)
+        return self._json({"deleted": f"{parts[2]}/{parts[3]}"})
+
+    def _static(self, root, rel):
+        """Serve a file under root; anything that resolves outside it is a 404."""
+        root = os.path.realpath(root)
+        full = os.path.realpath(os.path.join(root, rel))
+        if not full.startswith(root + os.sep) or not os.path.isfile(full):
+            return self._json({"error": "not found"}, 404)
+        ext = os.path.splitext(full)[1].lower()
+        return self._file(full, STATIC_TYPES.get(ext, "application/octet-stream"))
+
+    def _redirect(self, location):
+        self.send_response(301)
+        self.send_header("Location", location)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def _file(self, path, content_type):
         """Serve a static file. no-store, so Refresh always shows the latest run."""

@@ -1,0 +1,51 @@
+{
+ "model": "qwen3:0.6b",
+ "run": "2026-11-08 03:07",
+ "suites": {
+  "holdout2": {
+   "total": 15,
+   "kinds_ok": 10,
+   "fields_ok": 10,
+   "output_ok": 10,
+   "seconds": 131.9,
+   "by_kind": {
+    "plant_outage": {
+     "total": 4,
+     "kinds_ok": 4,
+     "fields_ok": 4,
+     "output_ok": 4
+    },
+    "noise": {
+     "total": 2,
+     "kinds_ok": 2,
+     "fields_ok": 2,
+     "output_ok": 2
+    },
+    "compound": {
+     "total": 2,
+     "kinds_ok": 1,
+     "fields_ok": 1,
+     "output_ok": 1
+    },
+    "supplier_delay": {
+     "total": 3,
+     "kinds_ok": 0,
+     "fields_ok": 0,
+     "output_ok": 0
+    },
+    "unconfirmed": {
+     "total": 2,
+     "kinds_ok": 1,
+     "fields_ok": 1,
+     "output_ok": 1
+    },
+    "quality_hold": {
+     "total": 2,
+     "kinds_ok": 2,
+     "fields_ok": 2,
+     "output_ok": 2
+    }
+   }
+  }
+ }
+}

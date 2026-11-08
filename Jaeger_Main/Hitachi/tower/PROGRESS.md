@@ -26,7 +26,7 @@ The feed has 15 events. The shapes match the six test cases: 3 delays, 3 outages
 
 - `tower/contracts.py` — incidents, tool calls, specialist results, the per-event trace.
 - `tower/calendar_util.py` — working days and relative dates. Today is Monday 2027-03-08.
-- `tower/graph.py` — the ontology loaded from the CSVs. `python tower/selfcheck.py` passed: 6 plants, 540 production orders, 3,263 customer orders, 5,348 vehicles (2,927 sold, 2,421 in stock), 364 shipments, 364 lots. Calendar indexes match `calendar.csv`.
+- `tower/graph.py` — the ontology loaded from the CSVs. `python tests/selfcheck.py` passed: 6 plants, 540 production orders, 3,263 customer orders, 5,348 vehicles (2,927 sold, 2,421 in stock), 364 shipments, 364 lots. Calendar indexes match `calendar.csv`.
 - `tower/schedule.py` — per-event slot board and loaner pools. Each event starts from the tables again.
 
 The graph answers who is affected. Specialists turn that into tool calls. The coordinator is the only code that calls `Enterprise`.
@@ -85,3 +85,4 @@ General reader and policy fixes; no case or event ids are used anywhere.
 - **Given tests.** `python tests/run_given.py` gives 15/15 against TC1–TC6. `tests/given_cases.json` is a test fixture that the tower never reads.
 - **Design card.** `DESIGN_CARD.md`.
 
+- **Model alarm** (`_read_with_llm` / `_alarm` in `tower/agents/understand.py`). When Qwen reads a real incident, every quoted phrase checks out, and the word lists find nothing, the message becomes `unconfirmed` and is escalated, not treated as noise. Checked on four messages with new wording ("halted … flood", "behind schedule", "bad batch … failed inspection", "offline"): all four were escalated, and a dealer question stayed noise. The given tests (15/15) and generated tests (25/25) still pass.

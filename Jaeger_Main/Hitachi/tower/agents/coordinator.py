@@ -1,17 +1,16 @@
-"""Control-tower coordinator.
+"""Control-tower coordinator: the one coordinating agent of the docx.
 
-Understand the message, ask the specialist that owns each real incident, then
-call Enterprise in a fixed order: supply, quality, dealer. Noise writes
-nothing. An unconfirmed report is escalate and nothing else. A confirmed
-incident that produces no successful write is escalated once.
+Understand the message, hand each real incident to the specialist agent that owns it (roster.py),
+check every planned call against that agent's allowed tools, then call Enterprise in a fixed order:
+supply, quality, dealer. Noise writes nothing. An unconfirmed report is escalate and nothing else.
+A confirmed incident that produces no successful write is escalated once. Every handoff is
+recorded in the trace.
 """
 
 from __future__ import annotations
 
 from enterprise import ToolError
-from tower.agents.dealer_customer import plan_dealer_customer
-from tower.agents.quality import plan_quality
-from tower.agents.supply_chain import plan_supply
+from tower.agents.roster import COORDINATOR, DEALER, QUALITY, SUPPLY, Agent
 from tower.agents.understand import understand
 from tower.contracts import EventTrace, ToolCall
 from tower.schedule import LoanerPools, PlantSchedule
@@ -51,6 +50,14 @@ def handle_event(graph, enterprise, event: dict, llm=None) -> EventTrace:
     classification = "+".join(incident.kind for incident in incidents)
     results = []
     executed: list[tuple[ToolCall, bool]] = []
+    readers = sorted({incident.reader for incident in incidents})
+    handoffs: list[dict] = [{
+        "from": COORDINATOR.id,
+        "to": "reader",
+        "task": "Read the message into incidents (LLM proposes, rule check verifies).",
+        "returned": f"{len(incidents)} incident{'' if len(incidents) == 1 else 's'}: {classification}"
+                    f" (read by {', '.join(readers)})",
+    }]
 
     # Quiet path: noise -> no calls; unconfirmed -> exactly one escalate to a human.
     if not real:
@@ -61,9 +68,13 @@ def handle_event(graph, enterprise, event: dict, llm=None) -> EventTrace:
             _execute(
                 enterprise,
                 event["event_id"],
-                ToolCall(tool="escalate", args={"reason": reason}, reason=reason),
+                ToolCall(tool="escalate", args={"reason": reason}, reason=reason, agent=COORDINATOR.id),
                 executed,
             )
+            handoffs.append(_tool_handoff("Unconfirmed report: escalate to a human, change nothing.", executed))
+        else:
+            handoffs.append({"from": COORDINATOR.id, "to": COORDINATOR.id,
+                             "task": "Noise: no specialist is needed.", "returned": "No tool calls."})
         summary = _quiet_summary(incidents, escalated=bool(executed))
     else:
         # Real path. A fresh slot board and loaner pools, shared by every incident in this event.
@@ -78,10 +89,12 @@ def handle_event(graph, enterprise, event: dict, llm=None) -> EventTrace:
         # Steps 2-3 - find impact and plan: each specialist queries the graph and returns planned
         # calls.
         if supply_incidents:
-            supply_result = plan_supply(graph, schedule, supply_incidents)
+            supply_result = _accept(SUPPLY, SUPPLY.plan(graph, schedule, supply_incidents),
+                                    _task(supply_incidents), handoffs)
             results.append(supply_result)
         if quality_incidents:
-            quality_result = plan_quality(graph, quality_incidents)
+            quality_result = _accept(QUALITY, QUALITY.plan(graph, quality_incidents),
+                                     _task(quality_incidents), handoffs)
             results.append(quality_result)
 
         # Dealer and Customer Care only sees customer orders behind the production orders the
@@ -91,7 +104,10 @@ def handle_event(graph, enterprise, event: dict, llm=None) -> EventTrace:
             orders = graph.customer_orders_for(supply_result.affected_ids)
         if orders:
             reason = " ".join(incident.summary for incident in real)
-            dealer_result = plan_dealer_customer(graph, pools, orders, reason)
+            dealer_result = _accept(
+                DEALER, DEALER.plan(graph, pools, orders, reason),
+                f"Notify dealers and assign loaners for {len(orders)} customer orders behind the "
+                f"{len(supply_result.affected_ids)} moved production orders.", handoffs)
             results.append(dealer_result)
 
         # Step 4 - act, in a fixed order: production moves, then quality, then dealers and
@@ -108,6 +124,8 @@ def handle_event(graph, enterprise, event: dict, llm=None) -> EventTrace:
         for call in planned:
             if _execute(enterprise, event["event_id"], call, executed) and call.writes:
                 successful_writes += 1
+        handoffs.append(_tool_handoff(
+            "Execute the accepted calls in order: production moves, quality, dealers and loaners.", executed))
         # Failed calls are not retried: the tools reject only invalid moves (full slot, empty pool),
         # and retrying the same args would fail the same way and cost efficiency points.
         if successful_writes == 0:
@@ -117,9 +135,10 @@ def handle_event(graph, enterprise, event: dict, llm=None) -> EventTrace:
             _execute(
                 enterprise,
                 event["event_id"],
-                ToolCall(tool="escalate", args={"reason": reason}, reason=reason),
+                ToolCall(tool="escalate", args={"reason": reason}, reason=reason, agent=COORDINATOR.id),
                 executed,
             )
+            handoffs.append(_tool_handoff("Confirmed incident changed nothing: escalate.", executed[-1:]))
         # Rule 8 still applies inside a real event: a rumor section goes to a human.
         rumors = [incident.summary for incident in incidents if incident.kind == "unconfirmed"]
         if rumors and successful_writes > 0:
@@ -127,9 +146,10 @@ def handle_event(graph, enterprise, event: dict, llm=None) -> EventTrace:
             _execute(
                 enterprise,
                 event["event_id"],
-                ToolCall(tool="escalate", args={"reason": reason}, reason=reason),
+                ToolCall(tool="escalate", args={"reason": reason}, reason=reason, agent=COORDINATOR.id),
                 executed,
             )
+            handoffs.append(_tool_handoff("Rumor inside a real event: escalate that part.", executed[-1:]))
         summary = _real_summary(
             graph,
             incidents,
@@ -152,7 +172,51 @@ def handle_event(graph, enterprise, event: dict, llm=None) -> EventTrace:
         calls=[call for call, _ok in executed],
         summary=summary,
         guardrail=_GUARDRAIL,
+        handoffs=handoffs,
     )
+
+
+def _task(incidents) -> str:
+    """The instruction a specialist receives: its incidents, in one line."""
+    return "Plan for " + "; ".join(f"{i.kind}: {i.summary.rstrip('.')}" for i in incidents) + "."
+
+
+def _accept(agent: Agent, result, task: str, handoffs: list[dict]):
+    """Validate a specialist's plan before anything runs: keep only calls to tools on the agent's
+    card, tag each with the agent, and record the handoff. A refused call is never executed."""
+    kept, refused = [], []
+    for call in result.calls:
+        if agent.allows(call.tool):
+            call.agent = agent.id
+            kept.append(call)
+        else:
+            refused.append(call)
+    if refused:
+        result.calls = kept
+        result.notes.append(
+            f"Coordinator refused {len(refused)} planned call(s) outside {agent.card.title}'s tools: "
+            + ", ".join(sorted({c.tool for c in refused})) + "."
+        )
+    handoffs.append({
+        "from": COORDINATOR.id,
+        "to": agent.id,
+        "task": task,
+        "returned": f"{len(result.affected_ids)} affected records, {len(result.calls) + len(refused)} planned calls",
+        "accepted": len(kept),
+        "refused": [c.tool for c in refused],
+    })
+    return result
+
+
+def _tool_handoff(task: str, executed: list[tuple[ToolCall, bool]]) -> dict:
+    """The coordinator's own step of calling the enterprise tools."""
+    failed = sum(not ok for _call, ok in executed)
+    return {
+        "from": COORDINATOR.id,
+        "to": "enterprise",
+        "task": task,
+        "returned": f"{len(executed)} call{'' if len(executed) == 1 else 's'}, {failed} failed",
+    }
 
 
 def _execute(enterprise, event_id: str, call: ToolCall, executed: list[tuple[ToolCall, bool]]) -> bool:

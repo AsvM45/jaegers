@@ -416,7 +416,7 @@ class WorldGraph:
             ])
         return paths
 
-    # Record counts, for selfcheck.py and the UI's ontology panel.
+    # Record counts, for tests/selfcheck.py and the UI's ontology panel.
     def counts(self) -> dict[str, int]:
         return {
             "plants": len(self.plants),

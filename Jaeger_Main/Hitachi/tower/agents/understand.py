@@ -12,83 +12,72 @@ quality hold, plant outage, supplier delay, unconfirmed rumor, noise.
 from __future__ import annotations
 
 import re
-from datetime import date
+from datetime import date, timedelta
 
 from tower.calendar_util import extract_dates, is_working_day, next_working_day
 from tower.contracts import Incident
 
 # '(1)', '(2)' ... markers split a compound message into sections.
 _MARKER = re.compile(r"\((\d+)\)")
-# Outage messages often end "the line restarts the following working day". Any date after this
-# phrase is about the restart, not the outage, so _operational_dates drops it.
-# Wording for the restart day after an outage. Dates after it are not outage days.
-_RESTART = re.compile(r"restarts the following working day|\bback on\b|\bback up\b|\brestarts? on\b", re.I)
+# The same list written without the opening parenthesis: "1) ... 2) ...".
+_MARKER_BARE = re.compile(r"(?:(?<=\s)|^)(\d)\)\s")
+# A sentence that starts a second, separate item: "Also, ...", "Separately, ...".
+_CONNECTOR = re.compile(r"(?<=[.!?])\s+(?:also|separately|in addition|additionally|and another thing|unrelated)[,:]\s+", re.I)
+# Restart wording after an outage ("the line restarts the following working day", "back up
+# Monday", "production resumes on the 22nd"). Dates after it are the restart, not outage days.
+_RESTART = re.compile(r"\b(?:restart\w*|resum\w*|reopen\w*|back (?:on|up|online|running|in operation))\b", re.I)
 # Record ids written in a message. One that is not in the tables makes the message unclear.
 _ID_SHAPE = re.compile(r"\b(?:SH|LOT|PO|CO|SUP)-\d+\b|\bP_[A-Z]{2}\b")
 
-# Keyword groups for the rule reader. A keyword alone is not enough: each kind also needs the
-# entities and dates it can act on (see _read_section). Matching is case-insensitive, on whole
-# words, with curly apostrophes folded to straight ones (see _hits and _fold).
+# Word families for the rule reader, as regular expressions over the lower-cased message (curly
+# apostrophes folded to straight ones, see _fold). They describe how people talk about each kind
+# of incident in general; they are not taken from any particular message. A keyword alone is never
+# enough: each kind also needs the records and dates it can act on (see _read_section).
+_NEG = r"(?:can't|cannot|can not|won't|will not|isn't|is not|aren't|are not|not|unable to|no longer)"
 _QUALITY = (
-    "quality alert",
-    "quality bulletin",
-    "faulty",
-    "contamination",
-    "suspect",
-    "on hold",
-    "defect",
-    "defective",
-    "recall",
+    r"quality (?:alert|bulletin|issue|problem|notice|hold|concern|escape|incident)",
+    r"defect\w*", r"fault(?:y|s)?", r"contaminat\w*", r"suspect(?:ed)?", r"recall\w*",
+    r"crack(?:ed|s|ing)?", r"corro\w*", r"bad (?:batch|lot|parts?|run)", r"non-?conform\w*",
+    r"fail(?:ed|s)? (?:inspection|testing|qa|qc)", r"out[- ]of[- ]spec\w*",
+    r"(?:inspection|audit|testing|qa|qc) (?:found|flagged|shows?|showed)",
+    r"(?:on|place\w*\s+(?:\w+\s+){0,3}on|put\s+(?:\w+\s+){0,3}on) hold", r"hold (?:the |this |that )?lots?",
+    r"stop[- ]sale",
 )
 _OUTAGE = (
-    "outage",
-    "power failure",
-    "we're dark",
-    "we are dark",
-    "production is stopped",
-    "lost production",
-    "we're down",
-    "we are down",
-    "is down",
-    "are down",
-    "is dark",
-    "shut down",
-    "shutdown",
+    r"outages?", r"power (?:failure|cut|loss|outage)", r"blackout",
+    r"(?:production|builds?|the line|lines?|assembly|plant|operations?) (?:is |are |was |were |has |have |will be )?"
+    r"(?:stopped|halted|suspended|shut down|down|offline|idle|dark|paused)",
+    r"(?:we're|we are|we'll be|will be|is|are|was|went|going|stays?) (?:dark|down|offline|idle)",
+    r"shut ?down", r"shutdown", r"stoppage", r"standstill",
+    r"(?:lost|losing|halt\w*|stop\w*|suspend\w*|no) (?:all )?(?:production|builds?|output)",
+    _NEG + r" (?:build|produce|run (?:the line|production))",
+    r"(?:down|dark|offline) (?:from|on|until|through|for)",
 )
 _DELAY = (
-    "delayed",
-    "can't make it",
-    "cannot make it",
-    "new eta",
-    "will now arrive",
-    "original drop",
-    "carrier says",
-    "waiting on",
-    "won't land",
-    "will not land",
-    "won't arrive",
-    "will not arrive",
-    "slipped",
-    "pushed to",
-    "running late",
-    "is late",
-    "new arrival",
+    r"delay\w*", r"late", r"later than", r"behind schedule", r"running behind",
+    r"(?:new|revised|updated|adjusted) (?:eta|arrival|delivery|ship) ?(?:date|time)?", r"\beta\b",
+    r"slip\w*", r"push\w* (?:back|out|to)", r"postpon\w*", r"(?:arrival|delivery|shipment) (?:moved|moves|changed)",
+    _NEG + r" (?:make it|arrive|land|deliver|ship|be there|reach)",
+    r"(?:will now|now|instead) (?:arrive|land|ship|deliver|come)",
+    r"waiting (?:on|for)", r"(?:originally|original|was|were|had been) (?:due|scheduled|planned|expected|set)",
+    r"original (?:drop|date|eta|delivery)",
 )
 _RUMOR = (
-    "rumor",
-    "not confirmed",
-    "nothing confirmed",
-    "no dates",
-    "possible",
-    "may be off",
-    "someone mentioned",
-    "someone on the floor",
-    "unverified",
-    "no official word",
-    "claims",
-    "can't confirm",
-    "cannot confirm",
-    "heard",
+    r"rumou?rs?\w*", r"(?:not |un)(?:confirmed|verified|official)", r"nothing (?:confirmed|official|definite)",
+    r"no (?:dates?|details|specifics|confirmation|official word|word yet)",
+    r"possibl[ey]", r"maybe", r"might", r"may be", r"could (?:be|slip|have)", r"perhaps",
+    r"heard", r"hearsay", r"hint\w*", r"apparently", r"supposedly", r"word is", r"people (?:say|are saying)",
+    r"(?:someone|somebody|people|a guy|word) (?:\w+ ){0,4}(?:said|says|say|mentioned|thinks|heard)", r"(?:can't|cannot|can not) confirm", r"not sure", r"unclear",
+    r"claims?", r"speculat\w*", r"a vibe",
+)
+# What makes a vague message "possibly about us" (handbook: unconfirmed) rather than noise: it
+# hints at trouble in our operations. A hedge with no trouble stays noise ("temperatures may
+# reach 105 F", "is a plant tour possible next Friday?").
+_TROUBLE = (
+    r"shortages?", r"short on", r"delay\w*", r"late", r"slip\w*", r"behind", r"problems?", r"issues?",
+    r"trouble", r"wrong", r"(?:off|up) with", r"strikes?", r"walkout", r"defect\w*", r"quality",
+    r"outages?", r"(?:lose|lost|losing|loses) power", r"down", r"shut\w*", r"stop\w*", r"recall\w*",
+    r"disrupt\w*", r"bottleneck", r"backlog",
 )
 
 
@@ -99,20 +88,53 @@ def understand(graph, text: str, llm=None) -> list[Incident]:
     With an llm (tower.agents.llm_reader.LLMReader), the model reads each
     section and code verifies it; the rule reader is the fallback and veto.
     """
-    if llm is None:
-        return [_read_section(graph, section) for section in _sections(text)]
-    return [_read_with_llm(graph, section, llm) for section in _sections(text)]
+    read = (lambda part: _read_section(graph, part)) if llm is None else (lambda part: _read_with_llm(graph, part, llm))
+    out = []
+    for section in _sections(text):
+        out.extend(_read_connected(section, read))
+    return out
+
+
+def _read_connected(section: str, read) -> list[Incident]:
+    """Read "<item>. Also, <item>." as two items when both halves are about something; otherwise as
+    one, so a single report whose second sentence starts with "Also" is not cut in two."""
+    cut = _CONNECTOR.search(section)
+    if not cut:
+        return [read(section)]
+    parts = [section[:cut.start()].strip(), section[cut.end():].strip()]
+    parts[1] = parts[1][:1].upper() + parts[1][1:]
+    readings = [read(part) for part in parts if part]
+    if len(readings) == 2 and all(r.kind != "noise" for r in readings):
+        return readings
+    # One half is noise ("Stock markets closed higher. Also, <outage>"): keep the half that is
+    # about something, unless the whole reads better as one item.
+    whole = read(section)
+    useful = [r for r in readings if r.kind != "noise"]
+    if whole.kind == "noise" and len(useful) == 1:
+        return useful
+    return [whole]
 
 
 # Kinds that lead to no operational change.
 _QUIET = frozenset({"noise", "unconfirmed"})
 
 
-# Decision order: model error -> rules; model and rules disagree on the kind -> rules;
-# noise/unconfirmed -> rules' summary plus the model's reason; real incident -> built from the
-# model's phrases, or rules if a phrase fails verification.
+# Decision order: model error -> rules. Rules find no incident or cannot complete one, and the
+# model reads a real incident that checks out against the tables and the message -> the model.
+# Otherwise a kind disagreement -> rules; noise/unconfirmed -> rules' summary plus the model's
+# reason; same real kind -> built from the model's phrases, or rules if a field differs or fails.
 def _read_with_llm(graph, section: str, llm) -> Incident:
-    """Model proposes, code verifies. Disagreement on the kind goes to the rules."""
+    """Model proposes, code verifies. Every incident carries the model's reasoning (model_reason),
+    whether its reading was used, overruled or rejected."""
+    box: dict = {}
+    incident = _decide_with_llm(graph, section, llm, box)
+    if box.get("reason"):
+        incident.model_reason = f"{llm.model}: {box['reason']}"
+    return incident
+
+
+def _decide_with_llm(graph, section: str, llm, box: dict) -> Incident:
+    """The arbitration behind _read_with_llm; box gets the model's last reason."""
     from tower.agents.llm_reader import LLMUnavailable
 
     # The rule reading is always computed: it is the fallback and the referee for the model.
@@ -122,7 +144,23 @@ def _read_with_llm(graph, section: str, llm) -> Incident:
     except (LLMUnavailable, ValueError) as exc:
         return _fallback(rules, f"{llm.model} gave no usable answer ({exc}); used the rule reader.")
 
+    box["reason"] = fields["reason"]
     said = f"{llm.model} read '{fields['kind']}': {fields['reason'] or 'no reason given'}"
+    # The model reasons; word lists only match wording they know. When the rules find no incident
+    # (noise), or incident wording they cannot complete (unclear), a real incident the model reads
+    # is used if it checks out: every record it names is in the tables and every date is a date
+    # the message gives. A rumor stays a rumor, and a different real incident goes to the rules.
+    rules_unclear = rules.kind == "unconfirmed" and not any(e.startswith("rumor language") for e in rules.evidence)
+    if fields["kind"] not in _QUIET and (rules.kind == "noise" or rules_unclear):
+        built, problem, fields, retry = checked_model_reading(graph, section, llm, fields)
+        box["reason"] = fields["reason"] or box["reason"]
+        if built is not None and built.kind == fields["kind"]:
+            built.evidence[:0] = [said, *([retry] if retry else []),
+                                  f"rule word lists read '{rules.kind}'; the model's reading checked out "
+                                  "against the tables and the message, so it is used"]
+            built.reader = llm.model
+            return built
+        return _fallback(rules, said, f"model reading did not check out ({problem}); used the rule reader.")
     if fields["kind"] != rules.kind:
         return _fallback(
             rules,
@@ -137,9 +175,12 @@ def _read_with_llm(graph, section: str, llm) -> Incident:
         rules.reader = llm.model
         return rules
 
-    # A real incident: rebuild it from the model's phrases. Every phrase must be verbatim in the
-    # text and resolve through the graph.
-    built, problem = _incident_from_fields(graph, section, fields)
+    # A real incident: rebuild it from the model's phrases. Every name must be in the text and
+    # resolve through the graph, and every date must be a date the message gives.
+    built, problem, fields, retry = checked_model_reading(graph, section, llm, fields)
+    box["reason"] = fields["reason"] or box["reason"]
+    if retry:
+        said += f" ({retry})"
     if built is None:
         return _fallback(rules, said, f"model output failed verification ({problem}); used the rule reader.")
     if built.kind != rules.kind:
@@ -162,6 +203,28 @@ def _read_with_llm(graph, section: str, llm) -> Incident:
     built.evidence.append("rule check agrees on every field")
     built.reader = llm.model
     return built
+
+
+def checked_model_reading(graph, section: str, llm, fields: dict) -> tuple[Incident | None, str, dict, str]:
+    """The model's reading of a real incident, checked against the tables and the message, with
+    one retry when it fails: the model is told exactly what did not check out and answers again.
+
+    Returns (incident or None, problem, the fields used, a note about the retry or "").
+    """
+    from tower.agents.llm_reader import LLMUnavailable
+
+    built, problem = _incident_from_fields(graph, section, fields)
+    if built is not None or fields["kind"] in _QUIET:
+        return built, problem, fields, ""
+    try:
+        again = llm.extract(section, previous=fields, problem=problem)
+    except (LLMUnavailable, ValueError) as exc:
+        return None, problem, fields, f"retry gave no usable answer ({exc})"
+    note = f"first reading failed ({problem}); retried with that feedback"
+    if again["kind"] in _QUIET:
+        return None, f"{problem}; on retry the model read '{again['kind']}'", again, note
+    built, problem2 = _incident_from_fields(graph, section, again)
+    return built, problem2 if built is None else "", again, note + ("" if built is None else ", and it checked out")
 
 
 def _fallback(rules: Incident, *notes: str) -> Incident:
@@ -210,11 +273,22 @@ def _incident_from_fields(graph, section: str, fields: dict) -> tuple[Incident |
     folded = _fold(section)
     kind = fields["kind"]
     dropped = []
-    # A date phrase that is not in the message is invented, and it rejects the whole reading.
+    # Every date must be a date the message gives (or the last day down before a stated restart).
+    # The model may rewrite it ("the 24th" as "March 24th"); a date that is not in the message is
+    # invented, and it rejects the whole reading.
+    dates = []
     for name in ("start_date", "end_date"):
-        phrase = fields[name]
-        if phrase and _fold(phrase) not in folded:
-            return None, f"{name} '{phrase}' is not in the message"
+        if not fields[name]:
+            return None, f"{name} is empty"
+        found, problem = _model_date(section, fields[name])
+        if found is None:
+            return None, f"{name} '{fields[name]}' {problem}"
+        dates.append(found)
+    # "back up on the 26th" is the restart, not a day down: an outage ends the working day before.
+    restart = _RESTART.search(section)
+    if kind == "plant_outage" and restart and dates[1]["start"] >= restart.start() and "note" not in dates[1]:
+        last = _day_before_restart(dates[1]["date"])
+        dates[1] = {**dates[1], "date": last, "note": f"'{dates[1]['phrase']}' is when work resumes, so the last day down is {last}"}
 
     picked = {}
     for name, entity_type in _FIELD_TYPE.items():
@@ -236,21 +310,47 @@ def _incident_from_fields(graph, section: str, fields: dict) -> tuple[Incident |
         # below serve both paths.
         picked[entity_type] = (mention, [mention.alias] if mention else [], [])
 
-    built, problem = _build(graph, kind, picked, fields)
+    built, problem = _build(graph, kind, picked, fields, dates)
     if built is not None and dropped:
         built.evidence.append("dropped optional model field: " + "; ".join(dropped))
     return built, problem
 
 
-def _build(graph, kind: str, picked: dict, fields: dict) -> tuple[Incident | None, str]:
+def _model_date(section: str, phrase: str) -> tuple[dict | None, str]:
+    """Check one of the model's date phrases against the message. Returns (date item, "") or
+    (None, why). Read in context when the words are in the message, so "the 1st" after "2/25" is
+    March 1; otherwise the phrase must resolve to a date the message gives."""
+    message = extract_dates(section)
+    folded, want = _fold(section), _fold(phrase).strip()
+    at = folded.find(want)
+    if at >= 0:
+        for item in message:
+            if item["start"] <= at < item["end"] or at <= item["start"] < at + len(want):
+                return {**item, "phrase": phrase}, ""
+    parsed = extract_dates(phrase)
+    if len(parsed) != 1:
+        return None, "is not one calendar date"
+    when = parsed[0]["date"]
+    if any(item["date"] == when for item in message):
+        source = next(item for item in message if item["date"] == when)
+        return {**source, "phrase": phrase, "note": f"model wrote '{phrase}' for '{source['phrase']}'"}, ""
+    restart = _RESTART.search(section)
+    for item in message:
+        if restart and item["start"] >= restart.start() and _day_before_restart(item["date"]) == when:
+            return {**item, "phrase": phrase, "date": when,
+                    "note": f"last day down before work resumes {item['date']}"}, ""
+    return None, f"is {when}, which is not a date in the message"
+
+
+def _build(graph, kind: str, picked: dict, fields: dict, resolved: list[dict] | None = None) -> tuple[Incident | None, str]:
     """Check the model's reading has what its kind needs, then build the Incident.
 
     Returns (incident, "") or (None, reason). The checks mirror the rule reader's conditions
     in _read_section, so neither path can act on less evidence than the other.
     """
     # Each date phrase must parse to exactly one calendar date ("next Friday", "2027-03-24").
-    dates = []
-    for name in ("start_date", "end_date"):
+    dates = resolved or []
+    for name in ("start_date", "end_date") if not resolved else ():
         phrase = fields[name]
         if not phrase:
             return None, f"{name} is empty"
@@ -292,8 +392,13 @@ def _field_diffs(built: Incident, rules: Incident) -> list[str]:
 
 
 def _sections(text: str) -> list[str]:
-    """Numbered parts of a compound message, or the whole text."""
+    """Numbered parts of a compound message ("(1) ... (2) ..." or "1) ... 2) ..."), or the whole text."""
     marks = list(_MARKER.finditer(text))
+    if len(marks) < 2:
+        bare = list(_MARKER_BARE.finditer(text))
+        # Only a real list: the markers count up 1, 2, ...
+        if len(bare) >= 2 and [int(m.group(1)) for m in bare] == list(range(1, len(bare) + 1)):
+            marks = bare
     # A single "(1)" is not a list; it is more likely a stray parenthesis.
     if len(marks) < 2:
         return [text]
@@ -335,7 +440,7 @@ def _read_section(graph, section: str) -> Incident:
     if delay_hits and len(dates) >= 2 and (shipment is not None or None not in (supplier, part, plant)):
         return _delay(graph, picked, dates, delay_hits)
     # Rumor wording, or an incident too incomplete to act on, is escalated, not ignored.
-    if rumor_hits:
+    if rumor_hits and (_hits(section, _TROUBLE) or quality_hits or outage_hits or delay_hits):
         return _unconfirmed(section, picked, dates, rumor_hits, inverted=False)
     # Incident wording about our records, but not enough to act on (or an id that does not
     # exist): rule 8 says escalate rather than guess or ignore.
@@ -630,7 +735,12 @@ def _noise(section, picked, quality_hits, outage_hits, delay_hits) -> Incident:
 
 
 def _operational_dates(section: str) -> tuple[list[dict], list[str]]:
-    """Dates in reading order, without a trailing restart day."""
+    """Dates in reading order, without a trailing restart day.
+
+    A restart date is not a day down. When the message gives one start date and then when work
+    resumes ("suspended starting 3/24 ... back up on 3/26"), the last day down is the working day
+    before the restart, and that is added as the second date.
+    """
     dates = extract_dates(section)
     restart = _RESTART.search(section)
     if not restart:
@@ -644,7 +754,21 @@ def _operational_dates(section: str) -> tuple[list[dict], list[str]]:
     if ignored:
         shown = ", ".join(f"'{item['phrase']}' = {item['date']}" for item in ignored)
         note += f"; ignored dates {shown}"
+    if len(earlier) == 1 and ignored:
+        last = _day_before_restart(ignored[0]["date"])
+        if last and last >= earlier[0]["date"]:
+            earlier = earlier + [{"phrase": f"the day before '{ignored[0]['phrase']}'", "date": last,
+                                  "start": ignored[0]["start"], "end": ignored[0]["end"]}]
+            note += f"; work resumes {ignored[0]['date']}, so the last day down is {last}"
     return earlier, [note]
+
+
+def _day_before_restart(iso_day: str) -> str | None:
+    """The working day before a restart date."""
+    d = date.fromisoformat(iso_day) - timedelta(days=1)
+    while not is_working_day(d):
+        d -= timedelta(days=1)
+    return d.isoformat()
 
 
 def _roll(iso_day: str) -> str:
@@ -663,14 +787,15 @@ def _fold(text: str) -> str:
     )
 
 
-def _hits(text: str, phrases: tuple[str, ...]) -> list[str]:
-    """Keywords from phrases found in text as whole words ("suspect" does not match "suspected")."""
+def _hits(text: str, patterns: tuple[str, ...]) -> list[str]:
+    """The words in text that match any pattern, as whole words, in reading order, each once.
+    The matched words are quoted in the evidence, so the trace shows what was actually read."""
     folded = _fold(text)
     found = []
-    for phrase in phrases:
-        pattern = r"(?<![a-z0-9])" + re.escape(_fold(phrase)) + r"(?![a-z0-9])"
-        if re.search(pattern, folded):
-            found.append(phrase)
+    for pattern in patterns:
+        for m in re.finditer(r"(?<![a-z0-9])(?:" + pattern + r")(?![a-z0-9])", folded):
+            if m.group(0) not in found:
+                found.append(m.group(0))
     return found
 
 

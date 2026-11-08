@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wacky Wheels Control Tower</title>
+<!-- Control-tower dashboard. Reads /api/events, /api/traces, /api/log, /api/ontology_export and
+     /api/test_reports, /api/outbox from tower/ui/server.py, and sends DELETE /api/test_reports/<suite>/<reader>
+     to remove a report. No build step and no external libraries, so it runs offline on a laptop.
+     Pages: #/overview, #/events, #/tests[/<set>/<reader>[/<case>]], #/ontology, #/logs, #/guide. -->
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #070c27;
+    --bg-2: #0b1437;
+    --card: #0f1739;
+    --card-hi: #141f4a;
+    --line: rgba(255, 255, 255, 0.08);
+    --line-2: rgba(255, 255, 255, 0.14);
+    --text: #ffffff;
+    --text-2: #c3cce3;
+    --muted: #93a1c4;
+    --accent: #0075ff;
+    --accent-2: #2b8cff;
+    --accent-soft: rgba(0, 117, 255, 0.16);
+    /* Status: fixed roles, always shown with an icon and a word. */
+    --good: #0ca30c;
+    --good-text: #3ddc84;
+    --warn: #fab219;
+    --bad: #d03b3b;
+    --bad-text: #ff7a7a;
+    /* Chart series, dark steps (validated on #0f1739, adjacent pairs). */
+    --s1: #3987e5;
+    --s2: #d95926;
+    --s3: #199e70;
+    --s4: #c98500;
+    --s5: #d55181;
+    --radius: 18px;
+    --sans: "Plus Jakarta Sans", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--text);
+    background:
+      radial-gradient(1200px 700px at 85% -10%, rgba(0, 117, 255, 0.22), transparent 60%),
+      radial-gradient(900px 600px at -10% 110%, rgba(67, 24, 255, 0.18), transparent 60%),
+      var(--bg);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; color: inherit; }
+  .mono { font-family: var(--mono); font-size: 12px; }
+
+  /* ---------- layout ---------- */
+  .app { display: grid; grid-template-columns: 264px 1fr; gap: 24px; padding: 20px; min-height: 100vh; }
+  .side {
+    position: sticky; top: 20px; align-self: start; height: calc(100vh - 40px);
+    display: flex; flex-direction: column; gap: 6px; padding: 22px 16px;
+    border-radius: var(--radius);
+    background: linear-gradient(160deg, rgba(15, 23, 57, 0.96), rgba(10, 15, 40, 0.82));
+    border: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 18px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+  .brand-mark { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: linear-gradient(135deg, #0075ff, #4318ff); font-weight: 800; }
+  .brand-name { font-size: 12px; letter-spacing: 0.16em; font-weight: 700; line-height: 1.3; }
+  .brand-name span { display: block; color: var(--muted); letter-spacing: 0.1em; font-weight: 600; font-size: 10px; }
+  .nav-label { font-size: 10px; letter-spacing: 0.14em; color: var(--muted); font-weight: 700; padding: 14px 12px 6px; }
+  .nav a {
+    display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px;
+    color: var(--text-2); font-weight: 600; font-size: 13px;
+  }
+  .nav a:hover { background: rgba(255, 255, 255, 0.04); color: var(--text); }
+  .nav a.on { background: var(--card-hi); color: var(--text); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25); }
+  .nav .ico { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; background: var(--card-hi); color: var(--accent-2); }
+  .nav a.on .ico { background: var(--accent); color: #fff; }
+  .ico svg { width: 15px; height: 15px; }
+  .side-foot { margin-top: auto; }
+  .help {
+    border-radius: 16px; padding: 16px; position: relative; overflow: hidden;
+    background: radial-gradient(160px 120px at 90% 0%, rgba(67, 24, 255, 0.7), transparent 70%),
+                linear-gradient(135deg, #0075ff 0%, #1a2a7a 100%);
+  }
+  .help h4 { margin: 0 0 4px; font-size: 13px; }
+  .help p { margin: 0 0 10px; font-size: 11px; color: rgba(255, 255, 255, 0.82); line-height: 1.5; }
+  .help code { display: block; font-family: var(--mono); font-size: 10.5px; background: rgba(6, 11, 40, 0.55); border-radius: 8px; padding: 6px 8px; margin-top: 4px; color: #dbe6ff; }
+
+  .main { min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-top: 4px; }
+  .crumbs { font-size: 12px; color: var(--muted); }
+  .crumbs b { color: var(--text-2); font-weight: 600; }
+  .top h1 { margin: 2px 0 0; font-size: 18px; font-weight: 700; }
+  .top-right { display: flex; align-items: center; gap: 10px; }
+  .search {
+    display: flex; align-items: center; gap: 8px; padding: 9px 14px; min-width: 240px;
+    border-radius: 14px; border: 1px solid var(--line-2); background: rgba(15, 23, 57, 0.8); color: var(--text-2);
+  }
+  .search input { background: none; border: 0; outline: 0; color: var(--text); font: inherit; width: 100%; }
+  .chip-btn {
+    padding: 9px 14px; border-radius: 14px; border: 1px solid var(--line-2); background: rgba(15, 23, 57, 0.8);
+    cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text-2);
+  }
+  .chip-btn:hover { color: var(--text); border-color: var(--accent); }
+
+  /* ---------- cards ---------- */
+  .card {
+    border-radius: var(--radius); padding: 20px 22px; min-width: 0;
+    background: linear-gradient(127deg, rgba(15, 23, 57, 0.97) 20%, rgba(12, 18, 48, 0.72) 80%);
+    border: 1px solid var(--line);
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+  }
+  .card h3 { margin: 0; font-size: 16.5px; font-weight: 700; }
+  .card .sub { margin: 4px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--text-2); max-width: 900px; }
+  .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .grid { display: grid; gap: 20px; }
+  .g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .g-hero { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1.1fr); }
+  .g-chart { grid-template-columns: 1.7fr 1fr; }
+  .g-table { grid-template-columns: 1.7fr 1fr; }
+
+  .stat { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; }
+  .stat .k { font-size: 11px; color: var(--muted); font-weight: 600; }
+  .stat .v { font-size: 20px; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .stat .v small { font-size: 12px; font-weight: 700; margin-left: 6px; }
+  .stat .badge-ico { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; background: var(--accent); flex: none; box-shadow: 0 8px 20px rgba(0, 117, 255, 0.35); }
+  .stat .badge-ico svg { width: 20px; height: 20px; }
+  .up { color: var(--good-text); }
+  .down { color: var(--bad-text); }
+
+  .hero {
+    position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center;
+    background:
+      radial-gradient(260px 220px at 78% 42%, rgba(80, 140, 255, 0.55), transparent 65%),
+      radial-gradient(180px 160px at 70% 60%, rgba(120, 60, 255, 0.55), transparent 70%),
+      linear-gradient(127deg, rgba(15, 23, 57, 0.97) 25%, rgba(18, 28, 80, 0.85) 100%);
+  }
+  .hero .k { font-size: 12px; color: var(--text-2); }
+  .hero h2 { margin: 6px 0 8px; font-size: 26px; font-weight: 800; letter-spacing: -0.01em; }
+  .hero p { margin: 0; max-width: 460px; color: var(--text-2); line-height: 1.6; font-size: 14.5px; position: relative; }
+  .hero .go { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; margin-top: 18px; position: relative; }
+  .hero .go:hover { color: var(--accent-2); }
+  .model-pill { display: inline-flex; gap: 6px; align-items: center; margin-top: 12px; padding: 6px 10px; border-radius: 999px; background: rgba(6, 11, 40, 0.6); border: 1px solid var(--line-2); font-size: 11px; color: var(--text-2); position: relative; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); display: inline-block; }
+
+  .gauge-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding-top: 4px; }
+  .gauge-wrap .gauge-cap { font-size: 13.5px; color: var(--text-2); } .gauge-wrap .gauge-cap b { color: var(--text); }
+  .gauge-num {
+    margin-top: -26px; text-align: center; padding: 10px 18px; border-radius: 16px; min-width: 190px;
+    background: rgba(6, 11, 40, 0.7); border: 1px solid var(--line); display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px;
+  }
+  .gauge-num .big { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .gauge-num .ends { font-size: 10px; color: var(--muted); }
+  .gauge-cap { font-size: 11px; color: var(--muted); }
+
+  .reader { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .mini { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: 100%; }
+  .mini .tile { border-radius: 14px; padding: 10px 12px; background: rgba(6, 11, 40, 0.6); border: 1px solid var(--line); text-align: center; }
+  .mini .tile .k { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .mini .tile .v { font-size: 20px; font-weight: 800; margin-top: 2px; }
+  .mini .tile .v small { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .ring-center { font-size: 11px; fill: var(--text-2); }
+
+  /* ---------- chart ---------- */
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--text-2); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .chart { position: relative; }
+  .chart svg { display: block; width: 100%; }
+  .axis text { fill: var(--muted); font-size: 10px; font-family: var(--sans); }
+  .grid-line { stroke: rgba(255, 255, 255, 0.07); stroke-width: 1; }
+  .tip {
+    position: absolute; pointer-events: none; z-index: 5; min-width: 180px; padding: 10px 12px; border-radius: 12px;
+    background: rgba(6, 11, 40, 0.96); border: 1px solid var(--line-2); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    font-size: 12px; opacity: 0; transition: opacity 0.1s; transform: translate(-50%, calc(-100% - 12px));
+  }
+  .tip.on { opacity: 1; }
+  .tip b { display: block; margin-bottom: 6px; }
+  .tip .row { display: flex; justify-content: space-between; gap: 16px; color: var(--text-2); }
+  .tip .row span:last-child { color: var(--text); font-variant-numeric: tabular-nums; }
+  .tip i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 6px; }
+  .toggle { display: inline-flex; padding: 3px; border-radius: 12px; background: rgba(6, 11, 40, 0.65); border: 1px solid var(--line); }
+  .toggle button { border: 0; background: none; padding: 6px 12px; border-radius: 9px; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text-2); }
+  .toggle button.on { background: var(--accent); color: #fff; }
+
+  .bars { display: grid; gap: 12px; }
+  .hbar .lab { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); margin-bottom: 6px; }
+  .hbar .lab b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .hbar .track { height: 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.06); overflow: hidden; }
+  .hbar .fill { height: 100%; border-radius: 4px; background: var(--s1); }
+
+  /* ---------- tables ---------- */
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; padding: 10px 10px; border-bottom: 1px solid var(--line); text-transform: uppercase; }
+  td { padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
+  tr.click { cursor: pointer; }
+  tr.click:hover td { background: rgba(255, 255, 255, 0.025); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .clip { max-width: 380px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .scroll-x { overflow-x: auto; }
+
+  .tag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; background: rgba(255, 255, 255, 0.06); color: var(--text-2); border: 1px solid var(--line); }
+  .tag.k-supplier_delay { color: #8fbaf3; }
+  .tag.k-plant_outage { color: #f0a07c; }
+  .tag.k-quality_hold { color: #6fd4ae; }
+  .tag.k-unconfirmed { color: #f2c66b; }
+  .tag.k-noise { color: var(--muted); }
+  .status { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 12px; white-space: nowrap; }
+  .status svg { width: 14px; height: 14px; }
+  .status.pass { color: var(--good-text); }
+  .status.fail { color: var(--bad-text); }
+  .status.esc { color: var(--warn); }
+  .status.none { color: var(--muted); }
+
+  .timeline { display: grid; gap: 0; }
+  .tl { display: grid; grid-template-columns: 28px 1fr; gap: 10px; position: relative; padding-bottom: 16px; }
+  .tl:not(:last-child)::before { content: ""; position: absolute; left: 13px; top: 26px; bottom: 0; width: 2px; background: var(--line); }
+  .tl .ico { width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; background: var(--card-hi); }
+  .tl .ico svg { width: 14px; height: 14px; }
+  .tl b { font-size: 13px; }
+  .tl .when { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* ---------- events page ---------- */
+  .ev-layout { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+  .ev-list { display: grid; gap: 8px; max-height: calc(100vh - 150px); overflow: auto; padding-right: 4px; }
+  .ev-item { padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: rgba(15, 23, 57, 0.75); cursor: pointer; display: grid; gap: 6px; }
+  .ev-item:hover { border-color: var(--line-2); }
+  .ev-item.on { border-color: var(--accent); background: var(--card-hi); }
+  .ev-item .row1 { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .ev-item .txt { font-size: 12px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .quote { margin: 0; padding: 14px 16px; border-radius: 14px; background: rgba(6, 11, 40, 0.6); border-left: 3px solid var(--accent); color: var(--text-2); line-height: 1.6; }
+  .section-title { font-size: 11px; letter-spacing: 0.12em; color: var(--muted); font-weight: 700; margin: 22px 0 10px; text-transform: uppercase; }
+  .inc { border-radius: 14px; border: 1px solid var(--line); padding: 14px; background: rgba(6, 11, 40, 0.45); display: grid; gap: 10px; }
+  .fields { display: flex; flex-wrap: wrap; gap: 8px; }
+  .field { font-size: 12px; padding: 5px 10px; border-radius: 10px; background: rgba(255, 255, 255, 0.05); }
+  .field span { color: var(--muted); margin-right: 5px; }
+  details summary { cursor: pointer; color: var(--accent-2); font-size: 12px; font-weight: 600; }
+  details ul { margin: 8px 0 0; padding-left: 18px; color: var(--text-2); font-size: 12px; line-height: 1.6; }
+  .path { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+  .node { display: inline-flex; flex-direction: column; padding: 5px 10px; border-radius: 10px; background: rgba(0, 117, 255, 0.1); border: 1px solid rgba(0, 117, 255, 0.28); font-size: 12px; }
+  .node small { font-size: 9px; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
+  .arrow { color: var(--muted); }
+  .summary-box { padding: 14px 16px; border-radius: 14px; background: var(--accent-soft); border: 1px solid rgba(0, 117, 255, 0.3); line-height: 1.6; }
+
+  /* ---------- reports page ---------- */
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .cmp { display: grid; grid-template-columns: 170px 1fr 1fr 70px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .cmp > div { padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 12.5px; min-width: 0; }
+  .cmp .h { font-size: 10px; letter-spacing: 0.1em; color: var(--muted); font-weight: 700; background: rgba(6, 11, 40, 0.6); text-transform: uppercase; }
+  .cmp .lbl { color: var(--text-2); font-weight: 600; }
+  .cmp .ok { color: var(--good-text); font-weight: 700; }
+  .cmp .no { color: var(--bad-text); font-weight: 700; }
+  .cmp .na { color: var(--muted); }
+  .ids { font-family: var(--mono); font-size: 11px; color: var(--text-2); word-break: break-word; margin-top: 4px; }
+  .diff { font-size: 11px; color: var(--bad-text); margin-top: 3px; }
+  .detail-row td { background: rgba(6, 11, 40, 0.5); padding: 18px; }
+  .note { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .fails { margin: 10px 0 0; padding-left: 18px; font-size: 12px; line-height: 1.6; }
+  .fails li.f { color: var(--bad-text); }
+  .fails li.w { color: var(--warn); }
+
+  /* ---------- saved reports + case panels ---------- */
+  .runs { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+  .run { border-radius: 16px; padding: 16px; border: 1px solid var(--line); background: rgba(6, 11, 40, 0.55); display: grid; gap: 10px; }
+  .run.on { border-color: var(--accent); background: var(--card-hi); }
+  .run-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .run-top b { font-size: 14px; }
+  .run .meter { height: 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.06); overflow: hidden; }
+  .run .meter i { display: block; height: 100%; border-radius: 4px; }
+  .run-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { padding: 7px 12px; border-radius: 10px; border: 1px solid var(--line-2); background: rgba(15, 23, 57, 0.8); cursor: pointer; font-size: 12px; font-weight: 700; color: var(--text-2); display: inline-flex; align-items: center; gap: 6px; }
+  .btn svg { width: 13px; height: 13px; }
+  .btn:hover { color: var(--text); border-color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.danger { color: var(--bad-text); }
+  .btn.danger:hover { border-color: var(--bad); }
+  .btn.danger.solid { background: var(--bad); border-color: var(--bad); color: #fff; }
+  .btn:disabled { opacity: 0.5; cursor: wait; }
+  .toast { position: fixed; right: 24px; bottom: 24px; z-index: 20; padding: 12px 16px; border-radius: 14px; background: rgba(6, 11, 40, 0.96); border: 1px solid var(--line-2); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45); font-size: 13px; opacity: 0; transform: translateY(8px); transition: opacity 0.15s, transform 0.15s; pointer-events: none; }
+  .toast.on { opacity: 1; transform: none; }
+  .pea { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .panel { border-radius: 14px; padding: 14px 16px; border: 1px solid var(--line); background: rgba(6, 11, 40, 0.55); min-width: 0; }
+  .panel h4 { margin: 0 0 10px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .panel h4 .n { width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center; background: var(--accent); color: #fff; font-size: 11px; letter-spacing: 0; }
+  .panel.prompt { grid-column: 1 / -1; }
+  .panel pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-family: var(--mono); font-size: 12px; line-height: 1.6; color: var(--text); }
+  .panel.verdict { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .panel.verdict.pass { border-color: rgba(12, 163, 12, 0.5); background: rgba(12, 163, 12, 0.08); }
+  .panel.verdict.fail { border-color: rgba(208, 59, 59, 0.55); background: rgba(208, 59, 59, 0.08); }
+  .big-verdict { display: inline-flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 800; }
+  .big-verdict svg { width: 26px; height: 26px; }
+  .pass .big-verdict { color: var(--good-text); }
+  .fail .big-verdict { color: var(--bad-text); }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 12.5px; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .sysprompt { margin-top: 10px; }
+  .sysprompt pre { max-height: 260px; overflow: auto; padding: 10px 12px; border-radius: 10px; background: rgba(0, 0, 0, 0.25); color: var(--text-2); }
+
+  /* ---------- agents ---------- */
+  .g-agents { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .agent { display: grid; gap: 10px; align-content: start; }
+  .agent .who { display: flex; align-items: center; gap: 10px; }
+  .agent .who .badge-ico { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; background: var(--accent); flex: none; }
+  .agent .who .badge-ico svg { width: 17px; height: 17px; }
+  .agent .who.coord .badge-ico { background: linear-gradient(135deg, #0075ff, #4318ff); }
+  .agent p { margin: 0; color: var(--text-2); font-size: 12.5px; line-height: 1.55; }
+  .agent .tools { display: flex; flex-wrap: wrap; gap: 6px; }
+  .agent .tools .tag { font-family: var(--mono); font-weight: 600; font-size: 10.5px; }
+  .hand { display: grid; grid-template-columns: 170px 1fr; gap: 4px 14px; padding: 10px 0; border-bottom: 1px dashed var(--line); font-size: 12.5px; }
+  .hand:last-child { border-bottom: 0; }
+  .hand .route { font-weight: 700; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .hand .route .arrow { font-weight: 400; }
+  .hand .task { color: var(--text-2); }
+  .hand .ret { grid-column: 2; color: var(--text); }
+  .hand .ret b { color: var(--good-text); }
+  .hand .ret .bad { color: var(--bad-text); }
+
+  /* ---------- written reports ---------- */
+  .wr-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
+  .wr-list { display: grid; gap: 8px; position: sticky; top: 20px; }
+  .wr-item { padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: rgba(15, 23, 57, 0.75); cursor: pointer; display: grid; gap: 3px; }
+  .wr-item:hover { border-color: var(--line-2); }
+  .wr-item.on { border-color: var(--accent); background: var(--card-hi); }
+  .md { line-height: 1.7; color: var(--text-2); font-size: 15px; min-width: 0; max-width: 1000px; }
+  .md h1, .md h2, .md h3, .md h4 { color: var(--text); line-height: 1.3; margin: 1.4em 0 0.5em; }
+  .md h1 { font-size: 22px; margin-top: 0; } .md h2 { font-size: 17px; } .md h3 { font-size: 15px; } .md h4 { font-size: 13.5px; }
+  .md p { margin: 0 0 0.9em; }
+  .md ul, .md ol { margin: 0 0 0.9em; padding-left: 22px; }
+  .md code { font-family: var(--mono); font-size: 12px; background: rgba(255, 255, 255, 0.06); padding: 1px 5px; border-radius: 5px; color: var(--text); }
+  .md pre { background: rgba(0, 0, 0, 0.3); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; overflow-x: auto; }
+  .md pre code { background: none; padding: 0; }
+  .md table { margin: 0 0 1em; }
+  .md td { font-size: 14px; } .md th { font-size: 11px; }
+  .md strong { color: var(--text); }
+  .md a { color: var(--accent-2); }
+  .md hr { border: 0; border-top: 1px solid var(--line); margin: 1.5em 0; }
+  @media (max-width: 900px) { .wr-layout { grid-template-columns: 1fr; } .wr-list { position: static; } }
+
+  /* ---------- tests: charts, cases ---------- */
+  .g-charts { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px; }
+  .panel h4 { margin: 0 0 12px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .pie { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .pie svg path, .pie svg circle { cursor: default; }
+  .pie-big { fill: var(--text); font-size: 26px; font-weight: 800; }
+  .pie-small { fill: var(--muted); font-size: 10px; }
+  .pie-legend { display: grid; gap: 8px; font-size: 13.5px; min-width: 140px; }
+  .pie-legend div { display: grid; grid-template-columns: 12px 16px 1fr auto; align-items: center; gap: 8px; color: var(--text-2); }
+  .pie-legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .pie-legend svg { width: 14px; height: 14px; color: var(--text-2); }
+  .pie-legend b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .pbars { display: grid; gap: 12px; }
+  .pbar .lab { display: flex; justify-content: space-between; font-size: 13.5px; color: var(--text-2); margin-bottom: 6px; gap: 10px; }
+  .pbar .lab i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 7px; }
+  .pbar .lab b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .pbar[data-href] { cursor: pointer; }
+  .pbar[data-href]:hover .lab span { color: var(--text); text-decoration: underline; }
+  .pbar .track { height: 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.05); display: flex; gap: 2px; overflow: hidden; }
+  .pbar .seg { height: 100%; }
+  .pbar .seg:first-child { border-radius: 5px 0 0 5px; } .pbar .seg:last-child { border-radius: 0 5px 5px 0; }
+  .pbar .seg.ok { background: var(--good); } .pbar .seg.no { background: var(--bad); }
+  .meter { height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.06); overflow: hidden; }
+  .meter i { display: block; height: 100%; border-radius: 4px; }
+  .io { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .msg { margin: 0; white-space: pre-wrap; word-break: break-word; font-family: var(--sans); font-size: 15px; line-height: 1.6; color: var(--text); }
+  .reasoning { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--text-2); background: rgba(0, 117, 255, 0.08);
+    border: 1px solid rgba(0, 117, 255, 0.25); border-radius: 10px; padding: 8px 10px; }
+  .reasoning svg { width: 15px; height: 15px; flex: none; margin-top: 2px; color: var(--accent-2); }
+  .crumbs a { color: var(--text-2); } .crumbs a:hover { color: var(--text); }
+  .console { margin: 0; max-height: 72vh; overflow: auto; padding: 14px; border-radius: 12px; background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--line); font-family: var(--mono); font-size: 12.5px; line-height: 1.55; color: #dbe3f5; white-space: pre-wrap; word-break: break-word; }
+  @media (max-width: 1250px) { .g-charts, .io { grid-template-columns: 1fr; } }
+
+  /* ---------- run guide ---------- */
+  .steps { display: grid; gap: 14px; }
+  .step { display: grid; grid-template-columns: 36px 1fr; gap: 14px; }
+  .step .n { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; background: var(--accent); font-weight: 800; box-shadow: 0 8px 20px rgba(0, 117, 255, 0.35); }
+  .step h4 { margin: 6px 0 4px; font-size: 14px; }
+  .step p { margin: 0 0 8px; color: var(--text-2); font-size: 13px; line-height: 1.55; }
+  .cmd { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; padding: 10px 12px; border-radius: 12px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--line); font-family: var(--mono); font-size: 12.5px; color: #dbe6ff; overflow-x: auto; }
+  .cmd code { white-space: pre; }
+  .cmd .copy { flex: none; }
+
+  .empty { padding: 30px; text-align: center; color: var(--muted); }
+  .hide { display: none !important; }
+
+  @media (max-width: 1250px) {
+    .g-chart, .g-table { grid-template-columns: 1fr; }
+    .g-hero { grid-template-columns: 1fr 1fr; } .g-hero .hero { grid-column: 1 / -1; }
+    .g4, .g-agents { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; padding: 12px; }
+    .side { position: static; height: auto; }
+    .side-foot { display: none; }
+    .ev-layout { grid-template-columns: 1fr; }
+    .ev-list { max-height: 320px; }
+    .cmp { grid-template-columns: 110px 1fr 1fr 44px; }
+    .pea { grid-template-columns: 1fr; }
+    .g4, .g-agents { grid-template-columns: 1fr; }
+    .g-hero { grid-template-columns: 1fr; }
+    .hand { grid-template-columns: 1fr; }
+    .hand .ret { grid-column: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="brand-mark">W</div>
+      <div class="brand-name">WACKY WHEELS<span>CONTROL TOWER</span></div>
+    </div>
+    <nav class="nav" id="nav">
+      <a href="#/overview" data-page="overview"><span class="ico" data-icon="home"></span>Overview</a>
+      <a href="#/events" data-page="events"><span class="ico" data-icon="feed"></span>Event feed</a>
+      <a href="#/tests" data-page="tests"><span class="ico" data-icon="check"></span>Tests</a>
+      <a href="#/ontology" data-page="ontology"><span class="ico" data-icon="graph"></span>Knowledge graph</a>
+      <a href="#/logs" data-page="logs"><span class="ico" data-icon="doc"></span>Logs</a>
+    </nav>
+    <div class="nav-label">HELP</div>
+    <nav class="nav">
+      <a href="#/guide" data-page="guide" id="nav-guide"><span class="ico" data-icon="play"></span>How to run</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="top">
+      <div>
+        <div class="crumbs">Pages / <b id="crumb">Overview</b></div>
+        <h1 id="title">Overview</h1>
+      </div>
+      <div class="top-right">
+        <label class="search"><span data-icon="search"></span><input id="q" placeholder="Search events or tests" autocomplete="off"></label>
+        <button class="chip-btn" id="refresh">Refresh</button>
+      </div>
+    </div>
+    <div id="view"></div>
+  </main>
+</div>
+<div class="tip" id="tip"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+
+/* ---------------- icons (inline SVG, stroke = currentColor) ---------------- */
+const ICONS = {
+  home: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  feed: '<path d="M4 6h16M4 12h16M4 18h10"/>',
+  check: '<path d="M9 12l2 2 4-4"/><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/>',
+  graph: '<circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7 6h10M6 8l5 8M18 8l-5 8"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+  bolt: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+  wrench: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-2.4z"/>',
+  alert: '<path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17.5v.5"/>',
+  shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  ok: '<path d="M5 12l5 5 9-10"/>',
+  minus: '<path d="M6 12h12"/>',
+  play: '<path d="M7 4l13 8-13 8z"/>',
+  trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+  copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/>',
+  eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  doc: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+  cpu: '<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>',
+};
+function icon(name) {
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ""}</svg>`;
+}
+function paintIcons(root = document) {
+  root.querySelectorAll("[data-icon]").forEach((el) => { el.innerHTML = icon(el.dataset.icon); });
+}
+
+/* ---------------- helpers ---------------- */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = (n) => Number(n || 0).toLocaleString("en-US");
+const KIND_LABEL = {
+  supplier_delay: "Supplier delay", plant_outage: "Plant outage", quality_hold: "Quality hold",
+  unconfirmed: "Unconfirmed", noise: "Noise",
+};
+const kindTag = (k) => `<span class="tag k-${esc(k)}">${esc(KIND_LABEL[k] || k)}</span>`;
+function statusHtml(kind) {
+  const map = {
+    pass: ["pass", "ok", "Passed"], fail: ["fail", "x", "Failed"],
+    acted: ["pass", "ok", "Acted"], esc: ["esc", "alert", "Escalated"], none: ["none", "minus", "No action"],
+  };
+  const [cls, ic, word] = map[kind];
+  return `<span class="status ${cls}">${icon(ic)}${word}</span>`;
+}
+
+/* Tool groups for the calls chart: one hue per job, fixed order. */
+const GROUPS = [
+  { id: "prod", label: "Production moves", color: "var(--s1)", tools: ["mes.reschedule", "mes.transfer"] },
+  { id: "dealer", label: "Dealer notices & stop-sales", color: "var(--s2)", tools: ["dealer.notify", "dealer.stop_sale"] },
+  { id: "cust", label: "Loaners & owner notices", color: "var(--s3)", tools: ["crm.assign_loaner", "crm.notify_customer"] },
+  { id: "lot", label: "Lot holds", color: "var(--s4)", tools: ["quality.hold_lot"] },
+  { id: "esc", label: "Escalations", color: "var(--s5)", tools: ["escalate"] },
+];
+const TOOL_WORD = {
+  "mes.reschedule": "Reschedule", "mes.transfer": "Transfer", "dealer.notify": "Dealer notice",
+  "dealer.stop_sale": "Stop sale", "crm.assign_loaner": "Loaner", "crm.notify_customer": "Owner notice",
+  "quality.hold_lot": "Lot hold", escalate: "Escalate",
+};
+const WRITE_TOOLS = new Set(Object.keys(TOOL_WORD).filter((t) => t !== "escalate"));
+
+/* ---------------- data ---------------- */
+const S = {
+  events: [], traces: [], log: [], outbox: [], onto: null, reports: null, agents: [],
+  testReader: null, logFilter: "reader", caseFilter: { verdict: "all", cat: "all" },
+  logTab: "output", logFile: null, callEvent: "", callFailed: false,
+  sel: null, q: "",
+  rep: { suite: "given", reader: null, verdict: "all", open: null, confirm: null, busy: false },
+  chartView: "chart",
+  orb: { view: "network", event: null, run: "" },
+};
+async function getJSON(url, fallback) {
+  try {
+    const r = await fetch(url, { cache: "no-store" });
+    if (!r.ok) return fallback;
+    return await r.json();
+  } catch (e) { return fallback; }
+}
+async function load() {
+  const [events, traces, log, onto, reports, outbox, agents] = await Promise.all([
+    getJSON("/api/events", []), getJSON("/api/traces", []), getJSON("/api/log", []),
+    getJSON("/api/ontology_export", null), getJSON("/api/test_reports", null), getJSON("/api/outbox", []),
+    getJSON("/api/agents", []),
+  ]);
+  Object.assign(S, { events, traces, log, onto, reports, outbox, agents });
+  S.agentById = Object.fromEntries(agents.map((a) => [a.id, a]));
+  S.byEvent = {};
+  for (const row of log) (S.byEvent[row.event_id] ||= []).push(row);
+  S.traceById = Object.fromEntries(traces.map((t) => [t.event_id, t]));
+  if (!S.sel && traces.length) S.sel = traces[0].event_id;
+  route();
+}
+function outcome(eventId) {
+  const rows = S.byEvent[eventId] || [];
+  if (rows.some((r) => r.ok && WRITE_TOOLS.has(r.tool))) return "acted";
+  if (rows.some((r) => r.tool === "escalate")) return "esc";
+  return "none";
+}
+function eventKinds(t) { return (t.incidents || []).map((i) => i.kind); }
+function modelName() {
+  for (const t of S.traces) for (const i of t.incidents || []) if (i.reader && i.reader !== "rules") return i.reader;
+  return null;
+}
+function defaultReader(suite) {
+  const m = modelName();
+  const ids = suite.readers.map((r) => r.label);
+  return (m && ids.includes(m)) ? m : (ids.includes("rules") ? "rules" : ids[0]);
+}
+function testTotals() {
+  let passed = 0, total = 0;
+  for (const s of S.reports?.suites || []) {
+    const r = s.readers.find((x) => x.label === defaultReader(s));
+    if (r) { passed += r.passed; total += r.total; }
+  }
+  return { passed, total };
+}
+
+/* ---------------- sidebar facts ---------------- */
+
+/* ---------------- router ---------------- */
+const PAGES = { overview: "Overview", events: "Event feed", tests: "Tests", ontology: "Knowledge graph", logs: "Logs", guide: "How to run" };
+function route() {
+  const segs = location.hash.replace(/^#\/?/, "").split("/");
+  // Old links: #/reports and #/writeups are now the Tests page.
+  if (segs[0] === "reports" || segs[0] === "writeups") { location.replace("#/tests"); return; }
+  const page = segs[0] || "overview";
+  const p = PAGES[page] ? page : "overview";
+  document.querySelectorAll(".nav a[data-page]").forEach((a) => a.classList.toggle("on", a.dataset.page === p));
+  $("#crumb").textContent = PAGES[p];
+  $("#title").textContent = PAGES[p];
+  const view = $("#view");
+  ({ overview: renderOverview, events: renderEvents, tests: (v) => renderTests(v, segs), ontology: renderOntology, logs: renderLogs, guide: renderGuide })[p](view);
+  paintIcons(view);
+}
+window.addEventListener("hashchange", route);
+$("#refresh").addEventListener("click", load);
+// Search filters the overview, event and report lists; other pages ignore it (re-rendering the
+// knowledge graph page would reload the orb graph on every keystroke).
+$("#q").addEventListener("input", (e) => {
+  S.q = e.target.value.trim().toLowerCase();
+  if (!/^#\/?(ontology|guide)/.test(location.hash)) route();
+});
+let resizeTimer;
+// Only the overview chart depends on width; re-rendering other pages would reload the orb graph.
+window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if ($("#calls-chart")) drawCallsChart($("#calls-chart")); }, 120); });
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => t.classList.remove("on"), 3200);
+}
+
+/* ================= OVERVIEW ================= */
+function renderOverview(view) {
+  const traces = S.traces;
+  const calls = S.log.length;
+  const failed = S.log.filter((r) => !r.ok).length;
+  const escal = S.log.filter((r) => r.tool === "escalate").length;
+  const acted = traces.filter((t) => outcome(t.event_id) === "acted").length;
+  const { passed, total } = testTotals();
+  const pct = total ? Math.round((passed / total) * 100) : 0;
+  const incidents = traces.flatMap((t) => t.incidents || []);
+  const viaModel = incidents.filter((i) => i.reader && i.reader !== "rules").length;
+  const overLists = incidents.filter((i) => (i.evidence || []).some((e) => String(e).startsWith("rule word lists read"))).length;
+  const m = modelName();
+
+  view.innerHTML = `
+  <div class="grid g4">
+    ${statCard("Events handled", fmt(traces.length), `${acted} acted`, "up", "feed")}
+    ${statCard("Tool calls", fmt(calls), failed ? `${failed} failed` : "0 failed", failed ? "down" : "up", "bolt")}
+    ${statCard("Escalated to a human", fmt(escal), "rumors & unclear", "", "alert")}
+    ${statCard("Test cases passed", total ? `${passed}/${total}` : "—", total ? `${pct}%` : "no reports", pct === 100 ? "up" : "down", "shield")}
+  </div>
+
+  <div class="grid g-hero" style="margin-top:20px">
+    <div class="card hero">
+      <div>
+        <div class="k">Operations control tower · Monday 8 March 2027</div>
+        <h2>Wacky Wheels Co.</h2>
+        <p>Every message is read, traced through the knowledge graph, and fixed with the enterprise tools, following the policy handbook. Unclear reports go to a human.</p>
+        <div class="model-pill"><span class="dot"></span>${esc(m ? `Reader: ${m} + rule check` : "Reader: rules only")}</div>
+      </div>
+      <a class="go" href="#/events">Open the event feed →</a>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div><h3>Test pass rate</h3><p class="sub">All test suites, ${esc(m || "rules")} reader</p></div></div>
+      <div class="gauge-wrap">
+        ${gaugeSvg(pct, passed, total)}
+        <div class="gauge-cap"><b>${fmt(passed)}</b> of ${fmt(total)} test cases passed</div>
+        <a class="btn" href="#/tests" style="margin-top:8px">Open the tests →</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div><h3>Who read the messages</h3><p class="sub">Whose reading the tower acted on, across the 15 events</p></div></div>
+      <div class="reader">
+        ${ringSvg(incidents.length ? viaModel / incidents.length : 0, `${incidents.length ? Math.round((viaModel / incidents.length) * 100) : 0}%`, "model")}
+        <div class="mini">
+          <div class="tile" title="Incidents where the model's checked reading was used"><div class="k">Model</div><div class="v">${viaModel}<small> of ${incidents.length}</small></div></div>
+          <div class="tile" title="Incidents where the rule reader's reading was used"><div class="k">Rules</div><div class="v">${incidents.length - viaModel}</div></div>
+          <div class="tile" title="Incidents the model caught that the word lists missed"><div class="k">Model only</div><div class="v">${overLists}</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  ${S.agents.length ? `<div class="card" style="margin-top:20px">
+    <div class="card-head"><div><h3>Agent team</h3><p class="sub">One coordinator and three specialists. Specialists plan; the coordinator checks every planned call against the agent's tools, then runs it.</p></div></div>
+    <div class="grid g-agents">${S.agents.map(agentCard).join("")}</div>
+  </div>` : ""}
+
+  <div class="grid g-chart" style="margin-top:20px">
+    <div class="card">
+      <div class="card-head">
+        <div><h3>Tool calls per event</h3><p class="sub">${fmt(calls)} calls across ${traces.length} events, grouped by job</p></div>
+        <div class="toggle" role="tablist">
+          <button class="${S.chartView === "chart" ? "on" : ""}" data-view="chart">Chart</button>
+          <button class="${S.chartView === "table" ? "on" : ""}" data-view="table">Table</button>
+        </div>
+      </div>
+      <div class="legend" style="margin-bottom:10px">${GROUPS.map((g) => `<span><i style="background:${g.color}"></i>${g.label}</span>`).join("")}</div>
+      <div class="chart" id="calls-chart"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h3>What the messages were</h3><p class="sub">Incidents by type (a compound message counts each part)</p></div></div>
+      <div class="bars">${kindBars(incidents)}</div>
+    </div>
+  </div>
+
+  <div class="grid g-table" style="margin-top:20px">
+    <div class="card">
+      <div class="card-head"><div><h3>Events</h3><p class="sub">${acted} acted on · ${traces.filter((t) => outcome(t.event_id) === "esc").length} escalated · ${traces.filter((t) => outcome(t.event_id) === "none").length} left alone</p></div><a class="chip-btn" href="#/events">View all</a></div>
+      <div class="scroll-x"><table>
+        <thead><tr><th>Event</th><th>Message</th><th>Read as</th><th class="num">Calls</th><th>Outcome</th></tr></thead>
+        <tbody>${filteredTraces().map((t) => `
+          <tr class="click" data-ev="${esc(t.event_id)}">
+            <td><b>${esc(t.event_id)}</b><div class="note">${esc(t.source)}</div></td>
+            <td><div class="clip">${esc(t.text)}</div></td>
+            <td>${eventKinds(t).map(kindTag).join(" ")}</td>
+            <td class="num">${fmt((S.byEvent[t.event_id] || []).length)}</td>
+            <td>${statusHtml(outcome(t.event_id))}</td>
+          </tr>`).join("")}</tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h3>Audit trail</h3><p class="sub">What the tower did, event by event</p></div></div>
+      <div class="timeline">${traces.map(timelineItem).join("")}</div>
+    </div>
+  </div>`;
+
+  view.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => { S.chartView = b.dataset.view; route(); }));
+  view.querySelectorAll("[data-ev]").forEach((r) => r.addEventListener("click", () => { S.sel = r.dataset.ev; location.hash = "#/events"; }));
+  drawCallsChart($("#calls-chart"));
+}
+
+const AGENT_ICON = { coordinator: "cpu", supply_chain: "wrench", quality: "shield", dealer_customer: "mail" };
+function agentName(id) { return S.agentById?.[id]?.title || ({ reader: "Reader (LLM + rules)", enterprise: "Enterprise tools" })[id] || id; }
+function agentCard(a) {
+  return `<div class="agent panel">
+    <div class="who ${a.id === "coordinator" ? "coord" : ""}"><span class="badge-ico">${icon(AGENT_ICON[a.id] || "cpu")}</span>
+      <div><b>${esc(a.title)}</b><div class="note">Handbook rule${a.handbook_rules.includes(",") ? "s" : ""} ${esc(a.handbook_rules)}</div></div></div>
+    <p>${esc(a.responsibility)}</p>
+    <div class="note">Takes ${esc(a.takes)}</div>
+    <div class="tools">${a.tools.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>
+  </div>`;
+}
+function handoffsHtml(t) {
+  const hs = t.handoffs || [];
+  if (!hs.length) return `<p class="note">This run predates agent handoffs. Re-run with <span class="mono">python start.py</span>.</p>`;
+  return `<div>${hs.map((h) => `<div class="hand">
+    <div class="route">${esc(agentName(h.from))}<span class="arrow">→</span>${esc(agentName(h.to))}</div>
+    <div class="task">${esc(h.task)}</div>
+    <div class="ret">${esc(h.returned)}${h.accepted != null ? ` · <b>${h.accepted} accepted</b>` : ""}${h.refused?.length ? ` · <span class="bad">${h.refused.length} refused (${esc(h.refused.join(", "))})</span>` : ""}</div>
+  </div>`).join("")}</div>`;
+}
+function statCard(k, v, delta, cls, ic) {
+  return `<div class="card stat"><div><div class="k">${esc(k)}</div><div class="v">${v}<small class="${cls}">${esc(delta)}</small></div></div><div class="badge-ico">${icon(ic)}</div></div>`;
+}
+function gaugeSvg(pct, passed, total) {
+  // A half ring with the percentage inside it and the count underneath; nothing overlaps the arc.
+  const r = 80, len = Math.PI * r;
+  const filled = (Math.max(0, Math.min(100, pct)) / 100) * len;
+  const color = pct === 100 ? "var(--good)" : pct >= 80 ? "var(--warn)" : "var(--bad)";
+  return `<svg viewBox="0 0 200 118" width="240" role="img" aria-label="${pct}% of test cases passed">
+    <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="14" stroke-linecap="round"/>
+    <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="${color}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${filled} ${len}"/>
+    <text x="100" y="86" text-anchor="middle" fill="#fff" font-size="34" font-weight="800">${pct}%</text>
+    <text x="100" y="106" text-anchor="middle" fill="var(--muted)" font-size="11">passed</text>
+    <text x="20" y="117" text-anchor="middle" fill="var(--muted)" font-size="9">0%</text>
+    <text x="180" y="117" text-anchor="middle" fill="var(--muted)" font-size="9">100%</text>
+  </svg>`;
+}
+function ringSvg(frac, label, caption) {
+  const r = 52, c = 2 * Math.PI * r, f = Math.max(0, Math.min(1, frac)) * c;
+  return `<svg viewBox="0 0 140 140" width="140" role="img" aria-label="${esc(label)} ${esc(caption)}">
+    <circle cx="70" cy="70" r="${r}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10"/>
+    <circle cx="70" cy="70" r="${r}" fill="none" stroke="var(--s3)" stroke-width="10" stroke-linecap="round"
+      stroke-dasharray="${f} ${c}" transform="rotate(-90 70 70)"/>
+    <text x="70" y="64" text-anchor="middle" class="ring-center">${esc(caption)}</text>
+    <text x="70" y="88" text-anchor="middle" fill="#fff" font-size="24" font-weight="800">${esc(label)}</text>
+  </svg>`;
+}
+function kindBars(incidents) {
+  const counts = {};
+  for (const i of incidents) counts[i.kind] = (counts[i.kind] || 0) + 1;
+  const order = ["supplier_delay", "plant_outage", "quality_hold", "unconfirmed", "noise"];
+  const max = Math.max(1, ...Object.values(counts));
+  return order.map((k) => `
+    <div class="hbar"><div class="lab"><span>${KIND_LABEL[k]}</span><b>${counts[k] || 0}</b></div>
+    <div class="track"><div class="fill" style="width:${((counts[k] || 0) / max) * 100}%"></div></div></div>`).join("");
+}
+function timelineItem(t) {
+  const o = outcome(t.event_id);
+  const rows = S.byEvent[t.event_id] || [];
+  const ic = o === "acted" ? "wrench" : o === "esc" ? "alert" : "minus";
+  const color = o === "acted" ? "var(--good-text)" : o === "esc" ? "var(--warn)" : "var(--muted)";
+  const writes = rows.filter((r) => r.ok && WRITE_TOOLS.has(r.tool)).length;
+  const what = o === "acted" ? `${writes} changes made` : o === "esc" ? "Handed to a human" : "No action needed";
+  return `<div class="tl"><div class="ico" style="color:${color}">${icon(ic)}</div>
+    <div><b>${esc(t.event_id)} · ${esc(what)}</b><div class="when">${esc((t.received_at || "").replace("T", " "))} · ${eventKinds(t).map((k) => KIND_LABEL[k]).join(" + ")}</div></div></div>`;
+}
+function filteredTraces() {
+  if (!S.q) return S.traces;
+  return S.traces.filter((t) => `${t.event_id} ${t.text} ${t.classification}`.toLowerCase().includes(S.q));
+}
+
+/* Stacked bar chart: one bar per event, segments by tool group, 2px gaps, 4px rounded top. */
+function drawCallsChart(host) {
+  const data = S.traces.map((t) => {
+    const rows = S.byEvent[t.event_id] || [];
+    const vals = GROUPS.map((g) => rows.filter((r) => g.tools.includes(r.tool)).length);
+    return { id: t.event_id, vals, total: vals.reduce((a, b) => a + b, 0) };
+  });
+  if (S.chartView === "table") {
+    host.innerHTML = `<div class="scroll-x"><table><thead><tr><th>Event</th>${GROUPS.map((g) => `<th class="num">${g.label}</th>`).join("")}<th class="num">Total</th></tr></thead>
+      <tbody>${data.map((d) => `<tr><td>${d.id}</td>${d.vals.map((v) => `<td class="num">${v}</td>`).join("")}<td class="num"><b>${d.total}</b></td></tr>`).join("")}</tbody></table></div>`;
+    return;
+  }
+  if (!data.length) { host.innerHTML = `<div class="empty">No run yet. Run python -m tower.run.</div>`; return; }
+  const W = Math.max(320, host.clientWidth), H = 260, pad = { l: 36, r: 8, t: 8, b: 26 };
+  const max = Math.max(1, ...data.map((d) => d.total));
+  const step = niceStep(max);
+  const top = Math.ceil(max / step) * step;
+  const iw = W - pad.l - pad.r, ih = H - pad.t - pad.b;
+  const slot = iw / data.length, bw = Math.min(26, slot * 0.55);
+  const y = (v) => pad.t + ih - (v / top) * ih;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="Stacked bar chart of tool calls per event">`;
+  svg += `<g class="axis">`;
+  for (let v = 0; v <= top; v += step) {
+    svg += `<line class="grid-line" x1="${pad.l}" x2="${W - pad.r}" y1="${y(v)}" y2="${y(v)}"/><text x="${pad.l - 8}" y="${y(v) + 3}" text-anchor="end">${v}</text>`;
+  }
+  data.forEach((d, i) => { svg += `<text x="${pad.l + slot * i + slot / 2}" y="${H - 8}" text-anchor="middle">${d.id.replace("E-", "")}</text>`; });
+  svg += `</g>`;
+  data.forEach((d, i) => {
+    const x = pad.l + slot * i + (slot - bw) / 2;
+    let acc = 0;
+    const segs = d.vals.map((v, gi) => ({ v, gi })).filter((s) => s.v > 0);
+    segs.forEach((s, si) => {
+      const y0 = y(acc), y1 = y(acc + s.v);
+      acc += s.v;
+      const gap = si < segs.length - 1 ? 2 : 0; // 2px surface gap between stacked segments
+      const h = Math.max(1, y0 - y1 - (si > 0 ? 2 : 0));
+      const yy = y1 + 0;
+      const isTop = si === segs.length - 1;
+      const rr = isTop ? Math.min(4, h / 2, bw / 2) : 0;
+      svg += `<path d="${roundTopRect(x, yy + (isTop ? 0 : gap * 0), bw, h, rr)}" fill="${GROUPS[s.gi].color}"/>`;
+    });
+    svg += `<rect x="${pad.l + slot * i}" y="${pad.t}" width="${slot}" height="${ih}" fill="transparent" data-i="${i}" class="hit"/>`;
+  });
+  svg += `</svg>`;
+  host.innerHTML = svg;
+  const tip = $("#tip");
+  host.querySelectorAll(".hit").forEach((el) => {
+    el.addEventListener("mousemove", (ev) => {
+      const d = data[+el.dataset.i];
+      tip.innerHTML = `<b>${d.id} · ${d.total} calls</b>` + GROUPS.map((g, gi) => d.vals[gi] ? `<div class="row"><span><i style="background:${g.color}"></i>${g.label}</span><span>${d.vals[gi]}</span></div>` : "").join("") || "No calls";
+      tip.style.left = `${ev.pageX}px`; tip.style.top = `${ev.pageY}px`; tip.classList.add("on");
+      el.setAttribute("fill", "rgba(255,255,255,.04)");
+    });
+    el.addEventListener("mouseleave", () => { tip.classList.remove("on"); el.setAttribute("fill", "transparent"); });
+    el.addEventListener("click", () => { S.sel = data[+el.dataset.i].id; location.hash = "#/events"; });
+  });
+}
+function roundTopRect(x, y, w, h, r) {
+  return `M${x} ${y + h} V${y + r} Q${x} ${y} ${x + r} ${y} H${x + w - r} Q${x + w} ${y} ${x + w} ${y + r} V${y + h} Z`;
+}
+function niceStep(max) {
+  const raw = max / 4, p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const n = raw / p;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
+}
+
+/* ================= EVENTS ================= */
+function renderEvents(view) {
+  const list = filteredTraces();
+  if (!list.length) { view.innerHTML = `<div class="card empty">No events match.</div>`; return; }
+  if (!list.some((t) => t.event_id === S.sel)) S.sel = list[0].event_id;
+  const t = S.traceById[S.sel];
+  view.innerHTML = `
+  <div class="ev-layout">
+    <div class="ev-list">${list.map((e) => `
+      <div class="ev-item ${e.event_id === S.sel ? "on" : ""}" data-ev="${esc(e.event_id)}">
+        <div class="row1"><b>${esc(e.event_id)}</b>${statusHtml(outcome(e.event_id))}</div>
+        <div>${eventKinds(e).map(kindTag).join(" ")}</div>
+        <div class="txt">${esc(e.text)}</div>
+      </div>`).join("")}
+    </div>
+    <div class="card">${eventDetail(t)}</div>
+  </div>`;
+  view.querySelectorAll("[data-ev]").forEach((el) => el.addEventListener("click", () => { S.sel = el.dataset.ev; route(); }));
+  view.querySelectorAll("[data-orb-event]").forEach((a) => a.addEventListener("click", () => {
+    Object.assign(S.orb, { view: "event", event: a.dataset.orbEvent, run: "" });
+  }));
+}
+function eventDetail(t) {
+  const rows = S.byEvent[t.event_id] || [];
+  const paths = (t.results || []).flatMap((r) => r.graph_paths || []);
+  const calls = t.calls || [];
+  const notes = S.outbox.filter((n) => n && n.event_id === t.event_id);
+  const grouped = {};
+  calls.forEach((c, i) => { (grouped[c.tool] ||= []).push({ c, ok: rows[i] ? rows[i].ok : true }); });
+  return `
+    <div class="card-head">
+      <div><h3>${esc(t.event_id)} · ${eventKinds(t).map((k) => KIND_LABEL[k]).join(" + ")}</h3>
+      <p class="sub">${esc(t.source)} · received ${esc((t.received_at || "").replace("T", " "))}</p></div>
+      ${statusHtml(outcome(t.event_id))}
+    </div>
+    <p class="quote">${esc(t.text)}</p>
+
+    <div class="section-title">1 · Understanding</div>
+    <div class="grid" style="gap:12px">${(t.incidents || []).map(incidentCard).join("")}</div>
+
+    <div class="section-title">Agent handoffs</div>
+    ${handoffsHtml(t)}
+
+    <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <span>2 · Graph path${paths.length === 1 ? "" : "s"} (${fmt(paths.length)})</span>
+      ${paths.length ? `<a class="btn" style="text-transform:none;letter-spacing:0" href="#/ontology" data-orb-event="${esc(t.event_id)}">${icon("graph")}View in orb graph</a>` : ""}</div>
+    ${paths.length ? `<div>${paths.slice(0, 6).map(pathHtml).join("")}</div>
+      ${paths.length > 6 ? `<details><summary>Show all ${fmt(paths.length)} paths</summary>${paths.slice(6).map(pathHtml).join("")}</details>` : ""}`
+      : `<p class="note">No graph traversal: nothing operational to trace.</p>`}
+
+    <div class="section-title">3 · Actions (${fmt(rows.length)} call${rows.length === 1 ? "" : "s"}, ${rows.filter((r) => !r.ok).length} failed)</div>
+    ${calls.length ? Object.entries(grouped).map(([tool, items]) => `
+      <details ${items.length <= 3 ? "open" : ""} style="margin-bottom:8px">
+        <summary>${esc(TOOL_WORD[tool] || tool)} · ${items.length}${items[0].c.agent ? ` · by ${esc(agentName(items[0].c.agent))}` : ""}</summary>
+        <div class="scroll-x"><table><thead><tr><th>Arguments</th><th>Why</th><th>Result</th></tr></thead><tbody>
+        ${items.map(({ c, ok }) => `<tr><td class="mono">${esc(argText(c.args))}</td><td style="color:var(--text-2)">${esc(c.reason)}</td><td>${ok ? statusHtml("pass").replace("Passed", "OK") : statusHtml("fail")}</td></tr>`).join("")}
+        </tbody></table></div>
+      </details>`).join("") : `<p class="note">No tool calls. ${outcome(t.event_id) === "none" ? "Noise writes nothing." : ""}</p>`}
+
+    <div class="section-title">4 · Notifications (${fmt(notes.length)})</div>
+    ${notes.length ? `<div class="scroll-x"><table><thead><tr><th>Channel</th><th>To</th><th>Subject</th><th>Status</th></tr></thead><tbody>
+      ${notes.slice(0, 40).map((n) => `<tr><td><b>${esc(n.route)}</b><div class="note">${esc(n.sink)}</div></td>
+        <td class="mono">${esc(n.recipient_id || (n.to || []).join(", ") || "—")}</td><td style="color:var(--text-2)">${esc(n.subject || "")}</td>
+        <td><span class="tag">${esc(String(n.status || "").replace("_", "-"))}</span></td></tr>`).join("")}
+      </tbody></table></div>${notes.length > 40 ? `<p class="note">${notes.length - 40} more in outbox.jsonl.</p>` : ""}`
+      : `<p class="note">No channel messages. Run the tower with <span class="mono">--notify dry-run</span> to see what Slack, Teams and email would get.</p>`}
+
+    <div class="section-title">5 · Summary</div>
+    <div class="summary-box">${esc(t.summary)}</div>
+    <p class="note" style="margin-top:10px">Guardrail: ${esc(t.guardrail)}</p>`;
+}
+function incidentCard(i) {
+  const keys = ["plant_id", "part_id", "supplier_id", "shipment_id", "lot_id", "blocked_from", "blocked_until", "outage_start", "outage_end", "build_start", "build_end"];
+  const fields = keys.filter((k) => i[k]).map((k) => `<span class="field"><span>${k.replace(/_/g, " ")}</span>${esc(i[k])}</span>`).join("");
+  return `<div class="inc">
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">${kindTag(i.kind)}<span class="tag">read by ${esc(i.reader || "rules")}</span></div>
+    <div>${esc(i.summary)}</div>
+    ${fields ? `<div class="fields">${fields}</div>` : ""}
+    ${i.model_reason ? `<div class="reasoning">${icon("cpu")}<span>${esc(i.model_reason)}</span></div>` : ""}
+    <details><summary>Reasoning trace (${(i.evidence || []).length} steps)</summary><ul>${(i.evidence || []).map((e) => `<li>${esc(e)}</li>`).join("")}</ul></details>
+  </div>`;
+}
+function pathHtml(p) {
+  return `<div class="path">${p.map((step, k) => {
+    const sp = String(step).indexOf(" ");
+    const type = sp > 0 ? step.slice(0, sp) : "";
+    const rest = sp > 0 ? step.slice(sp + 1) : step;
+    const known = /^(Shipment|Part|Model|Plant|ProductionOrder|CustomerOrder|Dealer|Customer|Lot|Supplier|Vehicle)$/.test(type);
+    return (k ? `<span class="arrow">→</span>` : "") + (known ? `<span class="node"><small>${esc(type)}</small>${esc(rest)}</span>` : `<span class="note">${esc(step)}</span>`);
+  }).join("")}</div>`;
+}
+function argText(args) {
+  return Object.entries(args || {}).map(([k, v]) => {
+    if (Array.isArray(v)) return `${k}=[${v.length > 4 ? v.slice(0, 4).join(", ") + ` … +${v.length - 4}` : v.join(", ")}]`;
+    const s = String(v);
+    return `${k}=${s.length > 60 ? s.slice(0, 57) + "…" : s}`;
+  }).join("  ");
+}
+
+/* ================= REPORTS ================= */
+function suiteRuns(id) { return ({ given: "given", generated: "tests", holdout: "holdout", holdout2: "holdout2" })[id] || id; }
+// tests/run_model.py: a model on its own, no rule check, scored against the expected graphs.
+function modelEvalCard() {
+  const runs = S.reports?.model_eval || [];
+  if (!runs.length) return `<div class="card" style="margin-top:20px"><div class="card-head"><div><h3>How good is the model itself?</h3>
+    <p class="sub">Not measured yet. Run <span class="mono">python tests/run_model.py</span> to score the LLM reader on its own against the expected graphs.</p></div></div></div>`;
+  const SUITE_NAME = { holdout2: "Held-out set 2 (100, blind)", holdout: "Held-out set 1 (100, used for diagnosis)", given: "Given events (15)" };
+  return runs.map((m) => `<div class="card" style="margin-top:20px">
+    <div class="card-head"><div><h3>How good is ${esc(m.model)} on its own?</h3>
+      <p class="sub">No rule check, no fallback: the model reads each message, code only looks up the records and dates it named, and the reading is traced through the company graph and compared with the expected graph. Run ${esc(m.run)}.</p></div></div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+      ${Object.entries(m.suites).map(([suite, x]) => `<div class="panel">
+        <h4>${esc(SUITE_NAME[suite] || suite)}</h4>
+        ${predictionScores({ ...x, output_ok: x.output_ok })}
+        <table style="margin-top:12px"><thead><tr><th>Kind</th><th class="num">Full output right</th></tr></thead><tbody>
+          ${Object.entries(x.by_kind).sort().map(([k, v]) => `<tr><td>${kindTag(k)}</td><td class="num">${v.output_ok}/${v.total}</td></tr>`).join("")}
+        </tbody></table></div>`).join("")}
+    </div>
+    ${m.misses.length ? `<details style="margin-top:14px"><summary>${m.misses.length} misses: message, expected, and what the model read</summary>
+      <div class="scroll-x"><table style="margin-top:8px"><thead><tr><th>Case</th><th>Message</th><th>What differed</th></tr></thead><tbody>
+      ${m.misses.map((x) => `<tr><td><b>${esc(x.id)}</b><div class="note">${esc(x.suite)} · ${esc(KIND_LABEL[x.category] || x.category)}</div></td>
+        <td><div class="clip">${esc(x.text)}</div></td><td style="color:var(--text-2)">${x.mismatches.map((t) => esc(t)).join("<br>")}</td></tr>`).join("")}
+      </tbody></table></div></details>` : ""}
+  </div>`).join("");
+}
+// How well a reader predicts: its output compared with the answer key traced through the graph.
+function predictionScores(j) {
+  const row = (label, n) => {
+    const pct = j.total ? Math.round((n / j.total) * 100) : 0;
+    const color = n === j.total ? "var(--good)" : pct >= 80 ? "var(--warn)" : "var(--bad)";
+    return `<div class="hbar"><div class="lab"><span>${label}</span><b>${n}/${j.total}</b></div>
+      <div class="track"><div class="fill" style="width:${pct}%;background:${color}"></div></div></div>`;
+  };
+  return `<div class="bars" style="gap:8px"><div class="note">Predictions vs the expected graphs (answer keys traced through the company graph)</div>
+    ${row("Incident type", j.kinds_ok)}${row("Records and dates", j.fields_ok)}${row("Full output", j.output_ok)}</div>`;
+}
+// Whether the prediction's full output matches the expected output (answer key traced through the graph).
+function scoreBadge(sc) {
+  if (!sc) return "";
+  return `<span class="status ${sc.output_ok ? "pass" : "fail"}">${icon(sc.output_ok ? "ok" : "x")}${sc.output_ok ? "Output matches" : "Output differs"}</span>`;
+}
+function incLine(i) {
+  const d = (s) => (s || "").slice(5);
+  if (i.kind === "plant_outage") return `${KIND_LABEL[i.kind]} ${i.plant_id || "?"} ${d(i.outage_start)}→${d(i.outage_end)}`;
+  if (i.kind === "supplier_delay") return `${KIND_LABEL[i.kind]} ${i.part_id || "?"} @ ${i.plant_id || "?"} ${d(i.blocked_from)}→${d(i.blocked_until)}`;
+  if (i.kind === "quality_hold") return `${KIND_LABEL[i.kind]} ${(i.lots || []).join(", ") || i.lot_id || i.part_id || ""}`.trim();
+  return KIND_LABEL[i.kind] || i.kind;
+}
+function outcomeBits(o) {
+  const bits = [];
+  if (o.moved?.length) bits.push(`${o.moved.length} order${o.moved.length > 1 ? "s" : ""} moved`);
+  if (o.dealers?.length) bits.push(`${o.dealers.length} dealers notified`);
+  if (o.loaners?.length) bits.push(`${o.loaners.length} loaners`);
+  if (o.lots?.length) bits.push(`${o.lots.length} lot${o.lots.length > 1 ? "s" : ""} held`);
+  if (o.stop_sale_vins?.length) bits.push(`${o.stop_sale_vins.length} stop-sale`);
+  if (o.owners?.length) bits.push(`${o.owners.length} owners notified`);
+  if (o.escalate) bits.push("escalated to a human");
+  return bits;
+}
+function outcomeHead(o) {
+  const incs = (o.incidents || []).map(incLine);
+  return incs.length ? incs.join(" + ") : (o.escalate ? "Escalate only" : "No action");
+}
+function outcomeLine(o) {
+  return `<div style="font-weight:600">${esc(outcomeHead(o))}</div><div class="note">${esc(outcomeBits(o).join(" · ") || "no calls")}</div>`;
+}
+function outcomePanel(o, actual) {
+  const bits = outcomeBits(o);
+  return `<div style="font-weight:700;font-size:14px;margin-bottom:8px">${esc(outcomeHead(o))}</div>
+    <dl class="kv">
+      <dt>Escalate</dt><dd>${o.escalate ? "yes" : "no"}</dd>
+      <dt>Effects</dt><dd>${esc(bits.filter((b) => !b.startsWith("escalated")).join(", ") || "none")}</dd>
+      ${actual ? `<dt>Tool calls</dt><dd>${fmt(o.calls)} (${o.failed} failed${o.transfers ? `, ${o.transfers} transfers` : ""})</dd>` : ""}
+    </dl>`;
+}
+function sameSet(a, b) { if (a.length !== b.length) return false; const s = new Set(a); return b.every((x) => s.has(x)); }
+/* ================= TESTS: log -> set -> case ================= */
+// #/tests                         charts across every set, the model on its own, and the run log
+// #/tests/<suite>/<reader>        one test set: its charts and its cases
+// #/tests/<suite>/<reader>/<id>   one test case: input, expected output, actual output
+const CAT_ORDER = ["supplier_delay", "plant_outage", "quality_hold", "unconfirmed", "compound", "noise"];
+const CAT_COLOR = { supplier_delay: "var(--s1)", plant_outage: "var(--s2)", quality_hold: "var(--s3)",
+                    unconfirmed: "var(--s4)", compound: "var(--s5)", noise: "#6b7894" };
+const CAT_NAME = { ...KIND_LABEL, compound: "Compound" };
+function suiteById(id) { return S.reports?.suites.find((s) => s.id === id); }
+function readerOf(suite, id) { return suite?.readers.find((r) => r.id === id); }
+function readerChoices() {
+  const ids = new Set();
+  for (const s of S.reports?.suites || []) for (const r of s.readers) ids.add(r.id);
+  return [...ids].sort((a, b) => (a.startsWith("llm_") ? -1 : 1) - (b.startsWith("llm_") ? -1 : 1) || a.localeCompare(b));
+}
+function readerName(id) { return id.startsWith("llm_") ? id.slice(4).replace("_", ":") : id; }
+
+/* ---- charts (SVG, no libraries) ---- */
+function arcPath(cx, cy, r0, r1, a0, a1) {
+  const p = (r, a) => [cx + r * Math.sin(a), cy - r * Math.cos(a)];
+  const large = a1 - a0 > Math.PI ? 1 : 0;
+  const [x0, y0] = p(r1, a0), [x1, y1] = p(r1, a1), [x2, y2] = p(r0, a1), [x3, y3] = p(r0, a0);
+  return `M${x0} ${y0} A${r1} ${r1} 0 ${large} 1 ${x1} ${y1} L${x2} ${y2} A${r0} ${r0} 0 ${large} 0 ${x3} ${y3} Z`;
+}
+// A donut: one slice per part, 2px gaps, the headline in the middle, and a legend with the counts.
+function pieChart(parts, center, caption) {
+  const total = parts.reduce((a, p) => a + p.value, 0);
+  if (!total) return `<div class="empty">Nothing to show yet.</div>`;
+  let a = 0, svg = "";
+  const shown = parts.filter((p) => p.value > 0);
+  for (const p of shown) {
+    const span = (p.value / total) * Math.PI * 2;
+    const gap = shown.length > 1 ? 0.025 : 0;
+    const a1 = a + span - gap;
+    svg += span >= Math.PI * 2 - 0.001
+      ? `<circle cx="80" cy="80" r="62" fill="none" stroke="${p.color}" stroke-width="28" data-tip="${esc(p.label)}: ${p.value} of ${total}"/>`
+      : `<path d="${arcPath(80, 80, 48, 76, a, Math.max(a1, a + 0.01))}" fill="${p.color}" data-tip="${esc(p.label)}: ${p.value} of ${total} (${Math.round((p.value / total) * 100)}%)"/>`;
+    a += span;
+  }
+  return `<div class="pie">
+    <svg viewBox="0 0 160 160" width="168" height="168" role="img" aria-label="${esc(caption)}">${svg}
+      <text x="80" y="78" text-anchor="middle" class="pie-big">${esc(center)}</text>
+      <text x="80" y="98" text-anchor="middle" class="pie-small">${esc(caption)}</text></svg>
+    <div class="pie-legend">${parts.map((p) => `<div><i style="background:${p.color}"></i>${p.icon ? icon(p.icon) : "<span></span>"}<span>${esc(p.label)}</span><b>${fmt(p.value)}</b></div>`).join("")}</div>
+  </div>`;
+}
+function passFailPie(passed, total, caption = "passed") {
+  return pieChart([{ label: "Passed", value: passed, color: "var(--good)", icon: "ok" },
+                   { label: "Failed", value: total - passed, color: "var(--bad)", icon: "x" }],
+                  total ? `${Math.round((passed / total) * 100)}%` : "—", caption);
+}
+// One row per item: a passed segment and a failed segment on one baseline, with the count as text.
+function passBars(rows) {
+  if (!rows.length) return `<div class="empty">Nothing to show yet.</div>`;
+  // Every row is its own whole, so pass rates line up; the counts are printed beside them.
+  return `<div class="pbars">${rows.map((r) => {
+    const pw = r.total ? (r.passed / r.total) * 100 : 0, fw = r.total ? 100 - pw : 0;
+    return `<div class="pbar" ${r.href ? `data-href="${esc(r.href)}"` : ""} data-tip="${esc(r.label)}: ${r.passed} passed, ${r.total - r.passed} failed">
+      <div class="lab"><span>${r.swatch ? `<i style="background:${r.swatch}"></i>` : ""}${esc(r.label)}</span><b>${r.passed}/${r.total} <span class="note">${r.total ? Math.round((r.passed / r.total) * 100) : 0}%</span></b></div>
+      <div class="track">${pw ? `<div class="seg ok" style="width:${pw}%"></div>` : ""}${fw ? `<div class="seg no" style="width:${fw}%"></div>` : ""}</div></div>`;
+  }).join("")}
+    <div class="legend" style="margin-top:4px"><span><i style="background:var(--good)"></i>Passed</span><span><i style="background:var(--bad)"></i>Failed</span></div></div>`;
+}
+function catRows(byCat) {
+  return CAT_ORDER.filter((k) => byCat[k]).map((k) => ({ label: CAT_NAME[k] || k, swatch: CAT_COLOR[k], ...byCat[k] }))
+    .concat(Object.keys(byCat).filter((k) => !CAT_ORDER.includes(k)).map((k) => ({ label: k, ...byCat[k] })));
+}
+function failurePie(byCat) {
+  const parts = CAT_ORDER.map((k) => ({ label: CAT_NAME[k], value: byCat[k] ? byCat[k].total - byCat[k].passed : 0, color: CAT_COLOR[k] }))
+    .filter((p) => p.value > 0);
+  const n = parts.reduce((a, p) => a + p.value, 0);
+  if (!n) return `<div class="empty" style="padding:20px">${icon("ok")} No failures.</div>`;
+  return pieChart(parts, String(n), n === 1 ? "failure" : "failures");
+}
+function wireTips(root) {
+  const tip = $("#tip");
+  root.querySelectorAll("[data-tip]").forEach((el) => {
+    el.addEventListener("mousemove", (e) => { tip.innerHTML = `<b>${esc(el.dataset.tip)}</b>`; tip.style.left = `${e.pageX}px`; tip.style.top = `${e.pageY}px`; tip.classList.add("on"); });
+    el.addEventListener("mouseleave", () => tip.classList.remove("on"));
+  });
+  root.querySelectorAll("[data-href]").forEach((el) => el.addEventListener("click", () => { location.hash = el.dataset.href; }));
+}
+
+/* ---- level 1: every set ---- */
+function renderTests(view, segs) {
+  if (!S.reports?.suites?.some((s) => s.readers.length)) {
+    view.innerHTML = `<div class="card empty">No test results yet. Run <span class="mono">python start.py</span>.</div>`;
+    return;
+  }
+  if (segs[1] && segs[2]) return segs[3] ? renderCase(view, segs[1], segs[2], decodeURIComponent(segs[3])) : renderSet(view, segs[1], segs[2]);
+  const choices = readerChoices();
+  if (!choices.includes(S.testReader)) S.testReader = choices[0];
+  const rid = S.testReader;
+  const sets = S.reports.suites.map((s) => ({ s, r: readerOf(s, rid) })).filter((x) => x.r);
+  const passed = sets.reduce((a, x) => a + x.r.passed, 0), total = sets.reduce((a, x) => a + x.r.total, 0);
+  const byCat = {};
+  for (const { r } of sets) for (const [k, v] of Object.entries(r.by_category)) {
+    byCat[k] ||= { passed: 0, total: 0 }; byCat[k].passed += v.passed; byCat[k].total += v.total;
+  }
+  const log = (S.reports.log || []).filter((e) => S.logFilter === "all" || !S.logFilter || e.reader === rid);
+  view.innerHTML = `
+  <div class="card">
+    <div class="card-head"><div><h3>All test sets · ${esc(readerName(rid))} reader</h3>
+      <p class="sub">The latest result of every test set. Each case's expected output is its answer key traced through the company graph; a case passes when the tower's actions match it and every action passes the simulator's handbook checks.</p></div>
+      <div class="controls"><div class="toggle">${choices.map((c) => `<button class="${c === rid ? "on" : ""}" data-reader="${esc(c)}">${esc(readerName(c))}</button>`).join("")}</div>
+      <a class="btn" href="/runs/TEST_SUMMARY.md" download>${icon("doc")}Summary .md</a></div></div>
+    <div class="grid g-charts">
+      <div class="panel"><h4>Pass / fail · ${passed} of ${total} cases</h4>${passFailPie(passed, total, "passed")}</div>
+      <div class="panel"><h4>Where the failures are</h4>${failurePie(byCat)}</div>
+      <div class="panel"><h4>By test set · click to open</h4>${passBars(sets.map(({ s, r }) => ({ label: s.title, passed: r.passed, total: r.total, href: `#/tests/${s.id}/${r.id}` })))}</div>
+    </div>
+    <div class="panel" style="margin-top:16px"><h4>By category</h4>${passBars(catRows(byCat))}</div>
+  </div>
+  ${modelEvalCard()}
+  <div class="card" style="margin-top:20px">
+    <div class="card-head"><div><h3>Test run log</h3><p class="sub">Every time a test set was run, newest first. Click a row to open that set's latest results.</p></div>
+      <div class="toggle"><button class="${S.logFilter === "all" ? "" : "on"}" data-logf="reader">${esc(readerName(rid))}</button><button class="${S.logFilter === "all" ? "on" : ""}" data-logf="all">All readers</button></div></div>
+    <div class="scroll-x"><table><thead><tr><th>When</th><th>Test set</th><th>Reader</th><th>Result</th><th class="num">Passed</th></tr></thead><tbody>
+    ${log.map((e) => {
+      const s = suiteById(e.suite), open = s && readerOf(s, e.reader);
+      const pct = e.total ? Math.round((e.passed / e.total) * 100) : 0;
+      return `<tr class="${open ? "click" : ""}" ${open ? `data-href="#/tests/${esc(e.suite)}/${esc(e.reader)}"` : ""}>
+        <td class="mono">${esc(e.time)}</td><td><b>${esc(s?.title || e.suite)}</b></td><td>${esc(readerName(e.reader))}</td>
+        <td style="min-width:160px"><div class="meter"><i style="width:${pct}%;background:${pct === 100 ? "var(--good)" : pct >= 80 ? "var(--warn)" : "var(--bad)"}"></i></div></td>
+        <td class="num"><b>${e.passed}/${e.total}</b> <span class="note">${pct}%</span></td></tr>`;
+    }).join("") || `<tr><td colspan="5" class="empty">No runs logged yet.</td></tr>`}
+    </tbody></table></div>
+  </div>`;
+  view.querySelectorAll("[data-reader]").forEach((b) => b.addEventListener("click", () => { S.testReader = b.dataset.reader; route(); }));
+  view.querySelectorAll("[data-logf]").forEach((b) => b.addEventListener("click", () => { S.logFilter = b.dataset.logf; route(); }));
+  wireTips(view);
+}
+
+/* ---- level 2: one set ---- */
+function renderSet(view, sid, rid) {
+  const suite = suiteById(sid), reader = readerOf(suite, rid);
+  if (!reader) { view.innerHTML = `<div class="card empty">That test set has no results for this reader. <a href="#/tests" style="color:var(--accent-2)">Back to all tests</a></div>`; return; }
+  $("#crumb").innerHTML = `<a href="#/tests">Tests</a> / ${esc(suite.title)}`;
+  $("#title").textContent = `${suite.title} · ${readerName(reader.id)}`;
+  const f = S.caseFilter;
+  const cases = reader.cases.filter((c) => (f.verdict === "all" || (f.verdict === "pass") === (c.verdict === "PASS"))
+    && (f.cat === "all" || c.category === f.cat) && (!S.q || `${c.id} ${c.text}`.toLowerCase().includes(S.q)));
+  const cats = CAT_ORDER.filter((k) => reader.by_category[k]);
+  const confirm = S.rep.confirm === `${sid}/${rid}`;
+  view.innerHTML = `
+  <div class="card">
+    <div class="card-head"><div><h3>${esc(suite.title)} · ${esc(readerName(reader.id))} reader</h3><p class="sub">${esc(suite.subtitle)}. Run ${esc(reader.updated)}.</p></div>
+      <div class="controls"><a class="btn" href="#/tests">← All tests</a>
+        ${reader.report_md ? `<a class="btn" href="/${esc(reader.report_md)}" download>${icon("doc")}Report .md</a>` : ""}
+        ${confirm ? `<button class="btn danger solid" data-del-go>${icon("trash")}Delete for good</button><button class="btn" data-del-cancel>Cancel</button>`
+                  : `<button class="btn danger" data-del>${icon("trash")}Delete run</button>`}</div></div>
+    <div class="grid g-charts">
+      <div class="panel"><h4>Pass / fail · ${reader.passed} of ${reader.total} cases</h4>${passFailPie(reader.passed, reader.total, "passed")}</div>
+      <div class="panel"><h4>Where the failures are</h4>${failurePie(reader.by_category)}</div>
+      <div class="panel"><h4>By category</h4>${passBars(catRows(reader.by_category))}</div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:20px">
+    <div class="card-head"><div><h3>Test cases (${cases.length} of ${reader.total})</h3><p class="sub">Click a case to see its input, expected output and actual output.</p></div>
+      <div class="controls">
+        <div class="toggle">${["all", "pass", "fail"].map((v) => `<button class="${f.verdict === v ? "on" : ""}" data-vf="${v}">${{ all: "All", pass: "Passed", fail: "Failed" }[v]}</button>`).join("")}</div>
+        <div class="toggle"><button class="${f.cat === "all" ? "on" : ""}" data-cf="all">All kinds</button>${cats.map((k) => `<button class="${f.cat === k ? "on" : ""}" data-cf="${k}">${esc(CAT_NAME[k])}</button>`).join("")}</div>
+      </div></div>
+    <div class="scroll-x"><table><thead><tr><th>Case</th><th>Input</th><th>Expected output</th><th>Actual output</th><th>Result</th></tr></thead><tbody>
+    ${cases.map((c) => `<tr class="click" data-href="#/tests/${esc(sid)}/${esc(rid)}/${encodeURIComponent(c.id)}">
+      <td><b>${esc(c.id)}</b><div style="margin-top:4px">${kindTag(c.category)}</div></td>
+      <td><div class="clip">${esc(c.text)}</div></td><td>${outcomeLine(c.expected)}</td><td>${outcomeLine(c.actual)}</td>
+      <td>${statusHtml(c.verdict === "PASS" ? "pass" : "fail")}</td></tr>`).join("") || `<tr><td colspan="5" class="empty">No cases match.</td></tr>`}
+    </tbody></table></div>
+  </div>`;
+  view.querySelectorAll("[data-vf]").forEach((b) => b.addEventListener("click", () => { S.caseFilter.verdict = b.dataset.vf; route(); }));
+  view.querySelectorAll("[data-cf]").forEach((b) => b.addEventListener("click", () => { S.caseFilter.cat = b.dataset.cf; route(); }));
+  view.querySelector("[data-del]")?.addEventListener("click", () => { S.rep.confirm = `${sid}/${rid}`; route(); });
+  view.querySelector("[data-del-cancel]")?.addEventListener("click", () => { S.rep.confirm = null; route(); });
+  view.querySelector("[data-del-go]")?.addEventListener("click", () => deleteRun(sid, rid));
+  wireTips(view);
+}
+async function deleteRun(sid, rid) {
+  try {
+    const res = await fetch(`/api/test_reports/${encodeURIComponent(sid)}/${encodeURIComponent(rid)}`, { method: "DELETE" });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+    toast(`Deleted ${sid}/${rid}`);
+    location.hash = "#/tests";
+  } catch (e) { toast(`Could not delete: ${e.message}`); }
+  S.rep.confirm = null;
+  await load();
+}
+
+/* ---- level 3: one case ---- */
+function readingHtml(incidents, escalate, reasoning = []) {
+  const why = reasoning.length ? `<div class="section-title" style="margin:12px 0 6px">The model's reasoning</div>${reasoning.map((r) => `<div class="reasoning" style="margin-bottom:6px">${icon("cpu")}<span>${esc(r)}</span></div>`).join("")}` : "";
+  if (!incidents.length) return `<p class="note" style="margin:0">${escalate ? "Read as unconfirmed: escalate to a human, change nothing." : "Read as noise: no action."}</p>${why}`;
+  return incidents.map((i) => {
+    const fields = Object.entries(i).filter(([k, v]) => !["kind", "model_reason", "evidence", "summary"].includes(k) && v && (!Array.isArray(v) || v.length))
+      .map(([k, v]) => `<span class="field"><span>${esc(k.replace(/_/g, " "))}</span>${esc(Array.isArray(v) ? v.join(", ") : v)}</span>`).join("");
+    return `<div class="inc" style="margin-bottom:8px"><div>${kindTag(i.kind)}</div>${fields ? `<div class="fields">${fields}</div>` : ""}
+      </div>`;
+  }).join("") + why;
+}
+function effectsList(o, actual) {
+  const rows = [["Orders moved", o.moved], ["Dealers notified", o.dealers], ["Loaners", o.loaners], ["Lots held", o.lots],
+                ["Stop-sale vehicles", o.stop_sale_vins], ["Owners notified", o.owners]];
+  return `<dl class="kv" style="margin-top:10px">
+    <dt>Escalate</dt><dd>${o.escalate ? "yes" : "no"}</dd>
+    ${rows.map(([l, v]) => `<dt>${l}</dt><dd>${(v || []).length}</dd>`).join("")}
+    ${actual ? `<dt>Tool calls</dt><dd>${fmt(o.calls)} (${o.failed} failed)</dd>
+      <dt>By tool</dt><dd>${Object.entries(o.by_tool || {}).map(([t, n]) => `${esc(TOOL_WORD[t] || t)} ${n}`).join(" · ") || "none"}</dd>` : ""}
+  </dl>`;
+}
+function renderCase(view, sid, rid, cid) {
+  const suite = suiteById(sid), reader = readerOf(suite, rid);
+  const idx = reader ? reader.cases.findIndex((c) => c.id === cid) : -1;
+  if (idx < 0) { view.innerHTML = `<div class="card empty">Case not found. <a href="#/tests/${esc(sid)}/${esc(rid)}" style="color:var(--accent-2)">Back to the set</a></div>`; return; }
+  const c = reader.cases[idx], prev = reader.cases[idx - 1], next = reader.cases[idx + 1];
+  const base = `#/tests/${sid}/${rid}`;
+  $("#crumb").innerHTML = `<a href="#/tests">Tests</a> / <a href="${esc(base)}">${esc(suite.title)}</a> / ${esc(c.id)}`;
+  $("#title").textContent = `${c.id} · ${CAT_NAME[c.category] || c.category}`;
+  const pass = c.verdict === "PASS";
+  const diffs = [...(c.score?.mismatches || []), ...c.fails.filter((f) => !(c.score?.mismatches || []).length)];
+  const E = c.expected, A = c.actual;
+  const effectRows = [["Escalate to a human", E.escalate ? "yes" : "no", A.escalate ? "yes" : "no", E.escalate === A.escalate],
+    ...[["Orders moved", "moved"], ["Dealers notified", "dealers"], ["Loaners assigned", "loaners"], ["Lots held", "lots"],
+        ["Stop-sale vehicles", "stop_sale_vins"], ["Owners notified", "owners"]].map(([l, k]) => [l, E[k] || [], A[k] || [], sameSet(E[k] || [], A[k] || [])])];
+  const cell = (v) => !Array.isArray(v) ? esc(v) : !v.length ? `<span class="na">0</span>`
+    : `<b>${v.length}</b>${v.length <= 10 ? `<div class="ids">${esc(v.join(", "))}</div>` : `<details><summary>show ids</summary><div class="ids">${esc(v.join(", "))}</div></details>`}`;
+  view.innerHTML = `
+  <div class="card">
+    <div class="card-head"><div class="controls"><a class="btn" href="${esc(base)}">← ${esc(suite.title)}</a>
+      ${prev ? `<a class="btn" href="${esc(base)}/${encodeURIComponent(prev.id)}">‹ ${esc(prev.id)}</a>` : ""}
+      ${next ? `<a class="btn" href="${esc(base)}/${encodeURIComponent(next.id)}">${esc(next.id)} ›</a>` : ""}</div>
+      <span class="note">${esc(readerName(reader.id))} reader · run ${esc(reader.updated)}</span></div>
+    <div class="panel verdict ${pass ? "pass" : "fail"}" style="margin-bottom:16px">
+      <span class="big-verdict">${icon(pass ? "ok" : "x")}${pass ? "Passed" : "Failed"}</span>
+      <span class="note">${pass ? "The actual output matches the expected output, and every action passed the simulator's handbook checks." : `${diffs.length} difference${diffs.length === 1 ? "" : "s"} from the expected output.`}</span>
+    </div>
+    <div class="io">
+      <div class="panel"><h4><span class="n">1</span>Input · ${esc(c.source || "message")}</h4><pre class="msg">${esc(c.text)}</pre>
+        ${c.edge ? `<p class="note" style="margin:10px 0 0">Edge case: ${esc(c.edge)}</p>` : ""}</div>
+      <div class="panel"><h4><span class="n">2</span>Expected output</h4>${readingHtml(E.incidents || [], E.escalate)}${effectsList(E, false)}
+        <p class="note" style="margin:10px 0 0">The answer key traced through the company graph.</p></div>
+      <div class="panel"><h4><span class="n">3</span>Actual output</h4>${readingHtml(A.incidents || [], A.escalate, A.reasoning || [])}${effectsList(A, true)}
+        ${c.summary ? `<p class="note" style="margin:10px 0 0;color:var(--text-2)">${esc(c.summary)}</p>` : ""}</div>
+    </div>
+    ${diffs.length || c.warnings.length ? `<div class="section-title">Differences</div><ul class="fails">${diffs.map((d) => `<li class="f">✗ ${esc(d)}</li>`).join("")}${c.warnings.map((w) => `<li class="w">⚠ ${esc(w)}</li>`).join("")}</ul>` : ""}
+    <div class="section-title">Effect by effect</div>
+    <div class="cmp"><div class="h">Effect</div><div class="h">Expected</div><div class="h">Actual</div><div class="h">Match</div>
+      ${effectRows.map(([l, e, a, ok]) => `<div class="lbl">${esc(l)}</div><div>${cell(e)}</div><div>${cell(a)}</div><div class="${ok ? "ok" : "no"}">${ok ? "✓ yes" : "✗ no"}</div>`).join("")}</div>
+  </div>`;
+}
+
+/* ================= LOGS ================= */
+function renderLogs(view) {
+  const tab = S.logTab || "output";
+  const tabs = [["output", "Run output"], ["calls", "Tool-call log"], ["history", "Test run history"]];
+  view.innerHTML = `<div class="tabs-row"><div class="toggle">${tabs.map(([k, l]) => `<button class="${k === tab ? "on" : ""}" data-tab="${k}">${l}</button>`).join("")}</div></div>
+    <div id="log-body" style="margin-top:16px"></div>`;
+  view.querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => { S.logTab = b.dataset.tab; route(); }));
+  const body = $("#log-body");
+  if (tab === "calls") return renderCallLog(body);
+  if (tab === "history") return renderHistory(body);
+  renderOutputLogs(body);
+}
+async function renderOutputLogs(body) {
+  const files = await getJSON("/api/logs", []);
+  if (!files.length) { body.innerHTML = `<div class="card empty">No saved output yet. Every <span class="mono">python start.py</span> run saves its output to <span class="mono">runs/logs/</span>.</div>`; return; }
+  if (!files.some((f) => f.name === S.logFile)) S.logFile = files[0].name;
+  const doc = await getJSON(`/api/logs?name=${encodeURIComponent(S.logFile)}`, { text: "" });
+  body.innerHTML = `<div class="wr-layout">
+    <div class="wr-list">${files.map((f) => `<div class="wr-item ${f.name === S.logFile ? "on" : ""}" data-file="${esc(f.name)}"><b>${esc(f.updated)}</b><span class="mono note">${esc(f.name)}</span></div>`).join("")}</div>
+    <div class="card"><div class="card-head"><div><h3>${esc(S.logFile)}</h3><p class="sub">Everything <span class="mono">python start.py</span> printed in that run.</p></div>
+      <a class="btn" href="data:text/plain;charset=utf-8,${encodeURIComponent(doc.text)}" download="${esc(S.logFile)}">${icon("doc")}Download</a></div>
+      <pre class="console">${esc(doc.text)}</pre></div></div>`;
+  body.querySelectorAll("[data-file]").forEach((el) => el.addEventListener("click", () => { S.logFile = el.dataset.file; route(); }));
+}
+function renderCallLog(body) {
+  const rows = S.log.filter((r) => (!S.callEvent || r.event_id === S.callEvent) && (!S.callFailed || !r.ok));
+  const events = [...new Set(S.log.map((r) => r.event_id))];
+  body.innerHTML = `<div class="card"><div class="card-head"><div><h3>Tool-call log · runs/run1/action_log.jsonl</h3>
+      <p class="sub">Every call the tower made to the enterprise tools, in order: ${fmt(S.log.length)} calls, ${S.log.filter((r) => !r.ok).length} failed.</p></div>
+    <div class="controls"><select id="call-ev" class="chip-btn"><option value="">All events</option>${events.map((e) => `<option ${e === S.callEvent ? "selected" : ""}>${esc(e)}</option>`).join("")}</select>
+      <div class="toggle"><button class="${S.callFailed ? "" : "on"}" data-cf="0">All</button><button class="${S.callFailed ? "on" : ""}" data-cf="1">Failed only</button></div></div></div>
+    <div class="scroll-x"><table><thead><tr><th class="num">#</th><th>Event</th><th>Tool</th><th>Arguments</th><th>Result</th></tr></thead><tbody>
+    ${rows.slice(0, 1000).map((r) => `<tr><td class="num note">${S.log.indexOf(r) + 1}</td><td><b>${esc(r.event_id)}</b></td><td>${esc(TOOL_WORD[r.tool] || r.tool)}<div class="note mono">${esc(r.tool)}</div></td>
+      <td class="mono" style="max-width:520px">${esc(argText(r.args))}</td><td>${r.ok ? statusHtml("pass").replace("Passed", "OK") : statusHtml("fail")}</td></tr>`).join("")}
+    </tbody></table></div>${rows.length > 1000 ? `<p class="note">Showing the first 1,000 of ${fmt(rows.length)}.</p>` : ""}</div>`;
+  $("#call-ev").addEventListener("change", (e) => { S.callEvent = e.target.value; route(); });
+  body.querySelectorAll("[data-cf]").forEach((b) => b.addEventListener("click", () => { S.callFailed = b.dataset.cf === "1"; route(); }));
+}
+function renderHistory(body) {
+  const log = S.reports?.log || [];
+  body.innerHTML = `<div class="card"><div class="card-head"><div><h3>Test run history · runs/test_log.jsonl</h3><p class="sub">One line per test set per run, newest first.</p></div></div>
+    <div class="scroll-x"><table><thead><tr><th>When</th><th>Test set</th><th>Reader</th><th class="num">Passed</th><th>By category</th></tr></thead><tbody>
+    ${log.map((e) => `<tr><td class="mono">${esc(e.time)}</td><td>${esc(suiteById(e.suite)?.title || e.suite)}</td><td>${esc(readerName(e.reader))}</td>
+      <td class="num"><b>${e.passed}/${e.total}</b></td><td class="note">${Object.entries(e.by_category || {}).map(([k, v]) => `${esc(CAT_NAME[k] || k)} ${v[0]}/${v[1]}`).join(" · ")}</td></tr>`).join("")}
+    </tbody></table></div></div>`;
+}
+
+/* ================= KNOWLEDGE GRAPH (orb graph) ================= */
+function orbSrc() {
+  const p = new URLSearchParams({ view: S.orb.view });
+  if (S.orb.view === "event") { p.set("event", S.orb.event || ""); if (S.orb.run) p.set("run", S.orb.run); }
+  const data = `/api/knowledge_graph?${p}`;
+  return `/orb/?embed=1&bg=0b1437&data=${encodeURIComponent(data)}`;
+}
+function renderOntology(view) {
+  const o = S.onto;
+  const withPaths = S.traces.filter((t) => (t.results || []).some((r) => (r.graph_paths || []).length));
+  if (S.orb.view === "event" && !S.orb.event) S.orb.event = withPaths[0]?.event_id || null;
+  const runNote = S.orb.view === "event" && S.orb.run ? ` from test report ${S.orb.run}` : "";
+  const subs = {
+    network: "Every supplier, part, model, plant and dealer, and how they connect. Orders, customers and vehicles are left out: 17,000 records is too many orbs.",
+    schema: "The ontology: one orb per node type, one link per edge type.",
+    event: `The records the agents traced for ${esc(S.orb.event || "an event")}${esc(runNote)}.`,
+  };
+  view.innerHTML = `
+  <div class="card">
+    <div class="card-head">
+      <div><h3>Knowledge graph</h3><p class="sub">${subs[S.orb.view]} Drag an orb, click to focus its links, scroll to zoom. Click a type in the legend to hide it.</p></div>
+      <div class="controls">
+        <div class="toggle">${[["network", "Network"], ["schema", "Schema"], ["event", "Event"]].map(([v, l]) => `<button class="${S.orb.view === v ? "on" : ""}" data-orb-view="${v}">${l}</button>`).join("")}</div>
+        ${S.orb.view === "event" ? `<select id="orb-event" class="chip-btn" aria-label="Event">${
+          (S.orb.run && !withPaths.some((t) => t.event_id === S.orb.event) ? [`<option selected>${esc(S.orb.event)}</option>`] : [])
+            .concat(withPaths.map((t) => `<option value="${esc(t.event_id)}" ${t.event_id === S.orb.event && !S.orb.run ? "selected" : ""}>${esc(t.event_id)} · ${esc(eventKinds(t).map((k) => KIND_LABEL[k]).join(" + "))}</option>`)).join("")}</select>` : ""}
+        <a class="chip-btn" href="${esc(orbSrc())}" target="_blank" rel="noopener">Full screen ↗</a>
+      </div>
+    </div>
+    <iframe title="Orb knowledge graph" src="${esc(orbSrc())}" style="width:100%;height:min(72vh,720px);border:0;border-radius:14px;display:block;background:#0b1437"></iframe>
+  </div>
+  ${o ? `<div class="grid g-chart" style="margin-top:20px">
+    <div class="card"><div class="card-head"><div><h3>Edge types</h3><p class="sub">${o.nodes.length} node types, ${o.edges.length} edge types. Read as "from — relation → to".</p></div></div>
+      <div class="scroll-x"><table><thead><tr><th>From</th><th>Relation</th><th>To</th><th class="num">Links</th></tr></thead>
+      <tbody>${o.edges.map((e) => `<tr><td>${esc(e.from)}</td><td><b>${esc(e.relation)}</b></td><td>${esc(e.to)}</td><td class="num">${fmt(e.count)}</td></tr>`).join("")}</tbody></table></div></div>
+    <div class="card"><div class="card-head"><div><h3>Traversals the agents use</h3><p class="sub">The evidence chains shown on each event</p></div></div>
+      <div class="grid" style="gap:12px">${Object.entries(o.traversals || {}).map(([k, v]) => `<div class="inc"><b>${esc(KIND_LABEL[k] || k.replace(/_/g, " "))}</b><div class="note" style="color:var(--text-2)">${esc(v)}</div></div>`).join("")}</div>
+    </div>
+  </div>` : `<div class="card empty" style="margin-top:20px">No ontology export yet. Run <span class="mono">python -m tower.ontology</span>.</div>`}`;
+  view.querySelectorAll("[data-orb-view]").forEach((b) => b.addEventListener("click", () => {
+    S.orb.view = b.dataset.orbView; if (S.orb.view !== "event") S.orb.run = ""; route();
+  }));
+  $("#orb-event")?.addEventListener("change", (e) => { Object.assign(S.orb, { event: e.target.value, run: "" }); route(); });
+}
+
+/* ================= HOW TO RUN ================= */
+const GUIDE = [
+  { t: "The one command", p: "Runs the tower, the test suites and the ontology export, then opens this dashboard. It uses the LLM reader when Ollama is running with the model pulled, and the rule reader otherwise. --rules skips the LLM reader; --serve-only just opens the dashboard on the results already on disk.",
+    c: ["python start.py", "python start.py --rules", "python start.py --serve-only"] },
+  { t: "Or step by step: open a terminal in the Hitachi folder", p: "Every command below runs from here. Python 3.10+ and the standard library are all the tower needs.",
+    c: ["cd Jaeger_Main/Hitachi"] },
+  { t: "Optional: start the local LLM reader", p: "The tower reads messages with Qwen3 through Ollama and checks every reading with the rule reader. Skip this step to use the rule reader alone (--reader rules). Pick another model with TOWER_LLM_MODEL.",
+    c: ["ollama pull qwen3:0.6b", "ollama serve"] },
+  { t: "Run the control tower on the 15 events", p: "Writes runs/run1/traces.json and action_log.jsonl, which feed the Overview and Event feed pages. Add --notify dry-run to fill the Notifications section.",
+    c: ["python -m tower.run", "python -m tower.run --reader rules --notify dry-run"] },
+  { t: "Run the tests", p: "Each run writes one report per reader under runs/given/ or runs/tests/, which shows on the Tests page. --reader takes rules, llm or both (the default).",
+    c: ["python tests/run_given.py", "python tests/run_cases.py", "TOWER_LLM_MODEL=qwen3:1.7b python tests/run_cases.py --reader llm"] },
+  { t: "How good is the model itself", p: "Scores the LLM reader on its own (no rule check) on the 100 held-out cases and the 15 given events, against the expected graphs in tests/expected_graphs.json. About 3 seconds per message with qwen3:0.6b. Set TOWER_LLM_MODEL to test another model.",
+    c: ["python tests/run_model.py", "TOWER_LLM_MODEL=qwen3:1.7b python tests/run_model.py", "python tests/run_cases.py --cases tests/holdout_cases.json --out runs/holdout"] },
+  { t: "Test cases", p: "100 generated cases: 25 hand-made edge cases and 75 written once from real records by tests/make_cases.py, each with its answer key. Each answer key is traced through the company graph to the expected output, and every run compares the reader's predictions with it: incident type, records and dates, full output.",
+    c: ["python tests/make_cases.py"] },
+  { t: "Export the ontology", p: "Writes runs/ontology/ontology.json for the edge tables on the Knowledge graph page. The orb graph itself reads the CSVs directly.",
+    c: ["python -m tower.ontology"] },
+  { t: "Start this dashboard", p: "Then open http://127.0.0.1:8080 and press Refresh after any run. The orb graph also runs on its own with node orb-graph/server.js.",
+    c: ["python -m tower.ui.server", "TOWER_RUN_DIR=runs/live python -m tower.ui.server"] },
+];
+function renderGuide(view) {
+  view.innerHTML = `
+  <div class="grid g-chart">
+    <div class="card"><div class="card-head"><div><h3>How to run</h3><p class="sub">From the Jaeger_Main/Hitachi folder. Step 1 does everything; steps 2–7 are the same work one piece at a time.</p></div></div>
+      <div class="steps">${GUIDE.map((g, i) => `<div class="step"><div class="n">${i + 1}</div><div><h4>${esc(g.t)}</h4><p>${esc(g.p)}</p>
+        ${g.c.map((c) => `<div class="cmd"><code>${esc(c)}</code><button class="btn copy" data-copy="${esc(c)}">${icon("copy")}Copy</button></div>`).join("")}</div></div>`).join("")}</div>
+    </div>
+    <div class="card"><div class="card-head"><div><h3>What each page reads</h3><p class="sub">Files on disk, so a re-run shows after Refresh</p></div></div>
+      <div class="scroll-x"><table><thead><tr><th>Page</th><th>Source</th></tr></thead><tbody>
+        <tr><td><b>Overview, Event feed</b></td><td class="mono">runs/run1/</td></tr>
+        <tr><td><b>Tests</b></td><td class="mono">runs/given, tests, holdout, holdout2 (+ tests/*.json)</td></tr><tr><td><b>Logs</b></td><td class="mono">runs/logs/*.log, runs/run1/action_log.jsonl, runs/test_log.jsonl</td></tr>
+        <tr><td><b>Prediction scores</b></td><td class="mono">tests/*.json (answer keys) + the graph</td></tr>
+        <tr><td><b>Knowledge graph</b></td><td class="mono">Data/…/data/*.csv runs/ontology/</td></tr>
+        <tr><td><b>Notifications</b></td><td class="mono">runs/run1/outbox.jsonl</td></tr>
+      </tbody></table></div>
+      <div class="section-title">Deleting a report</div>
+      <p class="note" style="line-height:1.6">On a test set's page, Delete run removes that reader's folder, for example <span class="mono">runs/tests/llm_qwen3_1.7b/</span>. It asks once to confirm and cannot be undone. Re-run the suite to get it back.</p>
+    </div>
+  </div>`;
+  view.querySelectorAll("[data-copy]").forEach((b) => b.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(b.dataset.copy); toast("Copied"); } catch (e) { toast("Copy failed; select the text instead"); }
+  }));
+}
+
+paintIcons();
+load();
+</script>
+</body>
+</html>

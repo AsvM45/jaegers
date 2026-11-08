@@ -1,20 +1,22 @@
 # Design card — Wacky Wheels control tower (team JAEGERS)
 
-**Model:** Qwen3 0.6B (`qwen3:0.6b`, 752M parameters, 4-bit, 522 MB), run locally through Ollama. There is no cloud and no other model. Everything else is Python standard library.
+**Model:** Qwen3 0.6B (`qwen3:0.6b`, 752M parameters, 4-bit, 522 MB), run locally through Ollama, is the tower's only model. There is no cloud. Everything else is Python standard library.
 
 ## Architecture
 
 ```
 GET /events ─► Coordinator ─► 1 Understand   (Qwen3 0.6B + rule check)  → incidents
-                   │          2 Knowledge graph (11 node types, 16 edge types) → who is affected
-                   │          3 Specialists plan tool calls:
-                   │              Supply Chain Planner   reschedule / transfer
-                   │              Quality Containment    hold lot / stop sale / notify owners
-                   │              Dealer & Customer Care notify dealers / assign loaners
+                   │          2 Hand each incident to the specialist agent that owns it:
+                   │              Supply Chain Planner           mes.reschedule, mes.transfer       (rules 1–3)
+                   │              Quality                        quality.hold_lot, dealer.stop_sale,
+                   │                                             crm.notify_customer               (rule 6)
+                   │              Dealer Network & Customer Care dealer.notify, crm.assign_loaner   (rules 4–5)
+                   │            each traverses the knowledge graph (11 node types, 16 edge types)
+                   │          3 Validate: drop any planned call outside that agent's tool list
                    └────────► 4 POST /act, in a fixed order ─► action_log.jsonl + per-event trace ─► UI
 ```
 
-The coordinator is the only component that calls tools. Specialists return planned calls, each with a reason and the graph paths that justify it. A shared slot board and shared loaner pools let the incidents in one compound message use capacity consistently. The ontology export is in `runs/ontology/ontology.md`.
+Each agent has a card in `tower/agents/roster.py`: its responsibility, the incidents it takes, the handbook rules it applies, and the only tools it may use. The coordinator is the only component that calls tools. Specialists return planned calls, each with a reason and the graph paths that justify it. Every coordinator-to-agent handoff is recorded in the trace and shown in the UI. A shared slot board and shared loaner pools let the incidents in one compound message use capacity consistently. The ontology export is in `runs/ontology/ontology.md`.
 
 ## LLM versus code
 
@@ -26,9 +28,11 @@ The LLM proposes and code verifies. If the model's output fails a check, or it d
 
 ## Guardrails
 
+- **Tool allowlist per agent:** a planned call to a tool outside the agent's card is refused before anything runs, and the refusal is recorded in the trace.
 - **Noise:** no tool calls at all.
 - **Rumor or unclear report:** a single `escalate`. That includes an id that doesn't exist and a missing plant or date.
 - **Rumor inside a real event:** also escalated.
+- **Model alarm:** if Qwen reads a real incident, and every phrase it quotes checks out, but the word lists find nothing, the message is escalated rather than ignored. Wording we have never seen ("line halted", "behind schedule", "bad batch") reaches a human, and no records change on the model's word alone.
 - **Only affected records change.** Affected orders come from the bill of materials, the receiving plant and the exact disruption window. Rule 1 treats the delay window as half-open; rule 2 treats an outage as inclusive.
 - **Failed call:** logged, not retried, and the remaining calls still run. A confirmed incident that ends with no successful write is escalated. This is tested in `tests/test_failures.py`.
 - **Batching:** list-taking tools are batched, with one notice and one stop-sale per dealer. No read calls are made and no calls are wasted.
@@ -38,7 +42,7 @@ The LLM proposes and code verifies. If the model's output fails a check, or it d
 | Check | Result |
 |---|---|
 | 15 given events, docx TC1–TC6 (`tests/run_given.py`) | **15/15** on effects and on the required evidence |
-| 25 generated cases, including edge cases (`tests/run_cases.py`) | **25/25**, with the rule reader and with Qwen3 0.6B |
+| 100 generated cases: 25 hand-made edge cases + 75 from real records with nicknames, relative and m/d dates (`tests/run_cases.py`) | **100/100**, with the rule reader and with Qwen3 0.6B. The reader's word lists are general word families (delay/late/slip/postpone, down/halted/offline, defect/contamination/out-of-spec, heard/might/unconfirmed), not phrases from the given events; this set informed them, so it is not blind |
 | Handbook audit of the submitted log (`tower/_audit_run.py`) | 0 problems |
 | Official server run (`enterprise_server.py`, `POST /act`) | 768 calls, **0 failed**, identical to the in-process run |
 | Model benchmark, 6 local models from 0.5B to 2.0B | All give identical actions. Qwen3 0.6B is the smallest with the best kind accuracy (14/16), at about 3 s per call and 16 calls per run |

@@ -1,53 +1,28 @@
 # Control tower — test summary
 
-Reader model: **Qwen3 0.6B** (`qwen3:0.6b`, 752M parameters, local via Ollama), with the
-deterministic rule reader as the check and fallback. Today in the data is Monday 2027-03-08.
+Written 2026-11-08 03:30 from the saved results by `tower/ui/reports.py`. Each test's expected output is its answer key traced through the company graph (`tests/run_cases.py`, independent of `tower/graph.py`); the grader also replays every action in the enterprise simulator and checks it against the handbook.
 
-| Suite | What it is | Rules reader | Qwen3 0.6B | Report |
-|---|---|---|---|---|
-| Given tests | The 15 events in `data/events.json`, mapped to docx TC1–TC6 | 15/15 | 15/15 | [runs/given/REPORT.md](given/REPORT.md) |
-| Generated tests | 25 extra messages in `tests/cases.json`, 7 of them edge cases | 25/25 | 25/25 | [runs/tests/REPORT.md](tests/REPORT.md) |
+## The tower, per suite and reader
 
-Both suites grade the action log with `tests/run_cases.py`, which computes the expected effects from the
-CSVs and the handbook. It does not use `tower/graph.py`. The tower never reads the expected answers.
+| Suite | Reader | Incident type | Records and dates | Full output | Grader | Report |
+|---|---|---|---|---|---|---|
+| Given tests | qwen3:0.6b | 15/15 | 15/15 | 15/15 | 15/15 | [given/REPORT.md](given/REPORT.md) |
+| Given tests | rules | 15/15 | 15/15 | 15/15 | 15/15 | [given/REPORT.md](given/REPORT.md) |
+| Held-out tests (set 2) | qwen3:0.6b | 67/100 | 66/100 | 66/100 | 66/100 | [holdout2/REPORT.md](holdout2/REPORT.md) |
+| Held-out tests (set 2) | rules | 50/100 | 50/100 | 50/100 | 50/100 | [holdout2/REPORT.md](holdout2/REPORT.md) |
+| Held-out tests (set 1) | qwen3:0.6b | 84/100 | 84/100 | 84/100 | 84/100 | [holdout/REPORT.md](holdout/REPORT.md) |
+| Held-out tests (set 1) | rules | 76/100 | 76/100 | 76/100 | 76/100 | [holdout/REPORT.md](holdout/REPORT.md) |
+| Generated tests | qwen3:0.6b | 100/100 | 100/100 | 100/100 | 100/100 | [tests/REPORT.md](tests/REPORT.md) |
+| Generated tests | qwen3:1.7b | 16/25 | 15/25 | 15/25 | 15/25 | [tests/REPORT.md](tests/REPORT.md) |
+| Generated tests | rules | 100/100 | 100/100 | 100/100 | 100/100 | [tests/REPORT.md](tests/REPORT.md) |
 
-## Given tests (docx TC1–TC6)
+Suites: **Given tests**: The 15 events in events.json, graded against docx TC1–TC6; **Held-out tests (set 2)**: 100 fresh messages, written after the fixes; never tuned on (tests/make_holdout2.py); **Held-out tests (set 1)**: 100 messages; used to diagnose the reader, so no longer blind (tests/make_holdout.py); **Generated tests**: 100 messages: 25 hand-made edge cases + 75 from real records (tests/make_cases.py).
 
-All six test cases pass on effects and on the evidence the docx requires: the graph path shape per
-incident, a reason for every noise and unconfirmed event, at least three kinds of action per real
-incident, and no failed calls. 768 tool calls, 0 failed.
+## qwen3:0.6b on its own (no rule check)
 
-## Generated tests by category
+Run 2026-11-08 03:07 with `tests/run_model.py`: the model reads each message, code only looks up the records and dates it named (one retry with feedback when they do not check out), and the reading is traced through the graph and compared with the expected graph.
 
-| Category | Cases | Rules | Qwen3 0.6B |
+| Set | Incident type | Records and dates | Full output |
 |---|---|---|---|
-| supplier_delay | 5 | 5/5 | 5/5 |
-| unconfirmed | 4 | 4/4 | 4/4 |
-| plant_outage | 5 | 5/5 | 5/5 |
-| quality_hold | 3 | 3/3 | 3/3 |
-| noise | 4 | 4/4 | 4/4 |
-| compound | 4 | 4/4 | 4/4 |
+| holdout2 | 10/15 | 10/15 | 10/15 |
 
-Edge cases covered:
-
-- T-04: New ETA falls on a Saturday. Expected: builds resume the next working day (Mon Mar 29).
-- T-06: Names a shipment id that does not exist and no part. Expected: escalate, nothing written.
-- T-08: 'this Wednesday' relative to Monday Mar 8 = 2027-03-10.
-- T-13: Build window spans two lots (LOT-0089 and LOT-0090). Expected: both lots held, vehicles from both windows.
-- T-23: Real outage plus a rumor. Expected: outage actions, and the rumor part escalated.
-- T-25: Typo in plant name ('Lexingtn'). Expected: still read as P_KY, or escalate rather than guess.
-
-## How to re-run
-
-```sh
-python tests/run_given.py      # 15 given events  -> runs/given/REPORT.md
-python tests/run_cases.py      # 25 generated     -> runs/tests/REPORT.md
-python -m tower._audit_run     # handbook audit of runs/run1
-```
-
-## Limits
-
-- The expected answers for the given events were written by hand from the message text and the CSVs.
-  The organizers' answers are hidden, so these are our reading of the handbook.
-- The reader was fixed using the generated cases, so 25/25 is not an unseen-data score. A fresh set of
-  messages written without looking at the code would measure that.
