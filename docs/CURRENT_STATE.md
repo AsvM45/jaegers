@@ -1,23 +1,44 @@
-# JAEGERS House Edge | Verified public remote snapshot
+# JAEGERS House Edge ? live implementation state
 
-**Public GitHub:** https://github.com/AsvM45/jaegers. **Inspected default branch:** `main`. **HEAD:** `b78abe75db15688e652b30b9d5388a151f2b7acd`. **Observed pushed_at:** 2026-11-07 22:45:19 UTC = 4:45:19 PM Central. **Snapshot is not attestation of a local dirty tree or later pushes.**
+Updated: 2026-11-08T00:13:40.023005+00:00
 
-| Evidence | Status / provenance |
-|---|---|
-| Public repository, five commits, one visible main branch | VERIFIED via GitHub connector (at inspection) |
-| GitHub issues and pull requests | None returned at inspection; not proof local task list absent |
-| Latest commit title | `Made improvement to score 55.12/60` - **CLAIM**, unverified score |
-| Prior changes | `322121a` reported 54.99/60; `1c69ba9` reported 51.55/60. Do not interpret relative performance as independently rerun |
-| Current forecaster | `Jaeger_Main/House_Edge/jaegers_entry/jaeger_model.py`, `params.json`, `predict.py` |
-| New stacker | `fit_stacker` uses `sklearn.ensemble.HistGradientBoostingClassifier`, trained on earlier observed payouts; enabled by `params.json:stack=true` |
-| Additional current model behavior | Size-context experts enabled; `prior_short=0.85`; `lam_s=0.995`, `beta_s=2`, `lam_sll=0.99`, `ep_weight_s=1` |
-| Data contracts + organizer checker | Present in `Jaeger_Main/House_Edge/`; original kit says main 60/adaptation 40 |
-| Historical signal contamination | **P0 suspect**: `stack_features()` uses current query signal during historical `collect=True` rows; exact historical signal(t) not provided |
-| Validation-target-derived constants | **P0 provenance**: `SIZE_REGIMES` comment says read from validation true targets; public validation score is development/selection not pristine independent audit |
-| Dependencies | No tracked `jaegers_entry/requirements.txt`; current model imports NumPy AND scikit-learn when stack enabled |
-| Submission README | Outdated (states no training, NumPy-only runtime, prior validation ~51.1) despite current train-time stacker |
-| GitHub CI / dedicated tests | No `.github/workflows/` or dedicated `tests/` folder in inspected tree; no status checks reported by connector |
-| Code ZIP, generated CSV, cold offline reproduction, form receipt | **NOT VERIFIED** in this remote inspection; teammates may have local files |
-| Sponsor Databricks pipeline | Not found in public tree at snapshot; do not assert it is implemented |
+## Working baseline
 
-**Current top concern:** Reproduce current candidate locally, audit signal provenance and validation exposure, pin packages, and ensure exact final main submission before building experiment factory. Code-reading is not a runtime test. Remote HEAD can advance at any moment.
+- HEAD: `b78abe75db15688e652b30b9d5388a151f2b7acd`; current main after the user's pull.
+- Original `jaegers_entry` model and parameters unchanged. Frozen source/data/scorer hashes:
+  `Jaeger_Main/House_Edge/research_runs/champion-b78abe75/manifest.json` (ignored local artifact).
+- Project runtime: CPython 3.13.18, workspace-local Windows environment. Runtime pins:
+  `requirements-runtime.txt`; dev pins: `requirements-research.txt` in House Edge.
+- Independently observed official public development validation: **55.121615/60**.
+  Condition ratios: stable 0.067316, short_history 0.116980, drift 0.092323,
+  shared_change 0.077390. Detailed evidence: `research_runs/reproduction-b78abe75/`.
+- Repeat validation and test-format evidence are being finalized. Test truth is private.
+
+## Milestones
+
+1. Source freeze and Python 3.13 setup COMPLETE.
+2. Baseline reproduction RUNNING; first validation agrees with the commit's rounded claim.
+3. Initial temporal audit: **5 tests passed** (`tests/test_temporal.py`).
+   Executed fixtures confirm query-time signal in old training rows and end-of-history
+   coverage affecting historical smoothing. Champion preserved; separate causal adapter
+   removes signal and uses fixed, predeclared smoothing to remove this coverage dependence.
+4. Linux provisioning RUNNING in existing Ubuntu 22.04 WSL. No cloud resources used.
+
+## Scientific and release limitations
+
+- SIZE_REGIMES and model selection used public validation targets. This is a
+  development-exposed score, not pristine independent generalization evidence.
+- Historical signal availability unresolved; no clean leakage claim for champion.
+- Offline package parity, final artifact hashes, and organizer receipt not yet verified.
+- Kit says main 60/adaptation 40, main cutoff Nov 7 21:00 Central and adaptation cutoff
+  Nov 8 11:00 Central. Separate older 80/20 guide conflict remains unresolved.
+  No new organizer announcement has been verified in this session.
+- Databricks workspace/access not established. Do not claim cloud integration.
+
+## Next actions
+
+Finish baseline repeated/test checks; build and cold-verify a frozen release; then run
+causal candidates and grouped-CV smoke/resume checks before broader studies. All trials
+must retain failure records, data/source/environment identities and metric provenance.
+See `VALIDATION_PROTOCOL.md` for scoring/split rules and `ISSUE_BACKLOG.md` for backlog.
+No commit, push, upload, cloud spend, or Hitachi change authorized or performed.

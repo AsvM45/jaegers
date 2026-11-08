@@ -1,4 +1,6 @@
 .runtime/
 .venv/
+.venv-linux/
+.pytest_cache/
 research_runs/
 __pycache__/
