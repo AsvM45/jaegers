@@ -71,7 +71,8 @@ def build_cases() -> list[dict]:
         add("replan", ["supplier_delay"], _eta(left, right), plant="P_IN", head="Shipment", writes=True)
     for _ in range(4):
         add("recall", ["quality_hold"], _lot(), head="Lot", writes=True)
-    add("schema", ["noise"], "Quality bulletin: lot LOT-9999 has a faulty weld. That lot is not in the book.")
+    # An unknown lot id is incomplete, so it is escalated rather than ignored.
+    add("schema", ["unconfirmed"], "Quality bulletin: lot LOT-9999 has a faulty weld. That lot is not in the book.")
     add("schema", ["noise"], "Transfer production order PO-99999 to Lexington on 2027-03-18.")
     add("schema", ["noise"], "Stop sale of VIN ZZ-NOT-A-CAR at every dealer.")
     add(

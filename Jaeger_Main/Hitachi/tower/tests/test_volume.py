@@ -202,8 +202,9 @@ def build_cases() -> list[tuple[list[str], str]]:
         add(["supplier_delay"], _dress(_delay("2027-03-15", "2027-03-18"), style))
 
     for plant in _PLANTS:
-        add(["noise"], f"There was an outage mentioned in passing near {plant}, no window given.")
-        add(["noise"], f"{plant} called about a delayed crate. No window was written down.")
+        # A named plant plus outage or delay wording, and no dates, is incomplete: escalate.
+        add(["unconfirmed"], f"There was an outage mentioned in passing near {plant}, no window given.")
+        add(["unconfirmed"], f"{plant} called about a delayed crate. No window was written down.")
     for body in (
         "There was an outage somewhere.",
         "A shipment is delayed.",

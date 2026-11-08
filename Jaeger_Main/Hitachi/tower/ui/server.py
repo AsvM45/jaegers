@@ -53,7 +53,8 @@ STATIC_TYPES = {
     ".png": "image/png", ".md": "text/markdown; charset=utf-8",
 }
 # Test-suite run folders the knowledge graph may read traces from (suite id -> runs/ subfolder).
-SUITE_RUNS = {"given": "given", "generated": "tests", "holdout": "holdout", "holdout2": "holdout2"}
+SUITE_RUNS = {"given": "given", "generated": "tests", "holdout": "holdout", "holdout2": "holdout2",
+              "stress": "stress"}
 EVENTS = os.path.join(HITACHI, "Data", "hack_the_highway_package", "data", "events.json")
 # TOWER_RUN_DIR=runs/live shows the live channel feed instead of the batch run.
 RUN_DIR = os.path.join(HITACHI, os.environ.get("TOWER_RUN_DIR", os.path.join("runs", "run1")))

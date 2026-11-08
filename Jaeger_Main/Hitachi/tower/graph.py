@@ -119,6 +119,7 @@ class WorldGraph:
         for part_id, part in self.parts.items():
             self._add_alias(part_id, "part", part_id)
             self._add_alias(part["name"], "part", part_id)
+        self._add_part_plurals()
         for model in self.models:
             self._add_alias(model, "model", model)
         for shipment_id in self.shipments:
@@ -154,6 +155,29 @@ class WorldGraph:
         for row in rows:
             if row["alias"].casefold().startswith("the "):
                 self._add_alias(row["alias"][4:], row["entity_type"], row["entity_id"])
+
+    def _add_part_plurals(self) -> None:
+        """A part said in the plural ("alloy wheels", "infotainment chips") is still that part.
+
+        Only a trailing "s" is added, and only when that spelling is not already another record.
+        """
+        wanted: dict[str, str] = {}
+        blocked: set[str] = set()
+        for alias, (entity_type, entity_id) in self._alias_map.items():
+            if entity_type != "part" or alias.endswith("s"):
+                continue
+            plural = alias + "s"
+            current = self._alias_map.get(plural)
+            if current and current != ("part", entity_id):
+                blocked.add(plural)
+                continue
+            if plural in wanted and wanted[plural] != entity_id:
+                blocked.add(plural)
+                continue
+            wanted[plural] = entity_id
+        for plural, entity_id in wanted.items():
+            if plural not in blocked:
+                self._alias_map[plural] = ("part", entity_id)
 
     def _index_part_suffixes(self) -> None:
         """Whole-word tails of part aliases, at least two words, one part only.

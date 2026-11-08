@@ -67,7 +67,7 @@
         "reader": "rules"
       }
     ],
-    "summary": "The report is not safe to act on because it is unconfirmed (rumor, nothing confirmed, no dates, no details, may be) and does not name a specific shipment, outage, or lot to change. No operational records were changed. The tower escalated the report and wrote nothing else.",
+    "summary": "The report is not safe to act on because it is unconfirmed (nothing confirmed, rumor, may be off, no dates) and does not name a specific shipment, outage, or lot to change. No operational records were changed. The tower escalated the report and wrote nothing else.",
     "seconds": 0.0
   },
   {
@@ -428,7 +428,7 @@
         "reader": "rules"
       }
     ],
-    "summary": "The report is not safe to act on because it is unconfirmed (not confirmed, possible, someone on the floor mentioned) and does not name a specific shipment, outage, or lot to change. No operational records were changed. The tower escalated the report and wrote nothing else.",
+    "summary": "The report is not safe to act on because it is unconfirmed (not confirmed, someone on the floor mentioned, someone on the floor) and does not name a specific shipment, outage, or lot to change. No operational records were changed. The tower escalated the report and wrote nothing else.",
     "seconds": 0.0
   },
   {

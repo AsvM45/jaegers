@@ -42,6 +42,8 @@ SUITES = [
      "cases": "holdout_cases.json", "runs": "holdout"},
     {"id": "generated", "title": "Generated tests", "subtitle": "100 messages: 25 hand-made edge cases + 75 from real records (tests/make_cases.py)",
      "cases": "cases.json", "runs": "tests"},
+    {"id": "stress", "title": "Stress tests", "subtitle": "149 messages: 74 normal, 45 edge cases, 30 overload (tests/make_stress.py)",
+     "cases": "stress_cases.json", "runs": "stress"},
 ]
 
 _cache: dict = {"key": None, "data": None}

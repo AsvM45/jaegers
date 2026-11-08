@@ -392,8 +392,9 @@ class QualityTests(TowerTest):
             "adv-quality-part-only",
             "Quality alert: the infotainment chip is faulty.",
         )
+        # A part with no plant, lot, or dates is not safe to act on. Escalate it; write nothing.
         self.assert_no_writes(trace.calls)
-        self.assertEqual(trace.calls, [])
+        self.assert_one_escalate(trace.calls)
 
     def test_lot_0191_holds_stops_sale_and_notifies_without_loaners(self) -> None:
         lot = self.graph.lots["LOT-0191"]
