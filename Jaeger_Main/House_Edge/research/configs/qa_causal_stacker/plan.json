@@ -1,0 +1,30 @@
+{
+  "issue": "AsvM45/jaegers#3 (follow-up)",
+  "agent": "claude-qa",
+  "preregistered": "2026-11-07 ~22:35 CT, committed before any result",
+  "champion_source_sha256_lf": "10da55e636962ae6032344415390ca6efb38ace734977dc2a94e7065152fa0c3",
+  "lookaheads_from_audit": {
+    "signal": "query-time signal copied into every historical stacker row (feature column 13)",
+    "regime": "lam_short/prior_short chosen once per machine from total observed spins before the cutoff (nobs < 100), so old rows see the machine's final coverage",
+    "prior": "expert log-prior = argmax of each fit machine's FINAL log-likelihood; historical rows of that machine therefore see its own future"
+  },
+  "fixes": {
+    "signal_head": "historical rows omit column 13; signal re-enters only through a query-time head: logistic regression (C=1.0, lbfgs) on fit-split QUERY rows with inputs [stacker logit, signal one-hot] -> P(win), replacing the stacker's P(win) at prediction",
+    "running_regime": "lam/prior regime switches on observed spins so far at each tick (seen < 100), for state updates and features alike",
+    "crossfit_prior": "historical rows use an expert log-prior learned from fit-split machines in OTHER episode groups (4 deterministic groups by sorted episode id); prediction uses the prior from all fit machines (same as champion)"
+  },
+  "variants": {
+    "champion": "reference (unchanged jaegers_entry)",
+    "parity": "copied core with all fixes off; must equal champion within 1e-12 (correctness gate, not a result)",
+    "causal_all": "signal_head + running_regime + crossfit_prior",
+    "causal_all_nohead": "running_regime + crossfit_prior, no signal anywhere in the stacker",
+    "regime_only": "running_regime only (signal kept as in champion)",
+    "prior_only": "crossfit_prior only (signal kept as in champion)"
+  },
+  "evaluations": {
+    "A": "fit on TRAIN, official score_round on VALIDATION (development-exposed), paired episode bootstrap vs champion",
+    "R": "#8 registry, 4 condition-stratified whole-episode train folds, sampled-label Brier, research.metrics.paired vs champion"
+  },
+  "expected": "causal_all within about 0.2 official points of the champion (HE-03/HE-17 found signal ~0.1 and the regime/prior issues small); R difference not distinguishable from 0",
+  "decision_rule": "No promotion by this study. 'Defensible drop-in' if A is within 0.25 points of the champion and the R interval includes 0 or favours causal_all; promotion remains a human/lane-A decision."
+}
