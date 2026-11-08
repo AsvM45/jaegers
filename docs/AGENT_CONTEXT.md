@@ -29,8 +29,8 @@ Public main snapshot checked at `26f23435175ea71e1cb6217d15d67614e6d87792` (Nov 
 Owners when reconciled (always defer to latest claim comments):
 - A CHAT/Codex: #1, #4, #8, #6 (core release/registry), local branch `chat/house-edge-release-research-core` per issue.
 - B Antigravity: #13 dashboard reserved; #14 Databricks after release safe, authorized workspace, and real trials.
-- C Claude Code / `InTheHiggsField`: #2, #3, #7 and a separately claimed **#17** ablation study; PRs #19/#20/#21 and [#22](https://github.com/AsvM45/jaegers/pull/22) are open for review; no duplicate implementation.
-- D **Grok suggested assignment**: #9 Bayesian/Dirichlet/Markov, later #12 ensembles and #15 advanced temporal. **#17 is already Claude-claimed and is not available to Grok.** **Not active/claimed until explicit claim comment**.
+- C Claude Code / `InTheHiggsField`: #2/#3/#7, separately claimed #17 and now #9 statistical challengers; PRs #19/#20/#21/#22 and [#28](https://github.com/AsvM45/jaegers/pull/28) are open. Issue #9 reports completed studies: Dirichlet ~30.85, decay-BMA ~30.93, Markov ~43.98 vs original champion ~55.12 official public validation, with 22 unit tests reported. These are development-exposed PR-reported results, not independently rerun. Do not duplicate #9.
+- D **Grok suggested assignment**: #15 advanced temporal/state-space as first reserved issue, later #12 ensembles if still unclaimed. **#9 and #17 are already Claude-claimed (PRs #28/#22) and are not available to Grok.** **Not active/claimed until explicit claim comment**.
 - E Cursor: #16 **already claimed**, later #10/#11 supervised ML/temporal only after #16 handoff and explicit re-claim. No presumption of concurrent work or of a sixth agent.
 - Human lead: #5 organizer submission/receipt and #18 assignment/conflict mediation.
 
