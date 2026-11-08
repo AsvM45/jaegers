@@ -1,5 +1,8 @@
 # House Edge — Agent-specific engineering and scientific rules
 
+> **No external access required:** first read `AGENT_START_HERE.md` in this directory. It contains the five-class task, official scoring, release limits, current owner map and collaboration protocol in full; mirrored copies exist in Codex, Claude, Grok and Cursor skills. Latest named GitHub issue claim wins over a stale snapshot.
+
+
 **READ BEFORE WORK:** `../../docs/AGENT_COLLABORATION_PROTOCOL.md`, `../../docs/AGENT_OPERATING_POLICY.md`, `../../docs/AGENT_CONTEXT.md`, `../../docs/MULTI_AGENT_OWNERSHIP.md`, current GitHub issue and issue #18. Each agent has one exclusive issue, one own worktree and a permitted write scope. Source/code questions follow actual current local checkout and organizer kit, not historical docs. All five platforms (CHAT/Codex, Claude, Antigravity, Grok, Cursor) must follow this.
 
 - **Competition:** predict the five probabilities for payouts `0,1,2,5,20` exactly. Use `RULES.md`, `DATA.md`, `check_submission.py` and `slot_forecasting.rounds`. Do not use the separate 0–100 `slot_forecasting/scoring.py` diagnostic as main points. Public true-target validation is development-exposed; hidden test quality is not locally knowable.
