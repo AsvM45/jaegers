@@ -1,11 +1,13 @@
-﻿@AGENTS.md
+@AGENTS.md
 
-For House Edge work, also follow:
-Jaeger_Main/House_Edge/AGENTS.md
+# Claude Code / Grok Build compatible project instructions
+Read the root and scoped House Edge AGENTS.md, then:
+- docs/AGENT_COLLABORATION_PROTOCOL.md (binding branch/issue claim and PR checker)
+- docs/AGENT_OPERATING_POLICY.md
+- docs/AGENT_CONTEXT.md
+- docs/MULTI_AGENT_OWNERSHIP.md
+- Latest GitHub issue claim/comments and #18
 
-Use CODEX_HANDOFF.md and docs/CURRENT_STATE.md for project context.
-Read detailed research documents only when relevant to the task.
+Claude Code / `InTheHiggsField` has already claimed House Edge #2/#3/#7 and #17, with PRs #19/#20/#21/#22; do not duplicate that work. Grok Build also recognizes these instructions but takes the **separate statistics lane** #9 only after explicit claim, not Claude's lane. `docs/PLATFORM_START.md` and `docs/GROK_START.md` explain platform startup.
 
-Do not overwrite the existing JAEGERS champion model without
-independent evaluation. Do not fabricate scores or claim unverified
-submission acceptance.
+Preserve champion and other teams' edits. Do only your issue in your own worktree. Commit/push only your own issue branch when issue-specific permission allows, open PR, never merge/main/submission/cloud spend without human approval. Never fabricate test results, grades, private labels or organizer acceptance.
