@@ -31,8 +31,8 @@ def check(event, paths, comments, other_pr_paths):
     errors = []
     if not BRANCH.fullmatch(branch): errors.append("Branch must be agent/<slug> or human/<slug>")
     if not paths: errors.append("No files changed")
-    # Existing PRs #19-#21 existed before this workflow and are exempt from new claim metadata.
-    if int(pr["number"]) > 21:
+    # Existing PRs #19-#22 existed before this workflow and are exempt from new claim metadata.
+    if int(pr["number"]) > 22:
         for k in FIELDS:
             if len(fields[k]) < 3: errors.append("Missing PR field: " + k)
         issue = re.fullmatch(r"#([1-9][0-9]*)", fields["Issue"])
