@@ -1,0 +1,172 @@
+{
+  "name": "he17_registry",
+  "strategy": "grid",
+  "seed": 0,
+  "folds": 4,
+  "budget": {
+    "workers": 2,
+    "trials": 14,
+    "seconds": 5400,
+    "trial_seconds": 1200
+  },
+  "candidates": [
+    {
+      "family": "jaeger",
+      "causal": false
+    },
+    {
+      "family": "jaeger",
+      "params": {
+        "stack": false
+      }
+    },
+    {
+      "family": "jaeger",
+      "params": {
+        "size_experts": false
+      }
+    },
+    {
+      "family": "jaeger",
+      "params": {
+        "ep_weight": 0.0,
+        "ep_weight_s": 0.0
+      }
+    },
+    {
+      "family": "jaeger",
+      "params": {
+        "gamma": 0.0
+      }
+    },
+    {
+      "family": "jaeger",
+      "params": {
+        "lam_short": 0.95,
+        "prior_short": 0.35
+      }
+    },
+    {
+      "family": "jaeger",
+      "params": {
+        "lam": 0.99
+      }
+    },
+    {
+      "family": "jaeger",
+      "params": {
+        "lam": 0.9
+      }
+    },
+    {
+      "family": "jaeger",
+      "causal": true
+    },
+    {
+      "family": "he17_nosig",
+      "factory": "research.challengers.stat_ablation_he17_registry:factory",
+      "variant": "nosig",
+      "supervision": "query",
+      "change": {
+        "drop_stack_cols": [
+          13
+        ]
+      }
+    },
+    {
+      "family": "he17_single_lag_only",
+      "factory": "research.challengers.stat_ablation_he17_registry:factory",
+      "variant": "single_lag_only",
+      "supervision": "query",
+      "change": {
+        "experts": "single_lag_only"
+      }
+    },
+    {
+      "family": "he17_binary_categories_only",
+      "factory": "research.challengers.stat_ablation_he17_registry:factory",
+      "variant": "binary_categories_only",
+      "supervision": "query",
+      "change": {
+        "experts": "binary_only"
+      }
+    },
+    {
+      "family": "he17_train_size_regimes",
+      "factory": "research.challengers.stat_ablation_he17_registry:factory",
+      "variant": "train_size_regimes",
+      "supervision": "query",
+      "change": {
+        "size_regimes": {
+          "steady": [
+            [
+              0.794,
+              0.162,
+              0.043,
+              0.001
+            ],
+            [
+              0.572,
+              0.339,
+              0.088,
+              0.002
+            ]
+          ],
+          "balanced": [
+            [
+              0.514,
+              0.345,
+              0.12,
+              0.021
+            ],
+            [
+              0.323,
+              0.466,
+              0.18,
+              0.031
+            ]
+          ],
+          "jackpot": [
+            [
+              0.318,
+              0.221,
+              0.313,
+              0.148
+            ],
+            [
+              0.188,
+              0.313,
+              0.374,
+              0.125
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "family": "he17_control_shuffled_stack_labels",
+      "factory": "research.challengers.stat_ablation_he17_registry:factory",
+      "variant": "control_shuffled_stack_labels",
+      "supervision": "query",
+      "change": {
+        "shuffle_stack_labels": true
+      }
+    }
+  ],
+  "labels": {
+    "0": "champion",
+    "1": "nostack",
+    "2": "no_size_experts",
+    "3": "no_peer_evidence",
+    "4": "no_expert_prior",
+    "5": "no_short_history_prior",
+    "6": "slower_forgetting",
+    "7": "faster_forgetting",
+    "8": "causal (lane A JaegerModel causal=True)",
+    "9": "nosig",
+    "10": "single_lag_only",
+    "11": "binary_categories_only",
+    "12": "train_size_regimes",
+    "13": "control_shuffled_stack_labels"
+  }
+}
