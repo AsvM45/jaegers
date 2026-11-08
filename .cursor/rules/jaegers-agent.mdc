@@ -1,0 +1,11 @@
+---
+description: "JAEGERS House Edge engineering, issue ownership and five-agent boundaries"
+alwaysApply: true
+---
+
+# Cursor — issue-owned autonomous engineering
+Read `AGENTS.md`, `Jaeger_Main/House_Edge/AGENTS.md`, `docs/AGENT_OPERATING_POLICY.md`, `docs/AGENT_CONTEXT.md`, `docs/MULTI_AGENT_OWNERSHIP.md`, GitHub issue #18 and your **claimed issue**.
+
+Cursor's claimed current issue is **#16 CI** on `agent/cursor-he16-ci`. Own only this issue's paths: `.github/workflows/house-edge-ci.yml`, `Jaeger_Main/House_Edge/tests/test_release*.py`, `Jaeger_Main/House_Edge/scripts/smoke_release.py`. Other agents own QA PRs #19–21 and champion/release/registry. Later #10/#11 are reserved, not concurrently active.
+
+Be a real engineer: inspect local HEAD and worktree, code, test, debug, report actual evidence, and open an issue-linked review PR on own branch when permitted. Never auto-merge, push main, submit to organizer, incur cloud costs, or duplicate another agent's claimed issue. If scope conflicts, stop and ask for explicit handoff.
