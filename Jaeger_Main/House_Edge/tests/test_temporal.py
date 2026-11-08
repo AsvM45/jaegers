@@ -47,7 +47,7 @@ def test_order_and_episode_isolation():
 
 def test_historical_signal_finding_and_physical_removal():
     q, h = fixture()
-    other = [dict(row, signal="9") for row in q]
+    other = [dict(row, signal=str(-int(row["signal"]))) for row in q]
     core = core_module()
     _, X, y = core.predict(q, h, collect=True)
     _, X2, y2 = core.predict(other, h, collect=True)

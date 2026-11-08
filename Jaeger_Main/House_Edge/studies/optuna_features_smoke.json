@@ -1,0 +1,16 @@
+{
+  "name": "optuna_features_smoke",
+  "strategy": "optuna",
+  "seed": 31,
+  "folds": 4,
+  "budget": {"workers": 1, "trials": 2, "seconds": 300, "trial_seconds": 120},
+  "base": {"family": "logistic"},
+  "feature_sets": {
+    "recency": ["type", "lags", "windows", "decays", "missingness"],
+    "recency_peers": ["type", "lags", "windows", "decays", "missingness", "peers"]
+  },
+  "optuna_space": {
+    "params.C": {"type": "float", "low": 0.03, "high": 3.0, "log": true},
+    "feature_set": {"choices": ["recency", "recency_peers"]}
+  }
+}
