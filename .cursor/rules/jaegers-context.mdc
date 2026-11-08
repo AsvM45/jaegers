@@ -7,6 +7,10 @@ alwaysApply: true
 
 **This file is a deliberately redundant, self-contained starter for coding agents with limited access to GitHub Issues, Wiki, plugins or outside documents.** Read local files first. Current code/issue claims can change; inspect the actual checkout before coding.
 
+## Latest user/team deadline and Cursor assignment (supersedes older owner listings below)
+
+Team-reported operational target is **Sunday November 8 at 10:30 AM Central**, *not confirmed as a main-round organizer extension*. Original House Edge RULES.md still says main 9 PM Sat / adaptation 11 AM Sun. Consult docs/DEADLINE_1030_HANDOFF.md. Cursor's #16/#10/#11/#12 are closed; **new reserved task #46** independently audits frozen submission pair with new, exclusive paths (see .cursor/rules/jaegers-agent.mdc). Keep champion and local research_runs unchanged. All original owner lines below are historical snapshots; latest issue claims win.
+
 ## Mission and non-negotiable scientific contract
 Predict the next-spin payout distribution for every query over **exactly five classes [0,1,2,5,20]**. CSV columns exactly: `query_id,p_0,p_1,p_2,p_5,p_20`. Eight machines share one episode and one query cutoff. Types: steady, balanced, jackpot; conditions: stable, short_history, drift, shared_change. The main kit has 96 train, 96 public validation and 192 test episodes, eight machine queries each: **1536 main test rows**.
 

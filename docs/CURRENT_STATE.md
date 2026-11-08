@@ -1,5 +1,7 @@
 # JAEGERS House Edge ? current release and research state
 
+> **SUPERSEDING OPERATIONAL NOTE, Nov 7 ~8:55 PM Central:** User reports a team cutoff of **Sunday Nov 8 at 10:30 AM CST**. Source challenge `RULES.md` still states **main Sat Nov 7 9 PM; adaptation Sun Nov 8 11 AM**. A new official main-round extension has NOT been confirmed. Human must inspect current Form/Discord to determine whether main is still accepted and what 10:30 covers. This note supersedes the *working deadline assumption* in the earlier section below, **not the published organizer kit itself**. The file name `REVIEW_MAIN_9PM` is the preserved frozen artifact directory, not a deadline instruction. See [deadline and release handoff](DEADLINE_1030_HANDOFF.md), [source paths](../Jaeger_Main/House_Edge/SUBMISSION_FILES_AND_DEADLINES.md), [human release #5](https://github.com/AsvM45/jaegers/issues/5), and [Cursor #46](https://github.com/AsvM45/jaegers/issues/46). The latest dashboard integration was PR #45 at `5f3311e`; 83 dashboard tests were author-reported, not covered by standard CI. **No organizer receipt has been verified.**
+
 Updated: 2026-11-08T02:37:04.002516+00:00
 
 ## Main-round deadline and upload candidate
