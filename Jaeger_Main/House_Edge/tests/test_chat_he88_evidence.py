@@ -142,16 +142,19 @@ def _attempt(registry, tid, config, identity, status):
     (artifact/"source/research").mkdir(exist_ok=True)
     (artifact/"source/research/fixture.py").write_bytes(b"fixture source\n")
     write_json(artifact/"process/process.json", {"cpus": 2, "status": status})
+    result = None
     if status == "SUCCEEDED":
-        write_json(artifact/"result.json", {"evaluation_source": "sampled_outcome_group_cv"})
-    registry.finish(tid, status)
+        result = dict(trial_fixture()["result"], config=config)
+        write_json(artifact/"result.json", result)
+    registry.finish(tid, status, result=result)
     return artifact
 
 
 def test_all_attempt_audit_preserves_failures_and_detects_source_mutation(tmp_path):
     registry = Registry(tmp_path)
     config = {"family": "frequency"}
-    identity = {"source_sha256": {"fixture.py": digest(b"fixture source\n")}, "execution_policy": {"cpus_per_worker": 2}}
+    identity = {"source_sha256": {"fixture.py": digest(b"fixture source\n")}, "execution_policy": {"cpus_per_worker": 2},
+                "split_manifest_sha256": trial_fixture()["identity"]["split_manifest_sha256"]}
     # common.digest hashes bytes directly; source file evidence uses that contract.
     with registry.coordinator():
         tid = registry.register("fixture_only", config, identity)
@@ -172,6 +175,62 @@ def test_all_attempt_audit_preserves_failures_and_detects_source_mutation(tmp_pa
     corrupted = audit_registry(tmp_path)
     assert not corrupted["ok"]
     assert any(f["code"] == "incomplete_attempt_evidence" for f in corrupted["findings"])
+
+
+@pytest.mark.parametrize("mutation, expected", [
+    ("broken_json", "invalid_success_result"),
+    ("changed_metric", "invalid_success_result"),
+    ("changed_oof_bytes", "sealed_artifact_bytes_changed"),
+    ("changed_config", "success_result_config_conflict"),
+    ("changed_database_score", "success_result_registry_score_conflict"),
+    ("changed_export_seal", "invalid_portable_artifact_seal"),
+])
+def test_audit_checks_success_results_and_existing_seals_without_repair(tmp_path, mutation, expected):
+    registry = Registry(tmp_path)
+    config = {"family": "frequency"}
+    identity = {"source_sha256": {"fixture.py": digest(b"fixture source\n")},
+                "execution_policy": {"cpus_per_worker": 2},
+                "split_manifest_sha256": trial_fixture()["identity"]["split_manifest_sha256"]}
+    tid = registry.register("fixture_only", config, identity)
+    artifact = _attempt(registry, tid, config, identity, "SUCCEEDED")
+    (artifact/"oof.csv").write_text("fixture bytes\n")
+    registry.export()
+    clean = audit_registry(tmp_path)
+    assert clean["ok"] and clean["findings"] == []
+    assert clean["artifact_seal_coverage"] == {"VERIFIED": 1}
+    result_path = artifact/"result.json"
+    if mutation == "broken_json":
+        result_path.write_text("{ broken JSON")
+    elif mutation in {"changed_metric", "changed_config"}:
+        result = json.loads(result_path.read_text())
+        result["mean_brier" if mutation == "changed_metric" else "config"] = 0.0 if mutation == "changed_metric" else {"family": "other"}
+        write_json(result_path, result)
+    elif mutation == "changed_oof_bytes":
+        (artifact/"oof.csv").write_text("changed bytes\n")
+    elif mutation == "changed_database_score":
+        with sqlite3.connect(registry.path) as db:
+            db.execute("UPDATE trials SET mean_brier=0")
+    else:
+        path = tmp_path/"exports/v1/registry.json"
+        payload = json.loads(path.read_text())
+        payload["content_sha256"] = "0"*64
+        write_json(path, payload)
+    paths = [p for p in tmp_path.rglob("*") if p.is_file() and p.suffix not in {".sqlite-wal", ".sqlite-shm"}]
+    before = {p: file_hash(p) for p in paths}
+    damaged = audit_registry(tmp_path)
+    assert not damaged["ok"]
+    assert expected in {f["code"] for f in damaged["findings"]}
+    assert before == {p: file_hash(p) for p in paths}
+
+
+def test_audit_reports_unsealed_attempt_coverage_explicitly(tmp_path):
+    registry = Registry(tmp_path)
+    tid = registry.register("fixture_only", {"family": "frequency"}, {})
+    _attempt(registry, tid, {"family": "frequency"}, {}, "TIMEOUT")
+    report = audit_registry(tmp_path)
+    assert report["ok"]
+    assert report["artifact_seal_coverage"] == {"UNAVAILABLE": 1}
+    assert any(f["code"] == "terminal_artifact_seal_unavailable" and f["level"] == "WARNING" for f in report["findings"])
 
 
 def test_audit_blocks_escaped_artifact_and_latest_status_conflict(tmp_path):

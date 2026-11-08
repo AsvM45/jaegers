@@ -28,6 +28,17 @@ No second trial queue or multi-host SQLite lease is introduced. Existing core
 tests cover cache invalidation, retry/crash recovery and immutable source staging;
 the new reader surfaces incomplete or conflicting evidence instead of repairing it.
 
+Independent integration review found that the initial all-attempt audit checked
+successful result-file existence without validating its contents. The correction
+reconstructs successful results from their per-query/fold evidence, checks their
+configuration and current SQLite score, and verifies terminal artifact bytes
+against the existing content-sealed portable export. Invalid JSON, changed metrics,
+changed OOF bytes, changed configuration, changed SQLite scores and invalid export
+seals are regression cases. The audit never repairs or reseals source artifacts.
+Historical or unexported attempts without an available seal are explicitly marked
+UNAVAILABLE with warnings and coverage counts. `ok` means no detected errors,
+not proof that all historical attempts have byte-level seals.
+
 ### Grok research-result interface
 
 The completed #87 report has aggregate episode errors and declared module/data/

@@ -234,6 +234,24 @@ def audit_registry(root):
     findings = []
     def finding(trial_id, attempt, code, level="ERROR"):
         findings.append({"trial_id": trial_id, "attempt": attempt, "code": code, "level": level})
+    sealed_attempts = {}
+    portable = root/"exports/v1/registry.json"
+    if portable.is_file():
+        try:
+            for record in load_export(portable):
+                number, hashes = record.get("attempt"), record.get("artifact_sha256")
+                if type(number) is not int or number < 0:
+                    raise ValueError("Invalid sealed attempt number")
+                if hashes is not None:
+                    if not isinstance(hashes, dict) or not hashes or any(
+                        not isinstance(k, str) or not isinstance(v, str) or len(v) != 64
+                        or any(c not in "0123456789abcdef" for c in v) for k, v in hashes.items()
+                    ):
+                        raise ValueError("Invalid artifact seal")
+                    sealed_attempts[(record["trial_id"], number)] = record
+        except (OSError, ValueError, KeyError, TypeError):
+            sealed_attempts = {}
+            finding(None, None, "invalid_portable_artifact_seal")
     indexed = {r["id"]: r for r in trials}
     for trial in trials:
         rows = [a for a in attempts if a["trial_id"] == trial["id"]]
@@ -255,6 +273,23 @@ def audit_registry(root):
         if not artifact.is_dir():
             finding(tid, number, "missing_attempt_directory")
             continue
+        attempt["artifact_seal_status"] = "NOT_TERMINAL"
+        if status not in {"PENDING", "RUNNING"}:
+            sealed = sealed_attempts.get((tid, number))
+            attempt["artifact_seal_status"] = "UNAVAILABLE"
+            if sealed is None:
+                finding(tid, number, "terminal_artifact_seal_unavailable", "WARNING")
+            else:
+                try:
+                    if tree_hashes(artifact) != sealed["artifact_sha256"]:
+                        attempt["artifact_seal_status"] = "MISMATCH"
+                        finding(tid, number, "sealed_artifact_bytes_changed")
+                    else:
+                        attempt["artifact_seal_status"] = "VERIFIED"
+                    if sealed["status"] != status:
+                        finding(tid, number, "sealed_attempt_status_conflict")
+                except OSError:
+                    finding(tid, number, "unreadable_terminal_artifacts")
         try:
             request = json.loads((artifact/"request.json").read_text())
             if not isinstance(request, dict):
@@ -282,6 +317,20 @@ def audit_registry(root):
                     finding(tid, number, "plugin_or_champion_bytes_changed:"+key)
             if status == "SUCCEEDED" and not (artifact/"result.json").is_file():
                 finding(tid, number, "success_missing_result")
+            elif status == "SUCCEEDED":
+                try:
+                    result = json.loads((artifact/"result.json").read_text())
+                    validated_result({"status": status, "result": result, "identity": request["identity"],
+                        "evaluation_source": "sampled_outcome_group_cv",
+                        "mean_brier": result.get("mean_brier") if isinstance(result, dict) else None})
+                    if result.get("config") != request.get("config"):
+                        finding(tid, number, "success_result_config_conflict")
+                    if number == trial["attempt"] and (trial["mean_brier"] is None or not math.isclose(
+                        trial["mean_brier"], result["mean_brier"], rel_tol=1e-10, abs_tol=1e-12
+                    )):
+                        finding(tid, number, "success_result_registry_score_conflict")
+                except (OSError, ValueError, KeyError, TypeError):
+                    finding(tid, number, "invalid_success_result")
             process = json.loads((artifact/"process/process.json").read_text())
             if not isinstance(process, dict):
                 raise ValueError("Invalid process evidence")
@@ -299,4 +348,7 @@ def audit_registry(root):
             "trial_count": len(trials), "attempt_count": len(attempts), "attempts": attempts,
             "statuses": dict(Counter(a["status"] for a in attempts)), "findings": findings,
             "ok": not any(f["level"] == "ERROR" for f in findings),
-            "limitation": "Single-host read-only observation, not a multi-host lease or repair service."}
+            "artifact_seal_coverage": dict(Counter(a.get("artifact_seal_status", "UNCHECKED") for a in attempts)),
+            "limitation": "Single-host read-only observation, not a multi-host lease or repair service. "
+                "Historical/unexported attempts without a portable seal cannot be byte-verified; "
+                "ok means no detected errors, not complete seal coverage. Missing seals are explicit warnings."}
