@@ -1,5 +1,7 @@
 # House Edge — Agent-specific engineering and scientific rules
 
+> **Current team submission target (Nov 7 update): Sunday Nov 8, 2026, 10:30 AM America/Chicago, user-confirmed. This is NOT verified as a main-round organizer extension.** Released House Edge `RULES.md` still specifies main Sat Nov 7 at 9 PM and adaptation Sun Nov 8 at 11 AM; ask organizer/Form which round 10:30 covers. Keep the read-only CSV+ZIP frozen. Start at `docs/DEADLINE_1030_HANDOFF.md` and `Jaeger_Main/House_Edge/SUBMISSION_FILES_AND_DEADLINES.md` for actual local paths/hashes; `research_runs/` files are NOT on GitHub. **Cursor's new, unclaimed issue #46** is a scoped, independent release witness; prior Cursor #16/#10/#11/#12 are closed. CHAT #8 is actively claimed. No GitHub issue automatically runs an AI process.
+
 > **No external access required:** first read `AGENT_START_HERE.md` in this directory. It contains the five-class task, official scoring, release limits, current owner map and collaboration protocol in full; mirrored copies exist in Codex, Claude, Grok and Cursor skills. Latest named GitHub issue claim wins over a stale snapshot.
 
 
