@@ -1,0 +1,8 @@
+{
+  "written": "2026-11-07 ~23:45 CT, before any walk-forward result; after stackfeat R (n.s., -0.0015) and A (+0.39) were seen",
+  "purpose": "Higher-powered train-only test of the SAME stack_swm model (prereg 0cdfa639), no changes, no validation use.",
+  "design": "Same 4 grouped train folds as champion trial a2c0acc4. For each fold, fit champion (JaegerModel) and stack_swm on the other folds exactly as before. For every held-out episode, create pseudo-cutoffs t = cutoff - j for j = 1..40 shared by all 8 machines (so siblings are also truncated at t); history < t only. Label = observed payout at tick t (machines with tick t missing are predicted but not scored).",
+  "metric": "five-class Brier per scored pseudo-query; mean per episode; condition-averaged overall; paired bootstrap over episodes (4000, seed 0); short_history reported separately.",
+  "caveat": "Pseudo-queries reuse each machine's final query signal for both models (affects both equally; the comparison is paired).",
+  "decision": "If the overall walk-forward interval excludes 0 in favour of stack_swm, treat the pre-registered train gate as met (together with A = +0.39 [+0.03, +0.84]) and propose an issue + PR. If not, report as promising-but-unconfirmed and stop."
+}
