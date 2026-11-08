@@ -119,12 +119,7 @@ class TestCorruptedDataAdversarial(unittest.TestCase):
             self.assertEqual(logs[0].status, "CORRUPTED")
 
     def test_corrupted_binary_garbage_vulnerability(self) -> None:
-        """Adversarial vulnerability probe: non-UTF8 binary garbage raises UnicodeDecodeError.
-        
-        This tests an adversarial edge case: when result.json contains raw non-UTF8 binary garbage,
-        the adapter's `except (json.JSONDecodeError, OSError):` fails to catch `UnicodeDecodeError`
-        (a subclass of ValueError, not JSONDecodeError or OSError), causing an unhandled crash.
-        """
+        """Adversarial robustness: non-UTF8 binary garbage is handled gracefully without crashing."""
         with tempfile.TemporaryDirectory() as tmp_dir:
             trial_dir = Path(tmp_dir) / "trials" / "binary_garbage_02"
             trial_dir.mkdir(parents=True)
@@ -132,8 +127,9 @@ class TestCorruptedDataAdversarial(unittest.TestCase):
 
             res_file.write_bytes(b"\x00\xff\xfe\x01\x02\x03\x80\x90\xaa")
             store = DirectoryStore(tmp_dir)
-            with self.assertRaises(UnicodeDecodeError):
-                store.list_trials()
+            trials = store.list_trials()
+            self.assertEqual(len(trials), 1)
+            self.assertEqual(trials[0].status, "CORRUPTED")
 
     def test_corrupted_registry_json(self) -> None:
         """Verify broken top-level registry.json does not abort scanning."""

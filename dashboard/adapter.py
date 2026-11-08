@@ -272,7 +272,7 @@ class SQLiteStore(ExperimentStore):
                                 cal_bins = res_data.get("calibration")
                                 if res_data.get("mean_brier") is not None:
                                     mean_brier = float(res_data["mean_brier"])
-                            except (json.JSONDecodeError, OSError):
+                            except (json.JSONDecodeError, OSError, UnicodeError, ValueError):
                                 pass
 
                     rec = TrialRecord(
@@ -344,7 +344,7 @@ class SQLiteStore(ExperimentStore):
                         with open(oof_csv, "r", encoding="utf-8") as f:
                             reader = csv.DictReader(f)
                             oof_data = list(reader)
-                    except OSError:
+                    except (json.JSONDecodeError, OSError, UnicodeError, ValueError):
                         pass
 
                 res_json = artifact_dir / "result.json"
@@ -354,7 +354,7 @@ class SQLiteStore(ExperimentStore):
                             res_dict = json.load(f)
                             per_query = res_dict.get("per_query")
                             folds = res_dict.get("folds")
-                    except (json.JSONDecodeError, OSError):
+                    except (json.JSONDecodeError, OSError, UnicodeError, ValueError):
                         pass
 
         detail = TrialDetail(
@@ -463,7 +463,7 @@ class DirectoryStore(ExperimentStore):
                         for t in trials_list:
                             rec = TrialRecord.from_dict(t)
                             records[rec.trial_id] = rec
-            except (json.JSONDecodeError, OSError) as e:
+            except (json.JSONDecodeError, OSError, UnicodeError, ValueError) as e:
                 logger.warning("Error reading registry.json in %s: %s", self.dir_path, e)
 
         # 2. Check for trial directories under self.dir_path / "trials" or directly in self.dir_path
@@ -506,7 +506,7 @@ class DirectoryStore(ExperimentStore):
                                     status = "TIMEOUT"
                                 elif "memory" in str(error_msg).lower():
                                     status = "MEMORY_LIMIT"
-                            except (json.JSONDecodeError, OSError):
+                            except (json.JSONDecodeError, OSError, UnicodeError, ValueError):
                                 pass
 
                         if req_file.exists():
@@ -514,7 +514,7 @@ class DirectoryStore(ExperimentStore):
                                 with open(req_file, "r", encoding="utf-8") as f:
                                     req_data = json.load(f)
                                 config = req_data.get("config", {})
-                            except (json.JSONDecodeError, OSError):
+                            except (json.JSONDecodeError, OSError, UnicodeError, ValueError):
                                 pass
 
                         if res_file.exists():
@@ -529,7 +529,7 @@ class DirectoryStore(ExperimentStore):
                                     cond_losses = ConditionLosses.from_dict(by_c)
                                 per_ep = res_data.get("per_episode")
                                 ep_conds = res_data.get("episode_conditions")
-                            except (json.JSONDecodeError, OSError):
+                            except (json.JSONDecodeError, OSError, UnicodeError, ValueError):
                                 status = "CORRUPTED"
                                 error_msg = "Corrupted or partially written result.json"
 
