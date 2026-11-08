@@ -1,3 +1,5 @@
+> **UPDATE / ACTIVE PROJECT POLICY (Nov 7 2026):** This document is a historical planning or evidence snapshot, NOT the live multi-agent operating agreement. Read [Autonomous Engineer Policy](AGENT_OPERATING_POLICY.md), [Current Scientific Context](AGENT_CONTEXT.md), [Ownership](MULTI_AGENT_OWNERSHIP.md), [GitHub #18](https://github.com/AsvM45/jaegers/issues/18), and current PR/issue comments before implementation. New Grok/Cursor/Claude/Antigravity/CHAT issue claims supersede older owner tables. Main code/runtime truth is the actual local checkout and official organizer kit; never treat this document as a completed test or organizer receipt.
+
 # Codex continuity, context efficiency and local execution
 
 ## Never load entire transcript by default
@@ -16,4 +18,4 @@ Each trial gets: unique content-derived ID, exact code SHA or dirty-tree digest,
 `Current branch/HEAD: ...; dirty paths: ...; approved phase: ...; completed test command and result: ...; champion source/config/score provenance: ...; accepted main submission receipt and hashes (if any): ...; next bounded task: ...; blockers: ...`.
 
 ## Best prompt for *implementation* (only after plan approved)
-`Implement only HE-V5-XX from ../../docs/ISSUE_BACKLOG.md on my approved local working tree. Confirm HEAD/status, follow applicable AGENTS and the relevant skill, preserve current JAEGERS entry and Hitachi, add the smallest tested change, run exact affected checks, record metrics with source/exposure, then STOP. No push/submit/commit.`
+`Implement only HE-V5-XX from ../../docs/ISSUE_BACKLOG.md on my approved local working tree. Confirm HEAD/status, follow applicable AGENTS and the relevant skill, preserve current JAEGERS entry and Hitachi, add the smallest tested change, run exact affected checks, record metrics with source/exposure, then STOP. No main push, PR merge, organizer submission or cloud spend without human approval. Own issue-branch commits/PRs may be permitted under the current `AGENT_OPERATING_POLICY.md`.`

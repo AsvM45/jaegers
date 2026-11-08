@@ -1,20 +1,13 @@
-# JAEGERS implementation handoff
+# JAEGERS — Codex / CHAT current handoff entrypoint
 
-Work in `Jaeger_Main/House_Edge`. Planning is complete; the user authorized sequential
-local implementation, dependency installation, tests, and bounded CPU experiments.
+**Binding rule:** [docs/AGENT_COLLABORATION_PROTOCOL.md](docs/AGENT_COLLABORATION_PROTOCOL.md), including machine-readable claim and required PR metadata. **Current policy:** [docs/AGENT_OPERATING_POLICY.md](docs/AGENT_OPERATING_POLICY.md) + [docs/AGENT_CONTEXT.md](docs/AGENT_CONTEXT.md) + [docs/MULTI_AGENT_OWNERSHIP.md](docs/MULTI_AGENT_OWNERSHIP.md). **Live ownership:** [GitHub #18](https://github.com/AsvM45/jaegers/issues/18), issue #1/#4/#8 claims. Repo has five distinct agent lanes including Grok and Cursor; do not take their implementation work.
 
-Read applicable AGENTS.md, `docs/CURRENT_STATE.md` (live progress), and task-matched
-`.codex/tasks/` / `.agents/skills/` instructions. Recheck actual HEAD/status; preserve
-teammate changes. Source frozen from b78abe75; numerical research requires Python 3.13.
+The original JAEGERS House Edge predictor and `jaegers_entry/` must remain a protected fallback. Core priorities: verified 5-class official development validation score, cold offline code ZIP + CSV and human release gate #4/#5, bounded immutable trial registry #8, adaptation #6. Do not launch broad experiments near a release deadline.
 
-Current milestone and evidence paths are maintained only in CURRENT_STATE.md to avoid
-duplicated status snapshots. `docs/ENGINEERING_SPEC.md` is design guidance, not runtime
-attestation. Never infer observed scores or release acceptance from commit messages.
+CHAT owns the existing shared `research/*.py` and reportedly has local uncommitted `research/CONTRACTS.md`, `research/{registry,sweep,worker,adapters,feature_api}.py` and `chat/house-edge-release-research-core`. These are **reported in issue comments, not guaranteed remote**; inspect local checkout and preserve. Do not overwrite PRs #19–#22, Cursor's #16 or Antigravity's dashboard #13.
 
-Priorities: preserve/reproduce champion, test historical information availability,
-verify cold offline release, then automate grouped research, analytics, and adaptation.
-Keep competition inference independent of cloud services. No upload, push, paid cloud
-resources, or Hitachi edits without explicit authorization.
+Start with applicable root/nested `AGENTS.md`, `docs/CURRENT_STATE.md` (dated), task-specific `.codex/tasks/` and matched `.agents/skills/`. If data conflicts, use official organizer kit and actual local code/test runs. Source hashes and score provenance required; no fake hidden-test result.
 
-## Parallel Antigravity lane
-Antigravity reuses shared `AGENTS.md` and `.agents/skills/`; see `docs/MULTI_AGENT_OWNERSHIP.md`. Its default assignments are **#13 dashboard/analytics** and only later **#14 optional Databricks**. Codex retains ownership of #1, #4, #6 and #8 and the existing `research/*.py` shared implementation files. Coordinate trial-record schema; do not take over Antigravity's `dashboard/` files or edit the same worktree.
+Agent is authorized for scoped local coding, dependencies and bounded tests in its own worktree; own-branch commit/push/draft PR only with issue-level permission. No main merge, organizer submission, paid resources, private data or irreversible action without human approval.
+
+GitHub workflow including Discussions/Projects/Wiki is described in [docs/GITHUB_OPERATING_SYSTEM.md](docs/GITHUB_OPERATING_SYSTEM.md).
