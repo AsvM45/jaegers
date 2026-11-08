@@ -1,0 +1,457 @@
+{
+  "version": 1,
+  "displayName": "JAEGERS House Edge: Governed Model Benchmark & Ablation Dashboard (#86)",
+  "description": "Production AI/BI Lakeview dashboard for governed model benchmarking across provenance-isolated tiers, paired bootstrap CI95 promotion gates, rare 20x payout calibration, and leakage/runtime Pareto diagnostics.",
+  "datasets": [
+    {
+      "name": "ds_provenance_leaderboard",
+      "displayName": "Provenance-Partitioned Model Leaderboard",
+      "queryLines": [
+        "SELECT\n",
+        "  evaluation_provenance,\n",
+        "  study_name,\n",
+        "  model_name,\n",
+        "  model_family,\n",
+        "  fold_scheme,\n",
+        "  split,\n",
+        "  ROUND(mean_brier, 6) AS mean_brier,\n",
+        "  ROUND(official_points, 4) AS official_points,\n",
+        "  ROUND(log_loss, 6) AS log_loss,\n",
+        "  ROUND(ece_calibration, 6) AS ece_calibration,\n",
+        "  ROUND(wall_seconds, 3) AS wall_seconds,\n",
+        "  ROW_NUMBER() OVER (PARTITION BY evaluation_provenance ORDER BY mean_brier ASC, log_loss ASC) AS rank_within_provenance\n",
+        "FROM gold_benchmark_registry\n",
+        "WHERE validation_target_exposure = FALSE\n",
+        "ORDER BY evaluation_provenance ASC, rank_within_provenance ASC\n"
+      ]
+    },
+    {
+      "name": "ds_paired_ci95_gate",
+      "displayName": "Paired Hypothesis CI95 Promotion Gate",
+      "queryLines": [
+        "SELECT\n",
+        "  evaluation_provenance,\n",
+        "  study_name,\n",
+        "  candidate_model,\n",
+        "  reference_model,\n",
+        "  metric_type,\n",
+        "  ROUND(mean_delta, 6) AS mean_delta,\n",
+        "  ROUND(ci95_low, 6) AS ci95_low,\n",
+        "  ROUND(ci95_high, 6) AS ci95_high,\n",
+        "  episodes,\n",
+        "  bootstrap_samples,\n",
+        "  supported_improvement,\n",
+        "  CASE\n",
+        "    WHEN direction = 'lower_is_better' AND ci95_high < 0.0 THEN 'PROMOTE_SUPPORTED'\n",
+        "    WHEN direction = 'higher_is_better' AND ci95_low > 0.0 THEN 'PROMOTE_SUPPORTED'\n",
+        "    WHEN direction = 'lower_is_better' AND ci95_low > 0.0 THEN 'REJECT_SIGNIFICANT_REGRESSION'\n",
+        "    WHEN direction = 'higher_is_better' AND ci95_high < 0.0 THEN 'REJECT_SIGNIFICANT_REGRESSION'\n",
+        "    ELSE 'INCONCLUSIVE_CI_SPANNING_ZERO'\n",
+        "  END AS promotion_decision\n",
+        "FROM gold_benchmark_paired_comparisons\n",
+        "ORDER BY evaluation_provenance ASC, study_name ASC, mean_delta ASC\n"
+      ]
+    },
+    {
+      "name": "ds_rare_20x_and_conditions",
+      "displayName": "Rare 20x Calibration & Condition Breakdown",
+      "queryLines": [
+        "SELECT\n",
+        "  evaluation_provenance,\n",
+        "  study_name,\n",
+        "  model_name,\n",
+        "  model_family,\n",
+        "  ROUND(mean_brier, 6) AS mean_brier,\n",
+        "  ROUND(brier_stable, 6) AS brier_stable,\n",
+        "  ROUND(brier_short_history, 6) AS brier_short_history,\n",
+        "  ROUND(brier_drift, 6) AS brier_drift,\n",
+        "  ROUND(brier_shared_change, 6) AS brier_shared_change,\n",
+        "  ROUND(class_brier_0, 6) AS class_brier_0,\n",
+        "  ROUND(class_brier_1, 6) AS class_brier_1,\n",
+        "  ROUND(class_brier_2, 6) AS class_brier_2,\n",
+        "  ROUND(class_brier_5, 6) AS class_brier_5,\n",
+        "  ROUND(class_brier_20, 6) AS class_brier_20,\n",
+        "  ROUND(mean_pred_p20, 6) AS mean_pred_p20,\n",
+        "  ROUND(mean_target_p20, 6) AS mean_target_p20,\n",
+        "  ROUND(mean_pred_p20 - mean_target_p20, 6) AS rare_20x_prob_bias,\n",
+        "  ROUND(corr_p20, 6) AS corr_p20\n",
+        "FROM gold_benchmark_registry\n",
+        "WHERE brier_stable IS NOT NULL\n",
+        "ORDER BY evaluation_provenance ASC, mean_brier ASC\n"
+      ]
+    },
+    {
+      "name": "ds_governance_and_runtime",
+      "displayName": "Leakage Audit & Runtime Pareto",
+      "queryLines": [
+        "SELECT\n",
+        "  evaluation_provenance,\n",
+        "  study_name,\n",
+        "  model_name,\n",
+        "  model_family,\n",
+        "  validation_target_exposure,\n",
+        "  historical_signal_policy,\n",
+        "  ROUND(mean_brier, 6) AS mean_brier,\n",
+        "  ROUND(official_points, 4) AS official_points,\n",
+        "  ROUND(wall_seconds, 3) AS wall_seconds,\n",
+        "  CASE\n",
+        "    WHEN validation_target_exposure = TRUE THEN 'DISQUALIFIED_IN_SAMPLE_STACKER_EXPOSURE'\n",
+        "    ELSE 'GOVERNANCE_COMPLIANT'\n",
+        "  END AS governance_status\n",
+        "FROM gold_benchmark_registry\n",
+        "ORDER BY evaluation_provenance ASC, wall_seconds ASC\n"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "page_provenance_leaderboard",
+      "displayName": "Provenance-Partitioned Benchmark Leaderboard",
+      "layout": [
+        {
+          "widget": {
+            "name": "title_provenance_leaderboard",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Governed Model Benchmark Leaderboard (Strict Provenance Isolation)\n",
+                "\n",
+                "Models are partitioned strictly by `evaluation_provenance` (`sampled_outcome_group_cv` vs `official_public_validation` vs `dev_exposed_public_validation_sampled_outcome`). Cross-provenance score comparisons are prohibited."
+              ]
+            }
+          },
+          "position": { "x": 0, "y": 0, "width": 12, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "kpi_best_cv_brier",
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "mean_brier",
+                  "displayName": "Best Brier Score",
+                  "aggregation": "MIN"
+                }
+              },
+              "frame": {
+                "title": "Lowest Observed Brier",
+                "description": "Minimum Brier across governed clean trials"
+              }
+            },
+            "datasetName": "ds_provenance_leaderboard"
+          },
+          "position": { "x": 0, "y": 2, "width": 4, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "kpi_best_official_points",
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "official_points",
+                  "displayName": "Best Official Points",
+                  "aggregation": "MAX"
+                }
+              },
+              "frame": {
+                "title": "Highest Official Points",
+                "description": "Peak official public validation score"
+              }
+            },
+            "datasetName": "ds_provenance_leaderboard"
+          },
+          "position": { "x": 4, "y": 2, "width": 4, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "kpi_distinct_candidates",
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "model_name",
+                  "displayName": "Evaluated Candidates",
+                  "aggregation": "COUNT_DISTINCT"
+                }
+              },
+              "frame": {
+                "title": "Distinct Candidate Configurations",
+                "description": "Unique candidate models in benchmark registry"
+              }
+            },
+            "datasetName": "ds_provenance_leaderboard"
+          },
+          "position": { "x": 8, "y": 2, "width": 4, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "table_provenance_leaderboard",
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "evaluation_provenance", "displayName": "Provenance Tier" },
+                  { "fieldName": "rank_within_provenance", "displayName": "Tier Rank" },
+                  { "fieldName": "study_name", "displayName": "Study" },
+                  { "fieldName": "model_name", "displayName": "Candidate Model" },
+                  { "fieldName": "model_family", "displayName": "Family" },
+                  { "fieldName": "mean_brier", "displayName": "Mean Brier" },
+                  { "fieldName": "official_points", "displayName": "Official Points" },
+                  { "fieldName": "log_loss", "displayName": "Log Loss" },
+                  { "fieldName": "ece_calibration", "displayName": "ECE" },
+                  { "fieldName": "wall_seconds", "displayName": "Wall Seconds" }
+                ]
+              },
+              "frame": {
+                "title": "Provenance-Partitioned Candidate Ranking Table"
+              }
+            },
+            "datasetName": "ds_provenance_leaderboard"
+          },
+          "position": { "x": 0, "y": 4, "width": 12, "height": 6 }
+        },
+        {
+          "widget": {
+            "name": "chart_family_brier",
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "model_family", "displayName": "Model Family" },
+                "y": { "fieldName": "mean_brier", "displayName": "Mean Brier", "aggregation": "MIN" },
+                "color": { "fieldName": "evaluation_provenance", "displayName": "Provenance Tier" }
+              },
+              "frame": {
+                "title": "Best Brier by Model Family and Provenance Tier"
+              }
+            },
+            "datasetName": "ds_provenance_leaderboard"
+          },
+          "position": { "x": 0, "y": 10, "width": 12, "height": 5 }
+        }
+      ]
+    },
+    {
+      "name": "page_paired_ci95_gate",
+      "displayName": "Paired CI95 & Ablation Gate",
+      "layout": [
+        {
+          "widget": {
+            "name": "title_paired_gate",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Paired Bootstrap CI95 Hypothesis & Ablation Gate\n",
+                "\n",
+                "Evaluates candidate models against reference baselines using 2,000-sample episode-level paired bootstrap 95% confidence intervals. Only candidates whose 95% CI strictly clears zero (`ci95_high < 0` for Brier, `ci95_low > 0` for Points) pass promotion gating."
+              ]
+            }
+          },
+          "position": { "x": 0, "y": 0, "width": 12, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "chart_paired_deltas",
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "candidate_model", "displayName": "Candidate Model" },
+                "y": { "fieldName": "mean_delta", "displayName": "Mean Paired Delta", "aggregation": "AVG" },
+                "color": { "fieldName": "promotion_decision", "displayName": "Gate Decision" }
+              },
+              "frame": {
+                "title": "Paired Bootstrap Mean Delta by Candidate and Gate Decision"
+              }
+            },
+            "datasetName": "ds_paired_ci95_gate"
+          },
+          "position": { "x": 0, "y": 2, "width": 12, "height": 6 }
+        },
+        {
+          "widget": {
+            "name": "table_paired_gate",
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "evaluation_provenance", "displayName": "Provenance" },
+                  { "fieldName": "study_name", "displayName": "Study" },
+                  { "fieldName": "candidate_model", "displayName": "Candidate" },
+                  { "fieldName": "reference_model", "displayName": "Reference" },
+                  { "fieldName": "metric_type", "displayName": "Metric" },
+                  { "fieldName": "promotion_decision", "displayName": "Gate Decision" },
+                  { "fieldName": "mean_delta", "displayName": "Mean Delta" },
+                  { "fieldName": "ci95_low", "displayName": "95% CI Low" },
+                  { "fieldName": "ci95_high", "displayName": "95% CI High" },
+                  { "fieldName": "episodes", "displayName": "Episodes" }
+                ]
+              },
+              "frame": {
+                "title": "Paired Bootstrap 95% CI Comparison Ledger"
+              }
+            },
+            "datasetName": "ds_paired_ci95_gate"
+          },
+          "position": { "x": 0, "y": 8, "width": 12, "height": 6 }
+        }
+      ]
+    },
+    {
+      "name": "page_rare_20x_calibration",
+      "displayName": "Rare 20x & 5-Class Calibration Diagnostics",
+      "layout": [
+        {
+          "widget": {
+            "name": "title_rare_20x",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Rare 20x Jackpot Calibration & Condition Breakdown\n",
+                "\n",
+                "Tracks per-class Brier contributions (`0x`, `1x`, `2x`, `5x`, `20x`), rare `20x` probability bias (`mean_pred_p20 - mean_target_p20`), correlation (`corr_p20`), and condition-regime Brier losses (`stable`, `short_history`, `drift`, `shared_change`)."
+              ]
+            }
+          },
+          "position": { "x": 0, "y": 0, "width": 12, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "chart_rare_20x_corr",
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": { "fieldName": "model_name", "displayName": "Candidate Model" },
+                "y": { "fieldName": "corr_p20", "displayName": "20x Correlation (corr_p20)", "aggregation": "AVG" },
+                "color": { "fieldName": "evaluation_provenance", "displayName": "Provenance Tier" }
+              },
+              "frame": {
+                "title": "Rare 20x Payout Correlation Across Models"
+              }
+            },
+            "datasetName": "ds_rare_20x_and_conditions"
+          },
+          "position": { "x": 0, "y": 2, "width": 6, "height": 6 }
+        },
+        {
+          "widget": {
+            "name": "chart_condition_drift_brier",
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "model_name", "displayName": "Candidate Model" },
+                "y": { "fieldName": "brier_drift", "displayName": "Drift Condition Brier", "aggregation": "AVG" },
+                "color": { "fieldName": "evaluation_provenance", "displayName": "Provenance Tier" }
+              },
+              "frame": {
+                "title": "Non-Stationary Drift Condition Brier Loss"
+              }
+            },
+            "datasetName": "ds_rare_20x_and_conditions"
+          },
+          "position": { "x": 6, "y": 2, "width": 6, "height": 6 }
+        },
+        {
+          "widget": {
+            "name": "table_rare_20x_and_conditions",
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "evaluation_provenance", "displayName": "Provenance" },
+                  { "fieldName": "study_name", "displayName": "Study" },
+                  { "fieldName": "model_name", "displayName": "Model" },
+                  { "fieldName": "class_brier_0", "displayName": "Brier 0x" },
+                  { "fieldName": "class_brier_1", "displayName": "Brier 1x" },
+                  { "fieldName": "class_brier_2", "displayName": "Brier 2x" },
+                  { "fieldName": "class_brier_5", "displayName": "Brier 5x" },
+                  { "fieldName": "class_brier_20", "displayName": "Brier 20x" },
+                  { "fieldName": "mean_pred_p20", "displayName": "Mean Pred P20" },
+                  { "fieldName": "mean_target_p20", "displayName": "Mean Target P20" },
+                  { "fieldName": "corr_p20", "displayName": "Corr P20" }
+                ]
+              },
+              "frame": {
+                "title": "5-Class Brier Decomposition & Rare 20x Calibration Table"
+              }
+            },
+            "datasetName": "ds_rare_20x_and_conditions"
+          },
+          "position": { "x": 0, "y": 8, "width": 12, "height": 6 }
+        }
+      ]
+    },
+    {
+      "name": "page_leakage_and_runtime",
+      "displayName": "Leakage Audit & Runtime Pareto",
+      "layout": [
+        {
+          "widget": {
+            "name": "title_leakage_runtime",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Anti-Leakage Governance & Runtime Pareto Analysis\n",
+                "\n",
+                "Flags trials with `validation_target_exposure = True` (such as in-sample stacker fitting) and compares wall-clock runtime (`wall_seconds`) against predictive accuracy."
+              ]
+            }
+          },
+          "position": { "x": 0, "y": 0, "width": 12, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "chart_runtime_vs_brier",
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "model_name", "displayName": "Candidate Model" },
+                "y": { "fieldName": "wall_seconds", "displayName": "Wall Seconds", "aggregation": "AVG" },
+                "color": { "fieldName": "governance_status", "displayName": "Governance Status" }
+              },
+              "frame": {
+                "title": "Execution Runtime (Seconds) by Candidate and Governance Status"
+              }
+            },
+            "datasetName": "ds_governance_and_runtime"
+          },
+          "position": { "x": 0, "y": 2, "width": 12, "height": 6 }
+        },
+        {
+          "widget": {
+            "name": "table_governance_audit",
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "evaluation_provenance", "displayName": "Provenance" },
+                  { "fieldName": "governance_status", "displayName": "Governance Status" },
+                  { "fieldName": "study_name", "displayName": "Study" },
+                  { "fieldName": "model_name", "displayName": "Model" },
+                  { "fieldName": "validation_target_exposure", "displayName": "Target Exposure" },
+                  { "fieldName": "historical_signal_policy", "displayName": "Signal Policy" },
+                  { "fieldName": "mean_brier", "displayName": "Mean Brier" },
+                  { "fieldName": "official_points", "displayName": "Official Points" },
+                  { "fieldName": "wall_seconds", "displayName": "Wall Seconds" }
+                ]
+              },
+              "frame": {
+                "title": "Target-Exposure & Historical-Signal Governance Ledger"
+              }
+            },
+            "datasetName": "ds_governance_and_runtime"
+          },
+          "position": { "x": 0, "y": 8, "width": 12, "height": 6 }
+        }
+      ]
+    }
+  ]
+}
