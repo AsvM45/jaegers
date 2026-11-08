@@ -1,0 +1,406 @@
+{
+  "config_sha256": "b3eb1dd8977c51eccbaa5957074232683bd397e94c8bf9d509faf52fca7ad4f8",
+  "evaluation_source": "sampled_outcome_group_cv",
+  "fold_manifest_sha256": "84f2aa3282c5dc8f394bdd06179f0adac2ec3865804dda99285d1b5c7e4ccc0e",
+  "hypotheses": {
+    "drift": "An exact recent window mixed with earlier own history reduces Brier versus all own history.",
+    "local": "Mixing the train machine-type prior with own history reduces Brier versus the type prior alone.",
+    "peer": "Same-episode sibling payouts before cutoff reduce holdout Brier versus own history only.",
+    "peer_drift": "Sibling recent-window payouts plus own drift reduce Brier versus own history only."
+  },
+  "local_minus_global": {
+    "bootstrap": 2000,
+    "ci95": [
+      -0.02318121808073475,
+      -0.0034098452076537613
+    ],
+    "episodes": 24,
+    "mean_delta_brier": -0.01273694542007667,
+    "seed": 0,
+    "supported_improvement": true
+  },
+  "n_fit_queries": 576,
+  "n_holdout_queries": 192,
+  "official_points": null,
+  "status": "MEASURED_NOT_PROMOTED",
+  "supported_improvement_versus_no_peer": [],
+  "validation_target_exposure": false,
+  "variants": {
+    "drift": {
+      "by_condition": {
+        "drift": 0.5119647277320166,
+        "shared_change": 0.646306212768907,
+        "short_history": 0.6322279843342115,
+        "stable": 0.5016690611635695
+      },
+      "class_brier": [
+        0.22350308255572515,
+        0.14341713495878614,
+        0.11157798691261488,
+        0.0781669651548021,
+        0.016376826917747778
+      ],
+      "class_counts": [
+        109,
+        39,
+        24,
+        17,
+        3
+      ],
+      "evaluation_source": "sampled_outcome_group_cv",
+      "log_loss": 1.1159631689388902,
+      "mean_brier": 0.5730419964996761,
+      "official_points": null,
+      "per_episode": {
+        "main-train-e00001": 0.45353177957573554,
+        "main-train-e00002": 0.7627336711585796,
+        "main-train-e00008": 0.3479557098983978,
+        "main-train-e00013": 0.41810574200176676,
+        "main-train-e00015": 0.4923117175864429,
+        "main-train-e00018": 0.7145261128777611,
+        "main-train-e00022": 0.76668524108729,
+        "main-train-e00028": 0.3849301664121979,
+        "main-train-e00032": 0.6668105331108994,
+        "main-train-e00034": 0.8698676089724247,
+        "main-train-e00039": 0.5588600112409636,
+        "main-train-e00048": 0.38235192932532014,
+        "main-train-e00050": 0.7451473277040874,
+        "main-train-e00053": 0.5892816891653867,
+        "main-train-e00055": 0.5981258600306218,
+        "main-train-e00068": 0.6260140180465232,
+        "main-train-e00069": 0.6485041802283151,
+        "main-train-e00073": 0.3521324893788098,
+        "main-train-e00076": 0.36869409577927537,
+        "main-train-e00077": 0.816729519639101,
+        "main-train-e00085": 0.4067630170803006,
+        "main-train-e00088": 0.5656293453293855,
+        "main-train-e00089": 0.6188906379600807,
+        "main-train-e00095": 0.5984255124025603
+      },
+      "predict_seconds": 0.09448689999408089
+    },
+    "global": {
+      "by_condition": {
+        "drift": 0.5167771878775512,
+        "shared_change": 0.6380814479043767,
+        "short_history": 0.6647478313739353,
+        "stable": 0.5425715110065864
+      },
+      "class_brier": [
+        0.23953878497058023,
+        0.14549505414626385,
+        0.11015295850625091,
+        0.08030611004817105,
+        0.01505158686934621
+      ],
+      "class_counts": [
+        109,
+        39,
+        24,
+        17,
+        3
+      ],
+      "evaluation_source": "sampled_outcome_group_cv",
+      "log_loss": 1.126922455366851,
+      "mean_brier": 0.5905444945406124,
+      "official_points": null,
+      "per_episode": {
+        "main-train-e00001": 0.4435229421809161,
+        "main-train-e00002": 0.9326231078937851,
+        "main-train-e00008": 0.37950394100769685,
+        "main-train-e00013": 0.38886087700089034,
+        "main-train-e00015": 0.5225840489599765,
+        "main-train-e00018": 0.8211152279357118,
+        "main-train-e00022": 0.7729149650227503,
+        "main-train-e00028": 0.37342695129956716,
+        "main-train-e00032": 0.6819349671573851,
+        "main-train-e00034": 0.8402273666079721,
+        "main-train-e00039": 0.5182633272922234,
+        "main-train-e00048": 0.38716329857051385,
+        "main-train-e00050": 0.8340800381630844,
+        "main-train-e00053": 0.5843640864652895,
+        "main-train-e00055": 0.5119663090045303,
+        "main-train-e00068": 0.6589519631902753,
+        "main-train-e00069": 0.6933953871312765,
+        "main-train-e00073": 0.28380897096081864,
+        "main-train-e00076": 0.4110585492080967,
+        "main-train-e00077": 0.7867772409865196,
+        "main-train-e00085": 0.4327602800437345,
+        "main-train-e00088": 0.5088726251283792,
+        "main-train-e00089": 0.7012372016672835,
+        "main-train-e00095": 0.7036541960960219
+      },
+      "predict_seconds": 0.10514010000042617
+    },
+    "local": {
+      "by_condition": {
+        "drift": 0.5122528393971563,
+        "shared_change": 0.6277197877853934,
+        "short_history": 0.6496704912213928,
+        "stable": 0.5215870780782006
+      },
+      "class_brier": [
+        0.23186064095066916,
+        0.1439384678792063,
+        0.1073220440954777,
+        0.07961595689822157,
+        0.015070439296961115
+      ],
+      "class_counts": [
+        109,
+        39,
+        24,
+        17,
+        3
+      ],
+      "evaluation_source": "sampled_outcome_group_cv",
+      "log_loss": 1.1045878290674733,
+      "mean_brier": 0.5778075491205358,
+      "official_points": null,
+      "per_episode": {
+        "main-train-e00001": 0.4211590794228841,
+        "main-train-e00002": 0.836719226100314,
+        "main-train-e00008": 0.36697522355231094,
+        "main-train-e00013": 0.3687032596937252,
+        "main-train-e00015": 0.5129476343538865,
+        "main-train-e00018": 0.7855377413366479,
+        "main-train-e00022": 0.759956356852155,
+        "main-train-e00028": 0.38163262274514415,
+        "main-train-e00032": 0.6865185521522668,
+        "main-train-e00034": 0.8406597162277134,
+        "main-train-e00039": 0.538181635995282,
+        "main-train-e00048": 0.35007868861696506,
+        "main-train-e00050": 0.8157722585921379,
+        "main-train-e00053": 0.6088860752180479,
+        "main-train-e00055": 0.5381181573899596,
+        "main-train-e00068": 0.6351231119377843,
+        "main-train-e00069": 0.6857139907964751,
+        "main-train-e00073": 0.27491950350861316,
+        "main-train-e00076": 0.3814850887052291,
+        "main-train-e00077": 0.8007573023641434,
+        "main-train-e00085": 0.4060663180731495,
+        "main-train-e00088": 0.5170377314286537,
+        "main-train-e00089": 0.6688667683368512,
+        "main-train-e00095": 0.6855651354925184
+      },
+      "predict_seconds": 0.09205020000808872
+    },
+    "no_peer": {
+      "by_condition": {
+        "drift": 0.512547432343596,
+        "shared_change": 0.6232333030065137,
+        "short_history": 0.6456790472421656,
+        "stable": 0.5111343918072729
+      },
+      "class_brier": [
+        0.22912258395517615,
+        0.14356202031907103,
+        0.10575598395524682,
+        0.07951538769211829,
+        0.015192567678274796
+      ],
+      "class_counts": [
+        109,
+        39,
+        24,
+        17,
+        3
+      ],
+      "evaluation_source": "sampled_outcome_group_cv",
+      "log_loss": 1.102992432209063,
+      "mean_brier": 0.5731485435998871,
+      "official_points": null,
+      "per_episode": {
+        "main-train-e00001": 0.4040574104876916,
+        "main-train-e00002": 0.7510599807790151,
+        "main-train-e00008": 0.3682537693451279,
+        "main-train-e00013": 0.3534229549331942,
+        "main-train-e00015": 0.5155746509129968,
+        "main-train-e00018": 0.7643733393634462,
+        "main-train-e00022": 0.7530348135507452,
+        "main-train-e00028": 0.39479937977968416,
+        "main-train-e00032": 0.6991067895302165,
+        "main-train-e00034": 0.8480034307079984,
+        "main-train-e00039": 0.568121431398044,
+        "main-train-e00048": 0.32373865949749525,
+        "main-train-e00050": 0.8043042219173906,
+        "main-train-e00053": 0.6378783397416938,
+        "main-train-e00055": 0.5758380914692747,
+        "main-train-e00068": 0.62369830183098,
+        "main-train-e00069": 0.6844279197253964,
+        "main-train-e00073": 0.26979179616507126,
+        "main-train-e00076": 0.35727433601831726,
+        "main-train-e00077": 0.8209336443718981,
+        "main-train-e00085": 0.38629397385481984,
+        "main-train-e00088": 0.5276053616712958,
+        "main-train-e00089": 0.6435787227556775,
+        "main-train-e00095": 0.6803937265898183
+      },
+      "predict_seconds": 0.09661370000685565
+    },
+    "peer": {
+      "by_condition": {
+        "drift": 0.5310580665864493,
+        "shared_change": 0.6104810190973241,
+        "short_history": 0.6314213055562202,
+        "stable": 0.5378824516880562
+      },
+      "class_brier": [
+        0.22900085653322397,
+        0.14776306906210993,
+        0.105834827966664,
+        0.07986494142519494,
+        0.015247015744819735
+      ],
+      "class_counts": [
+        109,
+        39,
+        24,
+        17,
+        3
+      ],
+      "evaluation_source": "sampled_outcome_group_cv",
+      "log_loss": 1.1135997746580284,
+      "mean_brier": 0.5777107107320124,
+      "official_points": null,
+      "per_episode": {
+        "main-train-e00001": 0.415906545476882,
+        "main-train-e00002": 0.7799804364248275,
+        "main-train-e00008": 0.3892257100712887,
+        "main-train-e00013": 0.3571612623008368,
+        "main-train-e00015": 0.4578384656107438,
+        "main-train-e00018": 0.7706602437761814,
+        "main-train-e00022": 0.6989745261837528,
+        "main-train-e00028": 0.4788972176951427,
+        "main-train-e00032": 0.6043677087190578,
+        "main-train-e00034": 0.8306090086681732,
+        "main-train-e00039": 0.5589201217887512,
+        "main-train-e00048": 0.30065102820276324,
+        "main-train-e00050": 0.8029290547319484,
+        "main-train-e00053": 0.6400793887907567,
+        "main-train-e00055": 0.616760857017759,
+        "main-train-e00068": 0.6443984367847096,
+        "main-train-e00069": 0.7398547889279355,
+        "main-train-e00073": 0.27468045737473823,
+        "main-train-e00076": 0.38694710966310675,
+        "main-train-e00077": 0.8439376752269256,
+        "main-train-e00085": 0.4034964492088226,
+        "main-train-e00088": 0.5203343663369044,
+        "main-train-e00089": 0.5987779016534728,
+        "main-train-e00095": 0.7496682969328174
+      },
+      "predict_seconds": 0.09322330000577495
+    },
+    "peer_drift": {
+      "by_condition": {
+        "drift": 0.5442386999365879,
+        "shared_change": 0.6180060825438701,
+        "short_history": 0.6121295439061006,
+        "stable": 0.5220141192498601
+      },
+      "class_brier": [
+        0.22488279499473898,
+        0.1479088653355092,
+        0.10654056897317782,
+        0.07887856869697817,
+        0.015886313408700673
+      ],
+      "class_counts": [
+        109,
+        39,
+        24,
+        17,
+        3
+      ],
+      "evaluation_source": "sampled_outcome_group_cv",
+      "log_loss": 1.1205848866279806,
+      "mean_brier": 0.5740971114091047,
+      "official_points": null,
+      "per_episode": {
+        "main-train-e00001": 0.4474555318511363,
+        "main-train-e00002": 0.7833927621015533,
+        "main-train-e00008": 0.37841994460867695,
+        "main-train-e00013": 0.4402111109690737,
+        "main-train-e00015": 0.4554811624408694,
+        "main-train-e00018": 0.69483066621345,
+        "main-train-e00022": 0.7010659895807744,
+        "main-train-e00028": 0.48012880049930834,
+        "main-train-e00032": 0.6078656369407285,
+        "main-train-e00034": 0.8167099632911743,
+        "main-train-e00039": 0.5536324599969289,
+        "main-train-e00048": 0.33586875622459367,
+        "main-train-e00050": 0.7771676204042001,
+        "main-train-e00053": 0.6373018362075873,
+        "main-train-e00055": 0.5775745757430739,
+        "main-train-e00068": 0.640239155438573,
+        "main-train-e00069": 0.6771456994871915,
+        "main-train-e00073": 0.3302630093449562,
+        "main-train-e00076": 0.39412892952950435,
+        "main-train-e00077": 0.8073718692914349,
+        "main-train-e00085": 0.4108454130228969,
+        "main-train-e00088": 0.536493902009853,
+        "main-train-e00089": 0.6051701319037439,
+        "main-train-e00095": 0.6895657467172286
+      },
+      "predict_seconds": 0.09286959999008104
+    }
+  },
+  "verdict": "Reject as a champion replacement. Paired deltas are sampled-label holdout Brier, not official points.",
+  "versus_no_peer": {
+    "drift": {
+      "bootstrap": 2000,
+      "ci95": [
+        -0.01470299757092141,
+        0.014655974334752162
+      ],
+      "episodes": 24,
+      "mean_delta_brier": -0.00010654710021091923,
+      "seed": 0,
+      "supported_improvement": false
+    },
+    "global": {
+      "bootstrap": 2000,
+      "ci95": [
+        -0.0012483513010871357,
+        0.0380471741896417
+      ],
+      "episodes": 24,
+      "mean_delta_brier": 0.01739595094072539,
+      "seed": 0,
+      "supported_improvement": false
+    },
+    "local": {
+      "bootstrap": 2000,
+      "ci95": [
+        -0.004580332907465741,
+        0.01497520553836651
+      ],
+      "episodes": 24,
+      "mean_delta_brier": 0.004659005520648722,
+      "seed": 0,
+      "supported_improvement": false
+    },
+    "peer": {
+      "bootstrap": 2000,
+      "ci95": [
+        -0.010183108131026028,
+        0.018228059732065104
+      ],
+      "episodes": 24,
+      "mean_delta_brier": 0.004562167132125379,
+      "seed": 0,
+      "supported_improvement": false
+    },
+    "peer_drift": {
+      "bootstrap": 2000,
+      "ci95": [
+        -0.014295074042804187,
+        0.015659522019160824
+      ],
+      "episodes": 24,
+      "mean_delta_brier": 0.000948567809217597,
+      "seed": 0,
+      "supported_improvement": false
+    }
+  }
+}
