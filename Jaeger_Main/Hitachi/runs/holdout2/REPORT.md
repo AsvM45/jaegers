@@ -1,4 +1,4 @@
-# Hitachi control tower — generated test run
+# Hitachi control tower — held-out tests, set 2
 
 100 cases from `tests/holdout2_cases.json`, graded by `tests/run_cases.py` against expected effects computed from the CSVs (not from tower/graph.py).
 
@@ -25,7 +25,7 @@
 | H2-019 | quality_hold | FAIL ⚠ | PASS |  |
 | H2-020 | plant_outage | PASS | PASS |  |
 | H2-021 | supplier_delay | FAIL ⚠ | FAIL ⚠ |  |
-| H2-022 | quality_hold | FAIL ⚠ | FAIL ⚠ |  |
+| H2-022 | quality_hold | FAIL ⚠ | PASS |  |
 | H2-023 | plant_outage | PASS | PASS |  |
 | H2-024 | quality_hold | FAIL ⚠ | PASS |  |
 | H2-025 | quality_hold | FAIL ⚠ | PASS |  |
@@ -63,16 +63,16 @@
 | H2-057 | quality_hold | FAIL ⚠ | FAIL ⚠ |  |
 | H2-058 | compound | FAIL | FAIL |  |
 | H2-059 | quality_hold | PASS | PASS |  |
-| H2-060 | plant_outage | FAIL ⚠ | PASS |  |
+| H2-060 | plant_outage | FAIL ⚠ | FAIL ⚠ |  |
 | H2-061 | plant_outage | FAIL ⚠ | PASS |  |
 | H2-062 | plant_outage | PASS | PASS |  |
-| H2-063 | compound | FAIL ⚠ | FAIL ⚠ |  |
+| H2-063 | compound | FAIL ⚠ | FAIL |  |
 | H2-064 | noise | PASS | PASS |  |
 | H2-065 | unconfirmed | FAIL | FAIL |  |
 | H2-066 | plant_outage | PASS | PASS |  |
 | H2-067 | supplier_delay | PASS | PASS |  |
 | H2-068 | unconfirmed | PASS | PASS |  |
-| H2-069 | compound | FAIL ⚠ | FAIL ⚠ |  |
+| H2-069 | compound | FAIL ⚠ | PASS |  |
 | H2-070 | supplier_delay | PASS | PASS |  |
 | H2-071 | quality_hold | PASS | PASS |  |
 | H2-072 | plant_outage | FAIL ⚠ | PASS |  |
@@ -80,16 +80,16 @@
 | H2-074 | plant_outage | PASS | PASS |  |
 | H2-075 | supplier_delay | FAIL ⚠ | FAIL ⚠ |  |
 | H2-076 | unconfirmed | PASS | PASS |  |
-| H2-077 | quality_hold | FAIL ⚠ | FAIL ⚠ |  |
+| H2-077 | quality_hold | FAIL ⚠ | PASS |  |
 | H2-078 | compound | FAIL | FAIL |  |
 | H2-079 | supplier_delay | PASS | PASS |  |
 | H2-080 | noise | PASS | PASS |  |
 | H2-081 | compound | FAIL | FAIL |  |
 | H2-082 | compound | FAIL | FAIL |  |
 | H2-083 | supplier_delay | FAIL ⚠ | FAIL ⚠ |  |
-| H2-084 | compound | FAIL | FAIL |  |
+| H2-084 | compound | FAIL | PASS |  |
 | H2-085 | noise | PASS | PASS |  |
-| H2-086 | supplier_delay | FAIL ⚠ | FAIL ⚠ |  |
+| H2-086 | supplier_delay | FAIL ⚠ | PASS |  |
 | H2-087 | supplier_delay | FAIL ⚠ | FAIL ⚠ |  |
 | H2-088 | noise | PASS | PASS |  |
 | H2-089 | compound | FAIL ⚠ | PASS |  |
@@ -106,7 +106,7 @@
 | H2-100 | quality_hold | FAIL ⚠ | FAIL ⚠ |  |
 
 **rules**: 50/100 pass
-**qwen3:0.6b**: 66/100 pass
+**qwen3:0.6b**: 70/100 pass
 
 ## Details — rules reader
 
@@ -953,7 +953,7 @@
 
 ### H2-008 — unconfirmed — PASS
 > Hearing Lexington might go down for maintenance soon, no dates.
-- Read as: `unconfirmed` (reader: rules)
+- Read as: `unconfirmed` (reader: qwen3:0.6b)
 - Stats: {"writes": 0, "calls": 1}
 
 ### H2-009 — plant_outage — PASS
@@ -1036,19 +1036,14 @@
 - FAIL: loaners: extra [], missing ['CO-00968', 'CO-00970', 'CO-00973', 'CO-01000', 'CO-01020']
 - warn: only 0 kind(s) of write action (handbook rule 9 wants 3)
 
-### H2-022 — quality_hold — FAIL
+### H2-022 — quality_hold — PASS
 > QA hold: lot LOT-0328 (harness A from Ridgeline Wire) used at the Greensboro plant, builds 4 Mar to Friday the 5th. Issue: wrong thread pitch.
-- Read as: `noise` (reader: rules)
-- Stats: {"writes": 0, "calls": 0, "moved": 0, "rescheduled": 0, "transferred": 0, "expected_moves": 0, "dealers": 0, "loaners": 0, "lots": [], "stop_sale_vins": 0, "owners": 0}
-- FAIL: incident kinds ['none'] expected ['quality_hold']
-- FAIL: lots held [] expected ['LOT-0328']
-- FAIL: stop-sale VINs: got 0 expected 36 (extra [], missing ['AUR0005166', 'AUR0005167', 'AUR0005168'])
-- FAIL: owners notified: got 0 expected 31 (extra [], missing ['C0016', 'C0081', 'C0085'])
-- warn: only 0 kind(s) of write action (handbook rule 9 wants 3)
+- Read as: `quality_hold` (reader: qwen3:0.6b)
+- Stats: {"writes": 52, "calls": 52, "moved": 0, "rescheduled": 0, "transferred": 0, "expected_moves": 0, "dealers": 0, "loaners": 0, "lots": ["LOT-0328"], "stop_sale_vins": 36, "owners": 31}
 
 ### H2-023 — plant_outage — PASS
 > Wacky Wheels Princeton is idle Thu 18 March to 3/22 due to an ammonia leak.
-- Read as: `plant_outage` (reader: rules)
+- Read as: `plant_outage` (reader: qwen3:0.6b)
 - Stats: {"writes": 53, "calls": 53, "moved": 9, "rescheduled": 9, "transferred": 0, "expected_moves": 9, "dealers": 30, "loaners": 14, "lots": [], "stop_sale_vins": 0, "owners": 0}
 
 ### H2-024 — quality_hold — PASS
@@ -1073,7 +1068,7 @@
 
 ### H2-027 — compound — PASS
 > Please quarantine LOT-0217: wrong thread pitch in leather seats. Wacky Wheels Princeton builds 2027-02-22 through 2027-02-24. Separately, somebody thinks the latest driver-assist chip batch could be defective; no lot or dates.
-- Read as: `quality_hold+unconfirmed` (reader: qwen3:0.6b, rules)
+- Read as: `quality_hold+unconfirmed` (reader: qwen3:0.6b, qwen3:0.6b)
 - Stats: {"writes": 82, "calls": 83, "moved": 0, "rescheduled": 0, "transferred": 0, "expected_moves": 0, "dealers": 0, "loaners": 0, "lots": ["LOT-0217"], "stop_sale_vins": 38, "owners": 58}
 
 ### H2-028 — quality_hold — PASS
@@ -1088,7 +1083,7 @@
 
 ### H2-030 — noise — PASS
 > Parking permits must be renewed by the end of the month.
-- Read as: `noise` (reader: rules)
+- Read as: `noise` (reader: qwen3:0.6b)
 - Stats: {"writes": 0, "calls": 0}
 
 ### H2-031 — unconfirmed — FAIL
@@ -1185,7 +1180,7 @@
 
 ### H2-043 — plant_outage — PASS
 > Emergency: a cyberattack on the line controllers at P_NC. Assembly paused 2027-03-17 through next Thursday.
-- Read as: `plant_outage` (reader: qwen3:0.6b)
+- Read as: `plant_outage` (reader: rules)
 - Stats: {"writes": 50, "calls": 50, "moved": 6, "rescheduled": 6, "transferred": 0, "expected_moves": 6, "dealers": 33, "loaners": 11, "lots": [], "stop_sale_vins": 0, "owners": 0}
 
 ### H2-044 — compound — FAIL
@@ -1232,7 +1227,7 @@
 
 ### H2-050 — plant_outage — PASS
 > Wacky Wheels Princeton is idle Tuesday the 23rd to 3/29 due to an ammonia leak.
-- Read as: `plant_outage` (reader: rules)
+- Read as: `plant_outage` (reader: qwen3:0.6b)
 - Stats: {"writes": 78, "calls": 78, "moved": 15, "rescheduled": 8, "transferred": 7, "expected_moves": 15, "dealers": 38, "loaners": 25, "lots": [], "stop_sale_vins": 0, "owners": 0}
 
 ### H2-051 — noise — PASS
@@ -1296,10 +1291,15 @@
 - Read as: `quality_hold` (reader: qwen3:0.6b)
 - Stats: {"writes": 57, "calls": 57, "moved": 0, "rescheduled": 0, "transferred": 0, "expected_moves": 0, "dealers": 0, "loaners": 0, "lots": ["LOT-0128"], "stop_sale_vins": 25, "owners": 38}
 
-### H2-060 — plant_outage — PASS
+### H2-060 — plant_outage — FAIL
 > Heads up: we're losing the Grensboro plant for 3/18 through 23 Mar (a boiler failure).
-- Read as: `plant_outage` (reader: qwen3:0.6b)
-- Stats: {"writes": 76, "calls": 76, "moved": 12, "rescheduled": 12, "transferred": 0, "expected_moves": 12, "dealers": 40, "loaners": 24, "lots": [], "stop_sale_vins": 0, "owners": 0}
+- Read as: `noise` (reader: rules)
+- Stats: {"writes": 0, "calls": 0, "moved": 0, "rescheduled": 0, "transferred": 0, "expected_moves": 12, "dealers": 0, "loaners": 0, "lots": [], "stop_sale_vins": 0, "owners": 0}
+- FAIL: incident kinds ['none'] expected ['plant_outage']
+- FAIL: 12 affected PO(s) not moved: ['PO-0505', 'PO-0506', 'PO-0507', 'PO-0508', 'PO-0509']
+- FAIL: dealer set: extra [], missing ['D01', 'D02', 'D03', 'D04', 'D05']
+- FAIL: loaners: extra [], missing ['CO-02933', 'CO-02940', 'CO-02942', 'CO-02945', 'CO-02948']
+- warn: only 0 kind(s) of write action (handbook rule 9 wants 3)
 
 ### H2-061 — plant_outage — PASS
 > Heads up: we're losing the North Carolina plant for 2027-03-11 through Fri 12 March (a boiler failure).
@@ -1313,13 +1313,19 @@
 
 ### H2-063 — compound — FAIL
 > Lunch and learn on EV battery chemistry in the big conference room today. Separately, heads up: we're losing Jackson for 2027-03-22 through Tuesday the 23rd (a boiler failure).
-- Read as: `noise` (reader: qwen3:0.6b)
-- Stats: {"writes": 0, "calls": 0, "moved": 0, "rescheduled": 0, "transferred": 0, "expected_moves": 6, "dealers": 0, "loaners": 0, "lots": [], "stop_sale_vins": 0, "owners": 0}
-- FAIL: incident kinds ['none'] expected ['plant_outage']
-- FAIL: 6 affected PO(s) not moved: ['PO-0241', 'PO-0242', 'PO-0243', 'PO-0244', 'PO-0245']
-- FAIL: dealer set: extra [], missing ['D02', 'D03', 'D04', 'D06', 'D08']
+- Read as: `plant_outage` (reader: qwen3:0.6b)
+- Stats: {"writes": 27, "calls": 27, "moved": 3, "rescheduled": 3, "transferred": 0, "expected_moves": 6, "dealers": 17, "loaners": 7, "lots": [], "stop_sale_vins": 0, "owners": 0}
+- FAIL: plant_outage fields: outage_start=2027-03-23 (expected 2027-03-22)
+- FAIL: 3 affected PO(s) not moved: ['PO-0241', 'PO-0242', 'PO-0243']
+- FAIL: dealer set: extra [], missing ['D03', 'D12', 'D15', 'D23', 'D24']
+- FAIL: dealer D06 order list: extra [], missing ['CO-01372']
+- FAIL: dealer D16 order list: extra [], missing ['CO-01374']
+- FAIL: dealer D25 order list: extra [], missing ['CO-01356', 'CO-01362', 'CO-01375']
+- FAIL: dealer D27 order list: extra [], missing ['CO-01365']
+- FAIL: dealer D35 order list: extra [], missing ['CO-01363']
+- FAIL: dealer D37 order list: extra [], missing ['CO-01358']
+- FAIL: dealer D44 order list: extra [], missing ['CO-01361']
 - FAIL: loaners: extra [], missing ['CO-01357', 'CO-01361', 'CO-01366', 'CO-01369', 'CO-01371']
-- warn: only 0 kind(s) of write action (handbook rule 9 wants 3)
 
 ### H2-064 — noise — PASS
 > The holiday schedule for next year has been posted.
@@ -1347,15 +1353,10 @@
 - Read as: `unconfirmed` (reader: qwen3:0.6b)
 - Stats: {"writes": 0, "calls": 1}
 
-### H2-069 — compound — FAIL
+### H2-069 — compound — PASS
 > Two notes: 1) P_NC receiving: the harness B truck from Volt won't show 29 Mar. Carrier now quoting Tue 30 March. 2) Heavy rain expected in Seattle, WA through Wednesday.
-- Read as: `noise+noise` (reader: rules, qwen3:0.6b)
-- Stats: {"writes": 0, "calls": 0, "moved": 0, "rescheduled": 0, "transferred": 0, "expected_moves": 1, "dealers": 0, "loaners": 0, "lots": [], "stop_sale_vins": 0, "owners": 0}
-- FAIL: incident kinds ['none'] expected ['supplier_delay']
-- FAIL: 1 affected PO(s) not moved: ['PO-0528']
-- FAIL: dealer set: extra [], missing ['D03', 'D05', 'D06', 'D09', 'D12']
-- FAIL: loaners: extra [], missing ['CO-03146', 'CO-03151']
-- warn: only 0 kind(s) of write action (handbook rule 9 wants 3)
+- Read as: `supplier_delay+noise` (reader: qwen3:0.6b, qwen3:0.6b)
+- Stats: {"writes": 11, "calls": 11, "moved": 1, "rescheduled": 1, "transferred": 0, "expected_moves": 1, "dealers": 8, "loaners": 2, "lots": [], "stop_sale_vins": 0, "owners": 0}
 
 ### H2-070 — supplier_delay — PASS
 > Inbound airbag modules (Sterling) to the Kentucky plant: original delivery March 29th; now arriving 2027-03-31 because of a derailment.
@@ -1394,18 +1395,13 @@
 
 ### H2-076 — unconfirmed — PASS
 > Hearing Princeton might go down for maintenance soon, no dates.
-- Read as: `unconfirmed` (reader: qwen3:0.6b)
+- Read as: `unconfirmed` (reader: rules)
 - Stats: {"writes": 0, "calls": 1}
 
-### H2-077 — quality_hold — FAIL
+### H2-077 — quality_hold — PASS
 > Please quarantine LOT-0077: intermittent shorts in HARN-B. Lexington builds 22 Feb through 2027-02-24.
-- Read as: `noise` (reader: rules)
-- Stats: {"writes": 0, "calls": 0, "moved": 0, "rescheduled": 0, "transferred": 0, "expected_moves": 0, "dealers": 0, "loaners": 0, "lots": [], "stop_sale_vins": 0, "owners": 0}
-- FAIL: incident kinds ['none'] expected ['quality_hold']
-- FAIL: lots held [] expected ['LOT-0077']
-- FAIL: stop-sale VINs: got 0 expected 46 (extra [], missing ['AUR0000934', 'AUR0000936', 'AUR0000937'])
-- FAIL: owners notified: got 0 expected 45 (extra [], missing ['C0188', 'C0369', 'C0435'])
-- warn: only 0 kind(s) of write action (handbook rule 9 wants 3)
+- Read as: `quality_hold` (reader: qwen3:0.6b)
+- Stats: {"writes": 71, "calls": 71, "moved": 0, "rescheduled": 0, "transferred": 0, "expected_moves": 0, "dealers": 0, "loaners": 0, "lots": ["LOT-0077"], "stop_sale_vins": 46, "owners": 45}
 
 ### H2-078 — compound — FAIL
 > First, the Lexington plant is idle the 23rd to Mon 29 March due to a conveyor motor burnout. Second, emergency: a conveyor motor burnout at Wacky Wheels San Antonio. Assembly paused Thursday the 25th through 2027-03-29.
@@ -1446,7 +1442,7 @@
 
 ### H2-079 — supplier_delay — PASS
 > Per SUP-05, HARN-C for P_TX got pushed out a few days: 3/22 -> March 23rd.
-- Read as: `supplier_delay` (reader: rules)
+- Read as: `supplier_delay` (reader: qwen3:0.6b)
 - Stats: {"writes": 9, "calls": 9, "moved": 1, "rescheduled": 1, "transferred": 0, "expected_moves": 1, "dealers": 7, "loaners": 1, "lots": [], "stop_sale_vins": 0, "owners": 0}
 
 ### H2-080 — noise — PASS
@@ -1479,42 +1475,20 @@
 - FAIL: loaners: extra [], missing ['CO-01222', 'CO-01223', 'CO-01242', 'CO-01249', 'CO-01250']
 - warn: only 0 kind(s) of write action (handbook rule 9 wants 3)
 
-### H2-084 — compound — FAIL
+### H2-084 — compound — PASS
 > Two notes: 1) Heads up: we're losing Princeton for 16 Mar through Thursday the 18th (a conveyor motor burnout). 2) Per Quanta, infotainment chip for Wacky Wheels Lexington got pushed out a few days: 3/29 -> Tue 30 March.
 - Read as: `plant_outage+supplier_delay` (reader: qwen3:0.6b, rules)
-- Stats: {"writes": 39, "calls": 39, "moved": 6, "rescheduled": 6, "transferred": 0, "expected_moves": 12, "dealers": 24, "loaners": 9, "lots": [], "stop_sale_vins": 0, "owners": 0}
-- FAIL: plant_outage fields: outage_start=2027-03-18 (expected 2027-03-16)
-- FAIL: 6 affected PO(s) not moved: ['PO-0319', 'PO-0320', 'PO-0321', 'PO-0322', 'PO-0323']
-- FAIL: dealer set: extra [], missing ['D01', 'D03', 'D06', 'D14', 'D21']
-- FAIL: dealer D02 order list: extra [], missing ['CO-01803', 'CO-01811', 'CO-01832']
-- FAIL: dealer D08 order list: extra [], missing ['CO-01780', 'CO-01794', 'CO-01801']
-- FAIL: dealer D20 order list: extra [], missing ['CO-01786', 'CO-01791', 'CO-01793']
-- FAIL: dealer D23 order list: extra [], missing ['CO-01797']
-- FAIL: dealer D25 order list: extra [], missing ['CO-01782', 'CO-01789', 'CO-01790']
-- FAIL: dealer D26 order list: extra [], missing ['CO-01819', 'CO-01826']
-- FAIL: dealer D27 order list: extra [], missing ['CO-01831']
-- FAIL: dealer D31 order list: extra [], missing ['CO-01784', 'CO-01807', 'CO-01821']
-- FAIL: dealer D32 order list: extra [], missing ['CO-01802', 'CO-01817']
-- FAIL: dealer D38 order list: extra [], missing ['CO-01815', 'CO-01816', 'CO-01829']
-- FAIL: dealer D44 order list: extra [], missing ['CO-01785', 'CO-01787', 'CO-01809']
-- FAIL: dealer D45 order list: extra [], missing ['CO-01788', 'CO-01804', 'CO-01810']
-- FAIL: dealer D46 order list: extra [], missing ['CO-01798', 'CO-01830']
-- FAIL: loaners: extra ['CO-00968', 'CO-01836', 'CO-01855'], missing ['CO-01780', 'CO-01781', 'CO-01783', 'CO-01785', 'CO-01786']
+- Stats: {"writes": 74, "calls": 74, "moved": 12, "rescheduled": 12, "transferred": 0, "expected_moves": 12, "dealers": 34, "loaners": 28, "lots": [], "stop_sale_vins": 0, "owners": 0}
 
 ### H2-085 — noise — PASS
 > Reminder: submit March expense reports through the finance portal.
 - Read as: `noise` (reader: qwen3:0.6b)
 - Stats: {"writes": 0, "calls": 0}
 
-### H2-086 — supplier_delay — FAIL
+### H2-086 — supplier_delay — PASS
 > Update on SH-0211 (HARN-C): no longer the 22nd, expect the 25th. Destination the Indiana plant. Shipper Ridgeline Wire.
-- Read as: `noise` (reader: rules)
-- Stats: {"writes": 0, "calls": 0, "moved": 0, "rescheduled": 0, "transferred": 0, "expected_moves": 3, "dealers": 0, "loaners": 0, "lots": [], "stop_sale_vins": 0, "owners": 0}
-- FAIL: incident kinds ['none'] expected ['supplier_delay']
-- FAIL: 3 affected PO(s) not moved: ['PO-0331', 'PO-0334', 'PO-0337']
-- FAIL: dealer set: extra [], missing ['D01', 'D02', 'D03', 'D06', 'D07']
-- FAIL: loaners: extra [], missing ['CO-01893', 'CO-01894', 'CO-01915', 'CO-01939', 'CO-01940']
-- warn: only 0 kind(s) of write action (handbook rule 9 wants 3)
+- Read as: `supplier_delay` (reader: qwen3:0.6b)
+- Stats: {"writes": 28, "calls": 28, "moved": 3, "rescheduled": 3, "transferred": 0, "expected_moves": 3, "dealers": 19, "loaners": 6, "lots": [], "stop_sale_vins": 0, "owners": 0}
 
 ### H2-087 — supplier_delay — FAIL
 > Inbound infotainment chips (Kestrel) to the Texas plant: original delivery March 15th; now arriving March 19th because of a strike at their warehouse.
@@ -1529,7 +1503,7 @@
 
 ### H2-088 — noise — PASS
 > Dealer Montgomery asks for the updated accessory price sheets.
-- Read as: `noise` (reader: qwen3:0.6b)
+- Read as: `noise` (reader: rules)
 - Stats: {"writes": 0, "calls": 0}
 
 ### H2-089 — compound — PASS
@@ -1596,42 +1570,14 @@
 
 ### H2-099 — supplier_delay — FAIL
 > Wacky Wheels Jackson receiving: the HARN-A truck from Ridgeline won't show Monday the 22nd. Carrier now quoting 26 Mar.
-- Read as: `plant_outage` (reader: qwen3:0.6b)
-- Stats: {"writes": 78, "calls": 78, "moved": 15, "rescheduled": 7, "transferred": 1, "expected_moves": 8, "dealers": 39, "loaners": 24, "lots": [], "stop_sale_vins": 0, "owners": 0}
-- FAIL: incident kinds ['plant_outage'] expected ['supplier_delay']
-- FAIL: 7 unaffected PO(s) moved: ['PO-0243', 'PO-0246', 'PO-0249', 'PO-0252', 'PO-0253']
-- FAIL: PO-0251 transferred but P_MS has a free slot on 2027-03-26 (end state)
-- FAIL: dealer set: extra ['D07', 'D10', 'D22', 'D28', 'D29'], missing []
-- FAIL: dealer D02 order list: extra ['CO-01460', 'CO-01469', 'CO-01471'], missing []
-- FAIL: dealer D03 order list: extra ['CO-01427', 'CO-01431', 'CO-01468'], missing []
-- FAIL: dealer D04 order list: extra ['CO-01406'], missing []
-- FAIL: dealer D06 order list: extra ['CO-01426', 'CO-01433', 'CO-01470'], missing []
-- FAIL: dealer D08 order list: extra ['CO-01404', 'CO-01475', 'CO-01483'], missing []
-- FAIL: dealer D12 order list: extra ['CO-01378', 'CO-01455'], missing []
-- FAIL: dealer D13 order list: extra ['CO-01462'], missing []
-- FAIL: dealer D16 order list: extra ['CO-01374', 'CO-01465'], missing []
-- FAIL: dealer D20 order list: extra ['CO-01402', 'CO-01459', 'CO-01473'], missing []
-- FAIL: dealer D23 order list: extra ['CO-01379', 'CO-01453'], missing []
-- FAIL: dealer D24 order list: extra ['CO-01484'], missing []
-- FAIL: dealer D25 order list: extra ['CO-01375', 'CO-01381', 'CO-01463'], missing []
-- FAIL: dealer D26 order list: extra ['CO-01452', 'CO-01454'], missing []
-- FAIL: dealer D27 order list: extra ['CO-01407'], missing []
-- FAIL: dealer D35 order list: extra ['CO-01432'], missing []
-- FAIL: dealer D37 order list: extra ['CO-01405', 'CO-01457'], missing []
-- FAIL: dealer D38 order list: extra ['CO-01408', 'CO-01467'], missing []
-- FAIL: dealer D39 order list: extra ['CO-01458'], missing []
-- FAIL: dealer D42 order list: extra ['CO-01377'], missing []
-- FAIL: dealer D44 order list: extra ['CO-01401', 'CO-01478'], missing []
-- FAIL: dealer D45 order list: extra ['CO-01464', 'CO-01476', 'CO-01481'], missing []
-- FAIL: dealer D46 order list: extra ['CO-01425'], missing []
-- FAIL: loaners: extra ['CO-01374', 'CO-01402', 'CO-01405', 'CO-01427', 'CO-01428'], missing ['CO-01357']
-- warn: PO-0241 rescheduled to 2027-03-29 though P_MS still has a free slot on 2027-03-26
-- warn: PO-0242 rescheduled to 2027-03-29 though P_MS still has a free slot on 2027-03-26
-- warn: PO-0244 rescheduled to 2027-03-30 though P_MS still has a free slot on 2027-03-26
-- warn: PO-0245 rescheduled to 2027-03-31 though P_MS still has a free slot on 2027-03-26
-- warn: PO-0247 rescheduled to 2027-04-01 though P_MS still has a free slot on 2027-03-26
-- warn: PO-0248 rescheduled to 2027-04-01 though P_MS still has a free slot on 2027-03-26
-- warn: PO-0250 rescheduled to 2027-04-02 though P_MS still has a free slot on 2027-03-26
+- Read as: `quality_hold` (reader: qwen3:0.6b)
+- Stats: {"writes": 0, "calls": 1, "moved": 0, "rescheduled": 0, "transferred": 0, "expected_moves": 8, "dealers": 0, "loaners": 0, "lots": [], "stop_sale_vins": 0, "owners": 0}
+- FAIL: incident kinds ['quality_hold'] expected ['supplier_delay']
+- FAIL: escalated although the event is actionable / noise
+- FAIL: 8 affected PO(s) not moved: ['PO-0241', 'PO-0242', 'PO-0244', 'PO-0245', 'PO-0247']
+- FAIL: dealer set: extra [], missing ['D02', 'D03', 'D04', 'D05', 'D06']
+- FAIL: loaners: extra [], missing ['CO-01357', 'CO-01361', 'CO-01366', 'CO-01369', 'CO-01371']
+- warn: only 0 kind(s) of write action (handbook rule 9 wants 3)
 
 ### H2-100 — quality_hold — FAIL
 > Please quarantine LOT-0245: excess solder in BATT-60. P_AL builds Mon 22 February through 24 Feb.

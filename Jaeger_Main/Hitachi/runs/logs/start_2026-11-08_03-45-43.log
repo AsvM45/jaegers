@@ -655,3 +655,37 @@ report: /Users/elijahstewart/Documents/GitHub/jaegers/Jaeger_Main/Hitachi/runs/h
 [llm] H2-097 FAIL unconfirmed     noise
 [llm] H2-098 FAIL supplier_delay  unconfirmed
 [llm] H2-099 FAIL supplier_delay  quality_hold
+[llm] H2-100 FAIL quality_hold    noise
+report: /Users/elijahstewart/Documents/GitHub/jaegers/Jaeger_Main/Hitachi/runs/holdout2/REPORT.md
+  ✓ done in 625.7s
+
+▶ Ontology export
+  $ python -m tower.ontology
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/elijahstewart/Documents/GitHub/jaegers/Jaeger_Main/Hitachi/tower/ontology.py", line 21, in <module>
+    from tower.calendar_util import TODAY  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/elijahstewart/Documents/GitHub/jaegers/Jaeger_Main/Hitachi/tower/calendar_util.py", line 129
+    >>>>>>> 6d988f535f9d6e1bba1f57f0a56b5b367400e612
+            ^
+SyntaxError: invalid decimal literal
+  ✗ failed (exit 1) in 0.2s
+
+▶ The model on its own vs the expected graphs
+  $ python tests/run_model.py
+Traceback (most recent call last):
+  File "/Users/elijahstewart/Documents/GitHub/jaegers/Jaeger_Main/Hitachi/tests/run_model.py", line 37, in <module>
+    import run_cases as rc  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/elijahstewart/Documents/GitHub/jaegers/Jaeger_Main/Hitachi/tests/run_cases.py", line 27, in <module>
+    from tower.agents.coordinator import handle_event  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/elijahstewart/Documents/GitHub/jaegers/Jaeger_Main/Hitachi/tower/agents/coordinator.py", line 33
+    >>>>>>> 6d988f535f9d6e1bba1f57f0a56b5b367400e612
+            ^
+SyntaxError: invalid decimal literal
+  ✗ failed (exit 1) in 0.1s
+
+Could not write runs/TEST_SUMMARY.md: invalid decimal literal (coordinator.py, line 33)

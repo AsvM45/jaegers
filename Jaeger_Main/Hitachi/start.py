@@ -12,7 +12,7 @@ Works from any directory. Steps, in order:
     1. Check for Ollama and the reader model (TOWER_LLM_MODEL, default qwen3:0.6b). If it is not
        running or the model is not pulled, every step uses the rule reader instead, so the reports
        never show rule-reader results under an LLM name.
-    2. python -m tower.run --notify dry-run     -> runs/run1/        (Overview, Event feed)
+    2. python -m tower.run --notify dry-run --overwrite  -> runs/run1/  (Overview, Event feed)
     3. python tests/run_given.py                -> runs/given/       (Test reports, given suite)
     4. python tests/run_cases.py                -> runs/tests/       (Test reports, generated suite)
        python tests/run_cases.py --cases tests/holdout_cases.json --out runs/holdout   (held-out suite)
@@ -126,7 +126,8 @@ def main() -> None:
             print("The LLM steps take a few minutes. Use --rules for a run in seconds.")
 
         steps = [
-            ("Control tower on the 15 events", ["-m", "tower.run", "--reader", tower_reader, "--notify", "dry-run"]),
+            ("Control tower on the 15 events", ["-m", "tower.run", "--reader", tower_reader, "--notify", "dry-run",
+                                                "--overwrite"]),
             ("Given tests (docx TC1–TC6)", ["tests/run_given.py", "--reader", test_reader]),
             ("Generated tests (100 cases)", ["tests/run_cases.py", "--reader", test_reader]),
             ("Held-out tests, set 1 (100 cases)", ["tests/run_cases.py", "--reader", test_reader,

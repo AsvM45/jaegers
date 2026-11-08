@@ -1,0 +1,102 @@
+{
+  "nodes": [
+    "Supplier",
+    "Shipment",
+    "Part",
+    "Plant",
+    "Model",
+    "ProductionOrder",
+    "CustomerOrder",
+    "Dealer",
+    "Customer",
+    "Lot",
+    "Vehicle"
+  ],
+  "edges": [
+    [
+      "Supplier",
+      "ships",
+      "Shipment"
+    ],
+    [
+      "Shipment",
+      "part",
+      "Part"
+    ],
+    [
+      "Shipment",
+      "plant",
+      "Plant"
+    ],
+    [
+      "Part",
+      "BOM",
+      "Model"
+    ],
+    [
+      "Plant",
+      "builds",
+      "ProductionOrder"
+    ],
+    [
+      "Model",
+      "built as",
+      "ProductionOrder"
+    ],
+    [
+      "ProductionOrder",
+      "promised as",
+      "CustomerOrder"
+    ],
+    [
+      "CustomerOrder",
+      "sold by",
+      "Dealer"
+    ],
+    [
+      "CustomerOrder",
+      "placed by",
+      "Customer"
+    ],
+    [
+      "Lot",
+      "installed on",
+      "Vehicle"
+    ],
+    [
+      "ProductionOrder",
+      "finished as",
+      "Vehicle"
+    ],
+    [
+      "Vehicle",
+      "stocked at",
+      "Dealer"
+    ],
+    [
+      "Vehicle",
+      "sold to",
+      "Customer"
+    ]
+  ],
+  "chains": [
+    "Shipment \u2192 Part \u2192 Model (BOM) \u2192 ProductionOrder \u2192 CustomerOrder \u2192 Dealer / Customer",
+    "Plant \u2192 ProductionOrder \u2192 CustomerOrder \u2192 Dealer / Customer",
+    "Lot \u2192 ProductionOrder \u2192 Vehicle \u2192 Dealer / Customer"
+  ],
+  "counts": {
+    "plants": 6,
+    "suppliers": 18,
+    "parts": 20,
+    "models": 6,
+    "bom_edges": 47,
+    "shipments": 364,
+    "lots": 364,
+    "production_orders": 540,
+    "customer_orders": 3263,
+    "customers": 7000,
+    "dealers": 50,
+    "vehicles": 5348,
+    "aliases": 985
+  }
+}
