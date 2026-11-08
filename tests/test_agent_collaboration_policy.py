@@ -90,10 +90,10 @@ class CollaborationTests(unittest.TestCase):
         branch = "copilot/fill-genuine-regression-gaps"
         self.event["pull_request"]["head"]["ref"] = branch
         self.event["pull_request"]["body"] = (
-            "Agent-ID: copilot-he80\\nIssue: #80\\n"
-            "Worktree: GitHub cloud isolated sandbox\\n"
-            "Tests: python -m pytest tests/test_he80_asof_metamorphic.py -q\\n"
-            "Handoff: human review before merge\\n"
+            "Agent-ID: copilot-he80\nIssue: #80\n"
+            "Worktree: GitHub cloud isolated sandbox\n"
+            "Tests: python -m pytest tests/test_he80_asof_metamorphic.py -q\n"
+            "Handoff: human review before merge\n"
         )
         self.paths = ["Jaeger_Main/House_Edge/tests/test_he80_asof_metamorphic.py"]
         self.comments = [{"body": (
@@ -137,7 +137,7 @@ class CollaborationTests(unittest.TestCase):
 
     def test_copilot_duplicate_issue_lines_is_blocked(self):
         self._copilot_case()
-        self.event["pull_request"]["body"] += "Issue: #81\\n"
+        self.event["pull_request"]["body"] += "Issue: #81\n"
         errors = check(self.event, self.paths, self.comments, {})
         self.assertTrue(any("Exactly one canonical Issue" in e for e in errors))
 
