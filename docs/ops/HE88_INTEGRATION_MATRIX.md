@@ -28,6 +28,33 @@ No second trial queue or multi-host SQLite lease is introduced. Existing core
 tests cover cache invalidation, retry/crash recovery and immutable source staging;
 the new reader surfaces incomplete or conflicting evidence instead of repairing it.
 
+### Grok research-result interface
+
+The completed #87 report has aggregate episode errors and declared module/data/
+protocol hashes rather than portable per-query registry records. The additive
+`dashboard/he88_research_sources.py` reader checks those bytes against the
+inspected checkout, verifies train query/episode coverage, fold digest, four
+condition aggregates and mean score, and exposes a separate source-checked summary
+panel. Missing raw probabilities and full dependency/runtime lineage remain
+explicit limitations. Cross-source ranking, reconstructed class calibration and
+registry Pareto comparisons stay unavailable for these aggregate records.
+
+The UI now has a sixth **Research summaries** tab, which also works when no local
+registry exists. It provides candidate and condition charts, retained negative
+results and a separate JSON export. The offline report accepts optional
+`--external-report <HE87 checkout>/research/reports/grok_he87_results.json`, adds
+the two source-checked summary charts and separate `external_summary.csv`/JSON,
+and hashes the adapter source. It does not modify Grok's files or relabel these
+summaries as full registry trials. The existing ten full-evidence charts remain.
+
+Actual adapter check against Grok source `a301483bb975888bd39bee7b17ca2d1d7c040b3b`:
+**34 candidate summaries / 96 episodes / 768 queries**, content digest
+`2494eb7d345fdb3b8a57d7e45f05f812845ed248aca2668200c76b75f26341a4`.
+The independent integration review also reproduced all 34 Brier scores and all
+episode errors exactly in **273.2914s** at that source. No public validation peeks.
+Adapter + dashboard tests: **19 passed in 7.85s**. Final broader regression counts
+and final pushed SHA are recorded on PR #92.
+
 ## Reproduce
 
 Use CPython 3.13 and a fresh isolated environment at repository root:

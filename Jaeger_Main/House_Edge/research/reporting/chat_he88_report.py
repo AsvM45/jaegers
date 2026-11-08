@@ -11,8 +11,9 @@ from ..analysis.chat_he88_evidence import audit_registry, calibration, compariso
 from ..common import digest, file_hash, write_json
 
 
-def export_report(registry_json, out, baseline_id=None, audit_root=None):
+def export_report(registry_json, out, baseline_id=None, audit_root=None, external_report=None):
     from dashboard.he88_views import build_figures
+    from dashboard.he88_research_sources import load_he87_summary, summary_figures
     trials = load_export(registry_json)
     rows = trial_rows(trials)
     out = Path(out)
@@ -44,10 +45,13 @@ def export_report(registry_json, out, baseline_id=None, audit_root=None):
                "metric_source": "sampled_outcome_group_cv", "official_points": None,
                "trials": rows, "comparisons": comparisons, "diagnostics": diagnostic,
                "attempt_audit": audit_registry(audit_root) if audit_root else None,
+               "external_summary": load_he87_summary(external_report) if external_report else None,
                "limitations": ["Development-informed design; exploratory unadjusted intervals and multiple-comparison selection effects.",
                    "Trial wall time includes training/evaluation/setup; inference latency is unmeasured.",
                    "Raw feature distributions are unavailable; feature drift is unmeasured.",
                    "Public validation, MLflow and hidden-test metrics are outside this train-only report."]}
+    if external_report:
+        payload["reporting_source_sha256"]["external_reader"] = file_hash(load_he87_summary.__code__.co_filename)
     payload["content_sha256"] = digest(payload)
     charts, includes_js = [], True
     for context, group in sorted(groups.items()):
@@ -61,6 +65,12 @@ def export_report(registry_json, out, baseline_id=None, audit_root=None):
                                          div_id="he88-"+context[:12]+"-"+name))
             includes_js = False
         charts.extend("<p>"+html.escape(b)+"</p>" for b in blockers)
+    if payload["external_summary"]:
+        charts.append("<h2>Source-checked HE-87 aggregate research</h2>")
+        charts.extend("<p>"+html.escape(w)+"</p>" for w in payload["external_summary"]["warnings"])
+        for name, figure in summary_figures(payload["external_summary"]).items():
+            charts.append(figure.to_html(full_html=False, include_plotlyjs=includes_js, div_id="he88-external-"+name))
+            includes_js = False
     fields = list(rows[0]) if rows else ["trial_id", "status", "mean_brier"]
     csv_text = io.StringIO()
     writer = csv.DictWriter(csv_text, fieldnames=fields, lineterminator="\n")
@@ -82,6 +92,13 @@ h1{margin-bottom:8px}p{line-height:1.6}table{border-collapse:collapse;width:100%
     write_json(out/"comparison.json", payload)
     (out/"comparison.csv").write_text(csv_text.getvalue(), encoding="utf-8")
     (out/"index.html").write_text(page, encoding="utf-8")
+    if payload["external_summary"]:
+        external = payload["external_summary"]
+        write_json(out/"external_summary.json", external)
+        with (out/"external_summary.csv").open("w", encoding="utf-8", newline="") as stream:
+            writer = csv.DictWriter(stream, fieldnames=list(external["rows"][0]))
+            writer.writeheader()
+            writer.writerows(external["rows"])
     lines = ["# HE-88 local research evidence", "", "Metric: train-only grouped sampled-label Brier; no official points.", "",
              "| Family | Status | Brier | Trial wall seconds |", "|---|---|---:|---:|"]
     lines += [f"| {r['family']} | {r['status']} | {r['mean_brier']} | {r['wall_seconds']} |" for r in rows]
@@ -96,8 +113,9 @@ def main(argv=None):
     parser.add_argument("--out", required=True)
     parser.add_argument("--baseline")
     parser.add_argument("--audit-root", help="Optional original single-host registry for all-attempt audit")
+    parser.add_argument("--external-report", help="Optional HE-87 aggregate report; hashes checked against its checkout")
     args = parser.parse_args(argv)
-    result = export_report(args.registry, args.out, args.baseline, args.audit_root)
+    result = export_report(args.registry, args.out, args.baseline, args.audit_root, args.external_report)
     print(json.dumps({"content_sha256": result["content_sha256"], "trials": len(result["trials"]), "out": args.out}))
 
 

@@ -16,10 +16,33 @@ import pandas as pd
 import streamlit as st
 
 from dashboard.he88_views import build_figures, filter_trials
+from dashboard.he88_research_sources import load_he87_summary, summary_figures
 from Jaeger_Main.House_Edge.research.analysis.chat_he88_evidence import (
     CONDITIONS, audit_registry, calibration, load_export, trial_rows,
 )
 from Jaeger_Main.House_Edge.research.common import digest
+
+
+def render_external():
+    st.subheader("Source-checked research summaries")
+    default = REPO/"Jaeger_Main/House_Edge/research/reports/grok_he87_results.json"
+    external = st.text_input("HE-87 aggregate report (optional)", str(default) if default.is_file() else "")
+    if not external:
+        st.caption("Select a completed HE-87 report to inspect aggregate evidence alongside the registry.")
+        return
+    try:
+        summary = load_he87_summary(external)
+        st.caption("Source report SHA-256: " + summary["source_content_sha256"])
+        st.warning("Aggregate evidence: raw per-query probabilities and full dependency/runtime lineage are unavailable for registry comparisons.")
+        st.dataframe(pd.DataFrame(summary["rows"]), hide_index=True)
+        for name, figure in summary_figures(summary).items():
+            st.plotly_chart(figure, width="stretch", key="he88-external-"+name)
+        with st.expander("Evidence limits and retained negative results"):
+            st.json({"warnings": summary["warnings"], "negative_results": summary["negative_results"]})
+        st.download_button("Download research summary JSON", json.dumps(summary, sort_keys=True, indent=2),
+                           file_name="he88_external_summary.json", mime="application/json")
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        st.error("External evidence unavailable: " + str(exc))
 
 
 def main():
@@ -30,6 +53,7 @@ def main():
     source = st.sidebar.text_input("Portable registry JSON", default)
     if not Path(source).is_file():
         st.info("No registry export at this path. Select an existing v1 portable export to inspect real runs.")
+        render_external()
         return
     try:
         trials = load_export(source)
@@ -85,7 +109,7 @@ def main():
     except ValueError as exc:
         st.error(str(exc))
         figures, blockers = {}, []
-    tabs = st.tabs(["Performance and cost", "Paired uncertainty", "Features and parameters", "Calibration", "Provenance and audit"])
+    tabs = st.tabs(["Performance and cost", "Paired uncertainty", "Features and parameters", "Calibration", "Provenance and audit", "Research summaries"])
     slots = {"status": 0, "trajectory": 0, "pareto": 0, "conditions": 0, "paired_ci": 1,
              "ablations": 2, "parameters": 2, "calibration": 3, "probability_diagnostics": 3, "condition_residuals": 3}
     for name, figure in figures.items():
@@ -119,6 +143,8 @@ def main():
                 st.dataframe(pd.DataFrame(audit["attempts"]), hide_index=True)
             except (OSError, ValueError, sqlite3.Error) as exc:
                 st.error(str(exc))
+    with tabs[5]:
+        render_external()
     payload = {"schema": "jaegers.he88_filtered_summary", "schema_version": 1, "trials": trial_rows(selected)}
     payload["content_sha256"] = digest(payload)
     st.download_button("Download filtered CSV", frame.to_csv(index=False), file_name="he88_filtered_summary.csv", mime="text/csv")

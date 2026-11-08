@@ -98,4 +98,4 @@ def test_streamlit_startup_and_real_contract_rendering(tmp_path, monkeypatch):
     rendered = AppTest.from_file(str(root/"dashboard/he88_app.py")).run(timeout=30)
     assert not rendered.exception
     assert len(rendered.metric) == 3
-    assert len(rendered.tabs) == 5
+    assert len(rendered.tabs) == 6
