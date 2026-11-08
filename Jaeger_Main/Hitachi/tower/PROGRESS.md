@@ -48,13 +48,11 @@ The graph answers who is affected. Specialists turn that into tool calls. The co
 - Supply Chain Planner is in `tower/agents/supply_chain.py`. Checked through `Enterprise`: the Princeton camera delay moves 3 orders, all accepted; the Lexington outage moves 6, all accepted. Filling the home plant turns those 6 into transfers, and the tools accept them.
 - The coordinator read all 15 events and wrote `runs/run1/action_log.jsonl` (768 calls, all accepted) and `runs/run1/traces.json`.
 - A handbook check on that log found no mismatches: noise has no calls, the two rumors only escalate, every moved order is inside the incident window, each dealer is notified once with exactly its affected orders, loaners stay inside tier and pool limits, and the three quality lots are LOT-0130, LOT-0017, and LOT-0191, each matching the stated build window.
-- The UI is still writing.
+- The control-tower UI is in `tower/ui/` (Python) and `web/` (Node). See `web/README.md`.
 
-## Not started
+## Still to do
 
-- A full run of the 15 events into `runs/run1/action_log.jsonl`
-- Review of that log against the handbook, event by event
-- Demo path: event arrives, graph path, agents act, audit trail
+- Demo video or screenshots: an event arrives, its graph path, the agents act, the audit trail.
 
 ## Channels — Gmail, Outlook, Slack, Teams and more
 
@@ -78,3 +76,12 @@ General reader and policy fixes; no case or event ids are used anywhere.
 - A rumor section inside a real event is also escalated.
 - When the model's fields differ from the rule check, the rule reading is used.
 - E-01..E-15 actions are unchanged: 768 calls, 0 failed, audit PROBLEMS 0.
+
+## Step 5 — Submission pieces
+
+- **Official tool path.** `python -m tower.run --server http://127.0.0.1:8000` sends every call to `enterprise_server.py` (`GET /events`, `POST /act`). The server writes the scored `runs/run1/action_log.jsonl`. It matches the in-process log byte for byte: 768 calls, 0 failed.
+- **Ontology export.** `python -m tower.ontology` writes `runs/ontology/` (`ontology.md` with a Mermaid diagram, `ontology.json`, `ontology.dot`): 11 node types and 16 edge types, with counts from the CSVs.
+- **Failed calls.** `python tests/test_failures.py`. One failed write is logged and not retried, and the rest still run. If every write fails, the event is escalated once. Noise makes no calls.
+- **Given tests.** `python tests/run_given.py` gives 15/15 against TC1–TC6. `tests/given_cases.json` is a test fixture that the tower never reads.
+- **Design card.** `DESIGN_CARD.md`.
+

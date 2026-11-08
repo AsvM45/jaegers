@@ -97,9 +97,15 @@ def ontology_payload():
         if _ontology is None:
             from tower.graph import WorldGraph
 
+            graph = WorldGraph()
             _ontology = {
-                "counts": WorldGraph().counts(),
+                "counts": graph.counts(),
                 "relationships": list(RELATIONSHIPS),
+                # Plant list for the dashboard's plant-network map.
+                "plants": [
+                    {k: p[k] for k in ("plant_id", "name", "city", "slots_per_day")}
+                    for p in graph.plants.values()
+                ],
             }
         return _ontology
 

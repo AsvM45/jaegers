@@ -5,6 +5,7 @@
   "scripts": {
     "start": "npm --prefix Jaeger_Main/Hitachi/web start",
     "web": "npm --prefix Jaeger_Main/Hitachi/web start",
-    "bundle": "npm --prefix Jaeger_Main/Hitachi/web run bundle"
+    "bundle": "npm --prefix Jaeger_Main/Hitachi/web run bundle",
+    "postinstall": "npm --prefix Jaeger_Main/Hitachi/web install"
   }
 }

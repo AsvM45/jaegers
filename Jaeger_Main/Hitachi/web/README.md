@@ -1,12 +1,16 @@
 # Control tower web app (Node.js)
 
-One Node server, no npm dependencies, Node 18+.
+One Node server, Node 18+. Its only dependency is `three` (served locally at `/vendor/three/` for the 3D knowledge network, so nothing loads from a CDN).
 
 | Path | What |
 |---|---|
 | `/` | Control-tower view (`tower/ui/index.html`) |
 | `/tests` | Test-case viewer (`web/public/tests.html`) |
 | `/api/events`, `/api/traces`, `/api/log`, `/api/outbox`, `/api/ontology`, `/api/channels` | Same JSON as `tower/ui/server.py` |
+| `/api/reports` | Every run folder under `runs/` (a "report") with summary stats; the run endpoints take `?run=<id>` |
+| `POST /api/reports/meta` | Save a report's title, notes and star (`runs/<id>/report_meta.json`) |
+| `POST /api/reports/delete`, `/restore`, `/purge` | Move a report to `runs/.trash/`, bring it back, or erase it from the trash |
+| `/api/testcases?run=tests/<x>` | Test cases with their expected outcome and graded result |
 | `/api/tests` | Test results (`runs/tests/viewer_data.json`) |
 | `/healthz` | Health check |
 
@@ -14,6 +18,7 @@ One Node server, no npm dependencies, Node 18+.
 
 ```bash
 cd Jaeger_Main/Hitachi/web
+npm install               # once: installs three.js
 npm start                 # http://localhost:8080  (PORT=3000 npm start for another port)
 ```
 
@@ -43,6 +48,7 @@ server uses `web/data/` whenever it exists. Re-run it after every new run.
 |---|---|---|
 | `PORT` | `8080` | Listen port |
 | `HOST` | `0.0.0.0` | Listen address (`127.0.0.1` for local-only) |
-| `TOWER_ROOT` | `web/data` if bundled, else `..` | Folder holding `Data/`, `runs/`, `tower/` |
+| `TOWER_ROOT` | `..` (the Hitachi folder), else `web/data` when `web/` is deployed alone | Folder holding `Data/`, `runs/`, `tower/` |
 | `TOWER_RUN_DIR` | `runs/run1` | Run shown at `/`, relative to the root (e.g. `runs/live`) |
+| `TOWER_READONLY` | off | `1` blocks editing and deleting reports (use for public deploys) |
 | `TOWER_CHANNELS_CONFIG` | `tower/channels/channels.json` | Channel config; only names and kinds are exposed |

@@ -10,5 +10,8 @@
   "scripts": {
     "start": "node server.js",
     "bundle": "node scripts/bundle.js"
+  },
+  "dependencies": {
+    "three": "0.170.0"
   }
 }

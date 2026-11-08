@@ -36,7 +36,7 @@
       }
     ],
     "summary": "The message reports a supplier delay of leather seat set (SEAT-LEA) from Meridian Seating (SUP-04) into Wacky Wheels Lexington (P_KY) from 2027-03-15 until 2027-03-17 on shipment SH-0090. Affected records: 2 production orders and 18 customer orders. The tower completed 2 reschedules, 15 dealer notices, and 6 loaner assignments.",
-    "seconds": 4.8
+    "seconds": 2.0
   },
   {
     "id": "T-02",
@@ -75,7 +75,7 @@
       }
     ],
     "summary": "The message reports a supplier delay of heavy-duty wiring harness (HARN-B) from Volt Harness Systems (SUP-05) into Wacky Wheels Greensboro (P_NC) from 2027-03-22 until 2027-03-24 on shipment SH-0331. Affected records: 2 production orders and 19 customer orders. The tower completed 2 reschedules, 15 dealer notices, and 6 loaner assignments.",
-    "seconds": 2.1
+    "seconds": 2.3
   },
   {
     "id": "T-03",
@@ -114,7 +114,7 @@
       }
     ],
     "summary": "The message reports a supplier delay of sliding door module (DOOR-SLIDE) from Redwood Door Systems (SUP-10) into Wacky Wheels Huntsville (P_AL) from 2027-03-15 until 2027-03-18 on shipment SH-0270. Affected records: 3 production orders and 25 customer orders. The tower completed 3 reschedules, 17 dealer notices, and 8 loaner assignments.",
-    "seconds": 2.1
+    "seconds": 2.4
   },
   {
     "id": "T-04",
@@ -153,7 +153,7 @@
       }
     ],
     "summary": "The message reports a supplier delay of compact wiring harness (HARN-C) from Ridgeline Wire (SUP-16) into Wacky Wheels Lexington (P_KY) from 2027-03-22 until 2027-03-29 on shipment SH-0083. Affected records: 5 production orders and 48 customer orders. The tower completed 5 reschedules, 31 dealer notices, and 10 loaner assignments.",
-    "seconds": 2.3
+    "seconds": 2.7
   },
   {
     "id": "T-05",
@@ -192,7 +192,7 @@
       }
     ],
     "summary": "The message reports a supplier delay of infotainment chip (CHIP-IVI) from Quanta Silicon (SUP-12) into Wacky Wheels Greensboro (P_NC) from 2027-03-15 until 2027-04-01 on shipment SH-0318. Affected records: 26 production orders and 238 customer orders. The tower completed 4 reschedules, 22 transfers, 49 dealer notices, and 35 loaner assignments.",
-    "seconds": 3.2
+    "seconds": 4.9
   },
   {
     "id": "T-06",
@@ -216,7 +216,7 @@
       }
     ],
     "summary": "The message reads like an incident (will now arrive) but is not specific enough to act on: it names SH-9999, which is not in the company records. It is escalated for a human to confirm. No operational records were changed. The tower escalated the report and wrote nothing else.",
-    "seconds": 3.0
+    "seconds": 3.7
   },
   {
     "id": "T-07",
@@ -252,7 +252,7 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels Jackson (P_MS) from 2027-03-15 through 2027-03-16. Affected records: 6 production orders and 55 customer orders. The tower completed 6 reschedules, 31 dealer notices, and 11 loaner assignments.",
-    "seconds": 3.9
+    "seconds": 4.2
   },
   {
     "id": "T-08",
@@ -288,7 +288,7 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels Greensboro (P_NC) from 2027-03-10 through 2027-03-11. Affected records: 6 production orders and 54 customer orders. The tower completed 6 reschedules, 23 dealer notices, and 9 loaner assignments.",
-    "seconds": 2.2
+    "seconds": 2.9
   },
   {
     "id": "T-09",
@@ -324,7 +324,7 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels Greensboro (P_NC) from 2027-03-29 through 2027-04-02. Affected records: 15 production orders and 138 customer orders. The tower completed 15 transfers, 41 dealer notices, and 24 loaner assignments.",
-    "seconds": 3.0
+    "seconds": 3.5
   },
   {
     "id": "T-10",
@@ -360,7 +360,7 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels Princeton (P_IN) from 2027-03-09 through 2027-03-09. Affected records: 3 production orders and 25 customer orders. The tower completed 3 reschedules, 15 dealer notices, and 3 loaner assignments.",
-    "seconds": 1.9
+    "seconds": 4.9
   },
   {
     "id": "T-11",
@@ -401,7 +401,7 @@
       }
     ],
     "summary": "The message reports a quality hold on lot LOT-0091 at Wacky Wheels Lexington (P_KY) for builds 2027-03-02 through 2027-03-03. Affected records: 63 quality records. The tower completed 1 lot hold, 18 stop-sales, and 36 customer notices.",
-    "seconds": 3.5
+    "seconds": 4.8
   },
   {
     "id": "T-12",
@@ -441,7 +441,7 @@
       }
     ],
     "summary": "The message reports a quality hold on sliding door module (DOOR-SLIDE) at Wacky Wheels Huntsville (P_AL) for builds 2027-02-25 through 2027-03-01. Affected records: 91 quality records. The tower completed 1 lot hold, 21 stop-sales, and 51 customer notices.",
-    "seconds": 3.6
+    "seconds": 4.0
   },
   {
     "id": "T-13",
@@ -482,7 +482,7 @@
       }
     ],
     "summary": "The message reports a quality hold on leather seat set (SEAT-LEA) at Wacky Wheels Lexington (P_KY) for builds 2027-02-22 through 2027-03-01. Affected records: 177 quality records. The tower completed 2 lot holds, 33 stop-sales, and 97 customer notices.",
-    "seconds": 2.4
+    "seconds": 3.3
   },
   {
     "id": "T-14",
@@ -506,7 +506,7 @@
       }
     ],
     "summary": "The message reads like an incident (quality bulletin, on hold, defect) but is not specific enough to act on: it names LOT-0999, which is not in the company records. It is escalated for a human to confirm. No operational records were changed. The tower escalated the report and wrote nothing else.",
-    "seconds": 2.5
+    "seconds": 2.3
   },
   {
     "id": "T-15",
@@ -530,7 +530,7 @@
       }
     ],
     "summary": "\"Typhoon warning issued for Okinawa this weekend; ferries cancelled\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
-    "seconds": 1.8
+    "seconds": 2.2
   },
   {
     "id": "T-16",
@@ -554,7 +554,7 @@
       }
     ],
     "summary": "\"Reminder: the 2028 accessory price list goes live on April 15. Please update your dealer price books\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
-    "seconds": 1.9
+    "seconds": 2.0
   },
   {
     "id": "T-17",
@@ -578,7 +578,7 @@
       }
     ],
     "summary": "\"Dealer Tulsa, OK asks whether the Summit can be ordered with leather seats and surround-view cameras\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
-    "seconds": 2.5
+    "seconds": 3.0
   },
   {
     "id": "T-18",
@@ -602,7 +602,7 @@
       }
     ],
     "summary": "\"FYI the cafeteria at Lexington is closed this Friday for a private event. Bring lunch\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
-    "seconds": 1.8
+    "seconds": 2.3
   },
   {
     "id": "T-19",
@@ -626,7 +626,7 @@
       }
     ],
     "summary": "The report is not safe to act on because it is unconfirmed (no dates, can't confirm, heard) and does not name a specific shipment, outage, or lot to change. No operational records were changed. The tower escalated the report and wrote nothing else.",
-    "seconds": 1.7
+    "seconds": 1.9
   },
   {
     "id": "T-20",
@@ -697,7 +697,7 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels Huntsville (P_AL) from 2027-03-16 through 2027-03-18 and a supplier delay of 60 kWh battery pack (BATT-60) from Lumen Cells (SUP-18) into Wacky Wheels Huntsville (P_AL) from 2027-03-15 until 2027-03-19 on shipment SH-0246. Affected records: 10 production orders and 93 customer orders. The tower completed 10 reschedules, 34 dealer notices, and 26 loaner assignments.",
-    "seconds": 4.6
+    "seconds": 5.1
   },
   {
     "id": "T-22",
@@ -746,7 +746,7 @@
       }
     ],
     "summary": "The message reports a quality hold on lot LOT-0143 at Wacky Wheels Jackson (P_MS) for builds 2027-03-02 through 2027-03-03 and a plant outage at Wacky Wheels Jackson (P_MS) from 2027-03-22 through 2027-03-23. Affected records: 6 production orders, 58 quality records, and 54 customer orders. The tower completed 6 reschedules, 1 lot hold, 19 stop-sales, 34 customer notices, 29 dealer notices, and 14 loaner assignments.",
-    "seconds": 6.0
+    "seconds": 7.0
   },
   {
     "id": "T-23",
@@ -787,7 +787,7 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels Princeton (P_IN) from 2027-03-17 through 2027-03-18 and an unconfirmed report that is not safe to act on. Affected records: 6 production orders and 52 customer orders. The tower completed 6 reschedules, 30 dealer notices, and 18 loaner assignments.",
-    "seconds": 4.2
+    "seconds": 5.3
   },
   {
     "id": "T-24",
@@ -831,7 +831,7 @@
       }
     ],
     "summary": "The message reports a note that is not an operational disruption and a supplier delay of heavy-duty wiring harness (HARN-B) from Atlas Wire and Cable (SUP-07) into Wacky Wheels Princeton (P_IN) from 2027-03-22 until 2027-03-24 on shipment SH-0207. Affected records: 2 production orders and 15 customer orders. The tower completed 2 reschedules, 11 dealer notices, and 3 loaner assignments.",
-    "seconds": 4.8
+    "seconds": 4.0
   },
   {
     "id": "T-25",
@@ -867,6 +867,6 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-15 through 2027-03-16. Affected records: 6 production orders and 57 customer orders. The tower completed 6 reschedules, 29 dealer notices, and 17 loaner assignments.",
-    "seconds": 2.4
+    "seconds": 2.7
   }
 ]

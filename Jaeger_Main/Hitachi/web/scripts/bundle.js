@@ -12,13 +12,17 @@ const path = require('node:path');
 const WEB = path.join(__dirname, '..');
 const SRC = path.join(WEB, '..');
 const DEST = path.join(WEB, 'data');
-const run = process.env.TOWER_RUN_DIR || path.join('runs', 'run1');
 
-const files = [
-  'tower/ui/index.html',
-  'runs/tests/viewer_data.json',
-  ...['events.json', 'traces.json', 'action_log.jsonl', 'outbox.jsonl'].map((f) => path.join(run, f)),
-];
+const files = ['tower/ui/index.html', 'runs/tests/viewer_data.json', 'tests/cases.json'];
+// Every report folder under runs/ (two levels deep), so the Reports page works after deploy.
+const RUN_FILES = ['events.json', 'traces.json', 'action_log.jsonl', 'outbox.jsonl', 'report_meta.json', 'results.json'];
+const walk = (rel, depth) => {
+  const abs = path.join(SRC, rel);
+  if (!fs.existsSync(abs)) return;
+  RUN_FILES.forEach((f) => { if (fs.existsSync(path.join(abs, f))) files.push(path.join(rel, f)); });
+  if (depth < 2) fs.readdirSync(abs, { withFileTypes: true }).filter((e) => e.isDirectory()).forEach((e) => walk(path.join(rel, e.name), depth + 1));
+};
+walk('runs', 0);
 const dataDir = 'Data/hack_the_highway_package/data';
 for (const f of fs.readdirSync(path.join(SRC, dataDir))) {
   if (f.endsWith('.csv') || f === 'events.json') files.push(path.join(dataDir, f));

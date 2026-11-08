@@ -4,6 +4,10 @@ Launch from the Hitachi directory:
 
     python -m tower.run                 # local LLM via Ollama (default qwen3:0.6b)
     python -m tower.run --reader rules  # deterministic reader only
+    python -m tower.run --server http://127.0.0.1:8000   # official path: GET /events, POST /act
+
+With --server, every tool call goes over HTTP to enterprise_server.py, which writes
+the scored action_log.jsonl itself; this script then writes only traces.json.
 
 Each event gets a fresh enterprise world, a fresh plant schedule, and a fresh
 loaner pool. The action log matches enterprise_server.py: one JSON object per
@@ -16,6 +20,7 @@ import argparse
 import json
 import os
 import sys
+import urllib.error
 import urllib.request
 
 _HITACHI = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -50,6 +55,34 @@ class _CallLog:
         return result
 
 
+# The docx's MCP-style path: the same .call() interface, but each call is a POST /act to
+# enterprise_server.py. A 4xx answer becomes the ToolError the coordinator already handles.
+class _ServerTools:
+    """Enterprise tools reached over HTTP instead of in-process."""
+
+    def __init__(self, url: str):
+        self.url = url.rstrip("/")
+
+    def events(self) -> list[dict]:
+        with urllib.request.urlopen(f"{self.url}/events", timeout=30) as response:
+            return json.loads(response.read())
+
+    def call(self, event_id, tool, args):
+        body = json.dumps({"event_id": event_id, "tool": tool, "args": args}).encode("utf-8")
+        request = urllib.request.Request(
+            f"{self.url}/act", data=body, headers={"Content-Type": "application/json"}
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                return json.loads(response.read())
+        except urllib.error.HTTPError as exc:
+            try:
+                message = json.loads(exc.read() or b"{}").get("error")
+            except ValueError:
+                message = None
+            raise ToolError(message or f"HTTP {exc.code} from {self.url}/act") from exc
+
+
 # Stop before the run if Ollama or the model is missing, rather than silently running rules-only.
 def _require_model(model: str, url: str) -> None:
     """Fail loudly rather than quietly run without the model."""
@@ -65,14 +98,18 @@ def _require_model(model: str, url: str) -> None:
 # Main loop: load the graph and tools once, then send each event through the coordinator.
 # Enterprise keeps a separate world per event_id, so events never affect each other.
 def run_all(reader: str = "llm", out_dir: str | None = None, events_path: str | None = None,
-            notify: str = "off") -> None:
+            notify: str = "off", server: str | None = None) -> None:
     llm = None
     if reader == "llm":
         _require_model(MODEL, OLLAMA_URL)
         llm = LLMReader()
     graph = WorldGraph()
-    enterprise = Enterprise(graph.data_dir)
-    events = load_events(events_path or os.path.join(graph.data_dir, "events.json"))
+    if server:
+        enterprise = _ServerTools(server)
+        events = enterprise.events()
+    else:
+        enterprise = Enterprise(graph.data_dir)
+        events = load_events(events_path or os.path.join(graph.data_dir, "events.json"))
     records: list[dict] = []
     logged = _CallLog(enterprise, records)
     # The whole pipeline for one event happens inside handle_event (agents/coordinator.py).
@@ -80,9 +117,11 @@ def run_all(reader: str = "llm", out_dir: str | None = None, events_path: str | 
 
     out_dir = out_dir or os.path.join(_HITACHI, "runs", "run1")
     os.makedirs(out_dir, exist_ok=True)
-    with open(os.path.join(out_dir, "action_log.jsonl"), "w", encoding="utf-8") as handle:
-        for record in records:
-            handle.write(json.dumps(record) + "\n")
+    # Through the server, the server's own log is the scored file; do not write a second one.
+    if not server:
+        with open(os.path.join(out_dir, "action_log.jsonl"), "w", encoding="utf-8") as handle:
+            for record in records:
+                handle.write(json.dumps(record) + "\n")
     with open(os.path.join(out_dir, "traces.json"), "w", encoding="utf-8") as handle:
         json.dump([trace.to_dict() for trace in traces], handle, indent=2)
         handle.write("\n")
@@ -108,5 +147,6 @@ if __name__ == "__main__":
     parser.add_argument("--events", help="event feed JSON (default the package events.json)")
     parser.add_argument("--notify", choices=("off", "dry-run", "send"), default="off",
                         help="deliver results through tower/channels (Slack, Teams, Gmail, Outlook...)")
+    parser.add_argument("--server", help="enterprise_server.py URL, e.g. http://127.0.0.1:8000")
     cli = parser.parse_args()
-    run_all(cli.reader, cli.out, cli.events, cli.notify)
+    run_all(cli.reader, cli.out, cli.events, cli.notify, cli.server)

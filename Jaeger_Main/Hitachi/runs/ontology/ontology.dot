@@ -1,0 +1,31 @@
+digraph ontology {
+  rankdir=LR;
+  node [shape=box, style=rounded, fontname="Helvetica"];
+  Supplier [label="Supplier\n18 records"];
+  Part [label="Part\n20 records"];
+  Model [label="Model\n6 records"];
+  Plant [label="Plant\n6 records"];
+  Shipment [label="Shipment\n364 records"];
+  Lot [label="Lot\n364 records"];
+  ProductionOrder [label="ProductionOrder\n540 records"];
+  CustomerOrder [label="CustomerOrder\n3,263 records"];
+  Customer [label="Customer\n7,000 records"];
+  Dealer [label="Dealer\n50 records"];
+  Vehicle [label="Vehicle\n5,348 records"];
+  Shipment -> Supplier [label="SUPPLIED_BY", fontsize=10];
+  Shipment -> Part [label="CARRIES", fontsize=10];
+  Shipment -> Plant [label="DELIVERS_TO", fontsize=10];
+  Part -> Model [label="USED_IN (BOM)", fontsize=10];
+  Plant -> Model [label="CAN_BUILD", fontsize=10];
+  ProductionOrder -> Plant [label="SCHEDULED_AT", fontsize=10];
+  ProductionOrder -> Model [label="BUILDS", fontsize=10];
+  CustomerOrder -> ProductionOrder [label="FILLED_BY", fontsize=10];
+  CustomerOrder -> Customer [label="PLACED_BY", fontsize=10];
+  CustomerOrder -> Dealer [label="SOLD_THROUGH", fontsize=10];
+  Lot -> Part [label="OF_PART", fontsize=10];
+  Lot -> Supplier [label="FROM_SUPPLIER", fontsize=10];
+  Lot -> Plant [label="USED_AT", fontsize=10];
+  Vehicle -> ProductionOrder [label="BUILT_BY", fontsize=10];
+  Vehicle -> Dealer [label="AT_DEALER", fontsize=10];
+  Vehicle -> Customer [label="OWNED_BY", fontsize=10];
+}

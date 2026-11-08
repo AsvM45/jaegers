@@ -1,0 +1,229 @@
+# Given test cases — the 15 events in `data/events.json`
+
+Each event is graded twice:
+
+1. **Effects**: the action log is compared with hand-written expected answers (`tests/given_cases.json`) by the independent CSV grader in `tests/run_cases.py`. It checks the right orders moved and no others, slots after the disruption, transfers only when the home plant is full, one notice per dealer with exactly its orders, loaners by tier, priority and pool, the lots held, stop-sale VINs and owners notified.
+2. **Evidence**: the graph path, reasons and action kinds the docx asks for per test case.
+
+## Summary by docx test case
+
+| Test case | Events | rules: effects | Evidence | Required evidence |
+|---|---|---|---|---|
+| TC1 Supplier Delay | E-09, E-10, E-12 | 3/3 | ✅ | Shipment → Part → Model (BOM) → ProductionOrder → CustomerOrder → Dealer / Customer |
+| TC2 Plant Outage | E-04, E-08, E-11 | 3/3 | ✅ | Plant → ProductionOrder → CustomerOrder → Dealer / Customer |
+| TC3 Quality Hold | E-03, E-14, E-15 | 3/3 | ✅ | Lot → ProductionOrder → Vehicle → Dealer / Customer |
+| TC4 Noise | E-05, E-06, E-07 | 3/3 | ✅ | the reason the event was judged not relevant |
+| TC5 Compound Incident | E-01 | 1/1 | ✅ | one graph path per incident |
+| TC6 Unconfirmed Report | E-02, E-13 | 2/2 | ✅ | the reason the report was not actionable |
+
+- **rules**: 15/15 events pass on effects · 768 tool calls · 0 failed
+
+## Details — rules reader
+
+### E-01 — TC5 Compound Incident — PASS
+> Morning digest, two items. (1) San Antonio update: a software outage on the line. We're dark from next Friday through Monday Mar 22; the line restarts the following working day. (2) Quick heads up from Quanta: the infotainment chip run for Princeton can't make it next Monday. Carrier says next Friday now (severe weather on the route).
+
+- **Read as:** `plant_outage+supplier_delay` (reader: rules, rules)
+  - plant_outage: `{"plant_id": "P_TX", "outage_start": "2027-03-19", "outage_end": "2027-03-22"}`
+  - supplier_delay: `{"supplier_id": "SUP-12", "part_id": "CHIP-IVI", "plant_id": "P_IN", "shipment_id": "SH-0190", "blocked_from": "2027-03-15", "blocked_until": "2027-03-19"}`
+- **Expected:** [{"kind": "plant_outage", "plant_id": "P_TX", "outage_start": "2027-03-19", "outage_end": "2027-03-22"}, {"kind": "supplier_delay", "supplier_id": "SUP-12", "part_id": "CHIP-IVI", "plant_id": "P_IN", "blocked_from": "2027-03-15", "blocked_until": "2027-03-19"}]; escalate=false
+- **Calls:** {'mes.reschedule': 14, 'dealer.notify': 41, 'crm.assign_loaner': 26}
+- ✅ summary and reason recorded
+- ✅ no failed tool calls
+- ✅ outage path Plant → PO → CO → Dealer / Customer
+- ✅ delay path for the second incident
+- ✅ ≥3 kinds of action (rule 9): 3
+- **Graph path (1 of 244):** Plant P_TX → ProductionOrder PO-0058 → CustomerOrder CO-00247 → Dealer D18 / Customer C6387
+- **Summary:** The message reports a plant outage at Wacky Wheels San Antonio (P_TX) from 2027-03-19 through 2027-03-22 and a supplier delay of infotainment chip (CHIP-IVI) from Quanta Silicon (SUP-12) into Wacky Wheels Princeton (P_IN) from 2027-03-15 until 2027-03-19 on shipment SH-0190. Affected records: 14 production orders and 122 customer orders. The tower completed 14 reschedules, 41 dealer notices, and 26 loaner assignments.
+
+### E-02 — TC6 Unconfirmed Report — PASS
+> Rumor from a supplier rep: something may be off with a seat material coming up. No dates, no details, nothing confirmed.
+
+- **Read as:** `unconfirmed` (reader: rules)
+  - unconfirmed: `{}`
+- **Expected:** no incident; escalate=true
+- **Calls:** {'escalate': 1}
+- ✅ summary and reason recorded
+- ✅ no failed tool calls
+- ✅ escalate only, no writes
+- ✅ escalation gives a reason
+- **Summary:** The report is not safe to act on because it is unconfirmed (rumor, nothing confirmed, no dates, may be off) and does not name a specific shipment, outage, or lot to change. No operational records were changed. The tower escalated the report and wrote nothing else.
+
+### E-03 — TC3 Quality Hold — PASS
+> Quality alert: Kestrel says the infotainment chip sent to Jackson had a faulty weld. Anything built Thursday Feb 25 through last Monday is suspect.
+
+- **Read as:** `quality_hold` (reader: rules)
+  - quality_hold: `{"supplier_id": "SUP-06", "part_id": "CHIP-IVI", "plant_id": "P_MS", "build_start": "2027-02-25", "build_end": "2027-03-01"}`
+- **Expected:** [{"kind": "quality_hold", "lots": ["LOT-0130"]}]; escalate=false
+- **Calls:** {'quality.hold_lot': 1, 'dealer.stop_sale': 37, 'crm.notify_customer': 150}
+- ✅ summary and reason recorded
+- ✅ no failed tool calls
+- ✅ lot path Lot → PO → Vehicle → Dealer / Customer
+- ✅ ≥3 kinds of action (rule 9): 3
+- **Graph path (1 of 261):** Lot LOT-0130 → Part CHIP-IVI → Supplier SUP-06 → Plant P_MS
+- **Summary:** The message reports a quality hold on infotainment chip (CHIP-IVI) at Wacky Wheels Jackson (P_MS) for builds 2027-02-25 through 2027-03-01. Affected records: 261 quality records. The tower completed 1 lot hold, 37 stop-sales, and 150 customer notices.
+
+### E-04 — TC2 Plant Outage — PASS
+> The Kentucky plant update: a software outage on the line. We're dark from next Tuesday through next Thursday; the line restarts the following working day.
+
+- **Read as:** `plant_outage` (reader: rules)
+  - plant_outage: `{"plant_id": "P_KY", "outage_start": "2027-03-16", "outage_end": "2027-03-18"}`
+- **Expected:** [{"kind": "plant_outage", "plant_id": "P_KY", "outage_start": "2027-03-16", "outage_end": "2027-03-18"}]; escalate=false
+- **Calls:** {'mes.reschedule': 9, 'dealer.notify': 32, 'crm.assign_loaner': 18}
+- ✅ summary and reason recorded
+- ✅ no failed tool calls
+- ✅ outage path Plant → PO → CO → Dealer / Customer
+- ✅ ≥3 kinds of action (rule 9): 3
+- **Graph path (1 of 158):** Plant P_KY → ProductionOrder PO-0139 → CustomerOrder CO-00717 → Dealer D42 / Customer C5240
+- **Summary:** The message reports a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-16 through 2027-03-18. Affected records: 9 production orders and 79 customer orders. The tower completed 9 reschedules, 32 dealer notices, and 18 loaner assignments.
+
+### E-05 — TC4 Noise — PASS
+> Dealer Amarillo, TX asks where to find the new brochure PDF.
+
+- **Read as:** `noise` (reader: rules)
+  - noise: `{}`
+- **Expected:** no incident; escalate=false
+- **Calls:** none
+- ✅ summary and reason recorded
+- ✅ no failed tool calls
+- ✅ no calls at all
+- **Summary:** "Dealer Amarillo, TX asks where to find the new brochure PDF" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.
+
+### E-06 — TC4 Noise — PASS
+> Dealer Little Rock, AR asks where to find the new brochure PDF.
+
+- **Read as:** `noise` (reader: rules)
+  - noise: `{}`
+- **Expected:** no incident; escalate=false
+- **Calls:** none
+- ✅ summary and reason recorded
+- ✅ no failed tool calls
+- ✅ no calls at all
+- **Summary:** "Dealer Little Rock, AR asks where to find the new brochure PDF" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.
+
+### E-07 — TC4 Noise — PASS
+> Dealer Pensacola, FL asks where to find the new brochure PDF.
+
+- **Read as:** `noise` (reader: rules)
+  - noise: `{}`
+- **Expected:** no incident; escalate=false
+- **Calls:** none
+- ✅ summary and reason recorded
+- ✅ no failed tool calls
+- ✅ no calls at all
+- **Summary:** "Dealer Pensacola, FL asks where to find the new brochure PDF" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.
+
+### E-08 — TC2 Plant Outage — PASS
+> Plant operations alert: Wacky Wheels Lexington (P_KY) lost production to a power failure. Production is stopped from 2027-03-24 through 2027-03-25 inclusive.
+
+- **Read as:** `plant_outage` (reader: rules)
+  - plant_outage: `{"plant_id": "P_KY", "outage_start": "2027-03-24", "outage_end": "2027-03-25"}`
+- **Expected:** [{"kind": "plant_outage", "plant_id": "P_KY", "outage_start": "2027-03-24", "outage_end": "2027-03-25"}]; escalate=false
+- **Calls:** {'mes.reschedule': 6, 'dealer.notify': 25, 'crm.assign_loaner': 15}
+- ✅ summary and reason recorded
+- ✅ no failed tool calls
+- ✅ outage path Plant → PO → CO → Dealer / Customer
+- ✅ ≥3 kinds of action (rule 9): 3
+- **Graph path (1 of 112):** Plant P_KY → ProductionOrder PO-0157 → CustomerOrder CO-00876 → Dealer D07 / Customer C5020
+- **Summary:** The message reports a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-24 through 2027-03-25. Affected records: 6 production orders and 56 customer orders. The tower completed 6 reschedules, 25 dealer notices, and 15 loaner assignments.
+
+### E-09 — TC1 Supplier Delay — PASS
+> Quick heads up from Orbit: the surround-view cameras run for Huntsville can't make it Monday Mar 29. Carrier says Thursday Apr 1 now (a customs inspection).
+
+- **Read as:** `supplier_delay` (reader: rules)
+  - supplier_delay: `{"supplier_id": "SUP-11", "part_id": "CAM-360", "plant_id": "P_AL", "shipment_id": "SH-0256", "blocked_from": "2027-03-29", "blocked_until": "2027-04-01"}`
+- **Expected:** [{"kind": "supplier_delay", "supplier_id": "SUP-11", "part_id": "CAM-360", "plant_id": "P_AL", "blocked_from": "2027-03-29", "blocked_until": "2027-04-01"}]; escalate=false
+- **Calls:** {'mes.reschedule': 4, 'mes.transfer': 2, 'dealer.notify': 26, 'crm.assign_loaner': 10}
+- ✅ summary and reason recorded
+- ✅ no failed tool calls
+- ✅ graph path starts at the Shipment
+- ✅ ≥3 kinds of action (rule 9): 4
+- **Graph path (1 of 108):** Shipment SH-0256 → Part CAM-360 → Model SUMMIT (BOM) → Plant P_AL → ProductionOrder PO-0436 → CustomerOrder CO-02567 → Dealer D25 / Customer C1467
+- **Summary:** The message reports a supplier delay of surround-view camera kit (CAM-360) from Orbit Optics (SUP-11) into Wacky Wheels Huntsville (P_AL) from 2027-03-29 until 2027-04-01 on shipment SH-0256. Affected records: 6 production orders and 54 customer orders. The tower completed 4 reschedules, 2 transfers, 26 dealer notices, and 10 loaner assignments.
+
+### E-10 — TC1 Supplier Delay — PASS
+> Huntsville line is waiting on 60 kWh battery packs from Lumen. Original drop was Monday Mar 29, new ETA is Thursday Apr 1 because of a truck breakdown.
+
+- **Read as:** `supplier_delay` (reader: rules)
+  - supplier_delay: `{"supplier_id": "SUP-18", "part_id": "BATT-60", "plant_id": "P_AL", "shipment_id": "SH-0248", "blocked_from": "2027-03-29", "blocked_until": "2027-04-01"}`
+- **Expected:** [{"kind": "supplier_delay", "supplier_id": "SUP-18", "part_id": "BATT-60", "plant_id": "P_AL", "blocked_from": "2027-03-29", "blocked_until": "2027-04-01"}]; escalate=false
+- **Calls:** {'mes.reschedule': 3, 'dealer.notify': 18, 'crm.assign_loaner': 7}
+- ✅ summary and reason recorded
+- ✅ no failed tool calls
+- ✅ graph path starts at the Shipment
+- ✅ ≥3 kinds of action (rule 9): 3
+- **Graph path (1 of 58):** Shipment SH-0248 → Part BATT-60 → Model NOVA (BOM) → Plant P_AL → ProductionOrder PO-0437 → CustomerOrder CO-02575 → Dealer D04 / Customer C6785
+- **Summary:** The message reports a supplier delay of 60 kWh battery pack (BATT-60) from Lumen Cells (SUP-18) into Wacky Wheels Huntsville (P_AL) from 2027-03-29 until 2027-04-01 on shipment SH-0248. Affected records: 3 production orders and 29 customer orders. The tower completed 3 reschedules, 18 dealer notices, and 7 loaner assignments.
+
+### E-11 — TC2 Plant Outage — PASS
+> Jackson update: a power failure. We're dark from Friday Mar 26 through Tuesday Mar 30; the line restarts the following working day.
+
+- **Read as:** `plant_outage` (reader: rules)
+  - plant_outage: `{"plant_id": "P_MS", "outage_start": "2027-03-26", "outage_end": "2027-03-30"}`
+- **Expected:** [{"kind": "plant_outage", "plant_id": "P_MS", "outage_start": "2027-03-26", "outage_end": "2027-03-30"}]; escalate=false
+- **Calls:** {'mes.reschedule': 6, 'mes.transfer': 3, 'dealer.notify': 36, 'crm.assign_loaner': 17}
+- ✅ summary and reason recorded
+- ✅ no failed tool calls
+- ✅ outage path Plant → PO → CO → Dealer / Customer
+- ✅ ≥3 kinds of action (rule 9): 4
+- **Graph path (1 of 158):** Plant P_MS → ProductionOrder PO-0253 → CustomerOrder CO-01460 → Dealer D02 / Customer C5325
+- **Summary:** The message reports a plant outage at Wacky Wheels Jackson (P_MS) from 2027-03-26 through 2027-03-30. Affected records: 9 production orders and 79 customer orders. The tower completed 6 reschedules, 3 transfers, 36 dealer notices, and 17 loaner assignments.
+
+### E-12 — TC1 Supplier Delay — PASS
+> Subject: Shipment SH-0182 delayed
+From: dispatch@orbit.example
+
+Our shipment SH-0182 of CAM-360 (surround-view camera kit) for Wacky Wheels Princeton (P_IN) was due 2027-03-15 and will now arrive 2027-03-18. Reason: port congestion.
+
+- **Read as:** `supplier_delay` (reader: rules)
+  - supplier_delay: `{"supplier_id": "SUP-11", "part_id": "CAM-360", "plant_id": "P_IN", "shipment_id": "SH-0182", "blocked_from": "2027-03-15", "blocked_until": "2027-03-18"}`
+- **Expected:** [{"kind": "supplier_delay", "supplier_id": "SUP-11", "part_id": "CAM-360", "plant_id": "P_IN", "shipment_id": "SH-0182", "blocked_from": "2027-03-15", "blocked_until": "2027-03-18"}]; escalate=false
+- **Calls:** {'mes.reschedule': 3, 'dealer.notify': 14, 'crm.assign_loaner': 10}
+- ✅ summary and reason recorded
+- ✅ no failed tool calls
+- ✅ graph path starts at the Shipment
+- ✅ ≥3 kinds of action (rule 9): 3
+- **Graph path (1 of 52):** Shipment SH-0182 → Part CAM-360 → Model VOYAGER (BOM) → Plant P_IN → ProductionOrder PO-0316 → CustomerOrder CO-01756 → Dealer D07 / Customer C4130
+- **Summary:** The message reports a supplier delay of surround-view camera kit (CAM-360) from Orbit Optics (SUP-11) into Wacky Wheels Princeton (P_IN) from 2027-03-15 until 2027-03-18 on shipment SH-0182. Affected records: 3 production orders and 26 customer orders. The tower completed 3 reschedules, 14 dealer notices, and 10 loaner assignments.
+
+### E-13 — TC6 Unconfirmed Report — PASS
+> Someone on the floor mentioned a possible shortage of something electronic sometime soon. Not confirmed by anyone.
+
+- **Read as:** `unconfirmed` (reader: rules)
+  - unconfirmed: `{}`
+- **Expected:** no incident; escalate=true
+- **Calls:** {'escalate': 1}
+- ✅ summary and reason recorded
+- ✅ no failed tool calls
+- ✅ escalate only, no writes
+- ✅ escalation gives a reason
+- **Summary:** The report is not safe to act on because it is unconfirmed (not confirmed, possible, someone on the floor) and does not name a specific shipment, outage, or lot to change. No operational records were changed. The tower escalated the report and wrote nothing else.
+
+### E-14 — TC3 Quality Hold — PASS
+> Quality alert: Atlas says the heavy-duty wiring harness sent to the Texas plant had a moisture contamination. Anything built Monday Feb 22 through Wednesday Feb 24 is suspect.
+
+- **Read as:** `quality_hold` (reader: rules)
+  - quality_hold: `{"supplier_id": "SUP-07", "part_id": "HARN-B", "plant_id": "P_TX", "build_start": "2027-02-22", "build_end": "2027-02-24"}`
+- **Expected:** [{"kind": "quality_hold", "lots": ["LOT-0017"]}]; escalate=false
+- **Calls:** {'quality.hold_lot': 1, 'dealer.stop_sale': 36, 'crm.notify_customer': 94}
+- ✅ summary and reason recorded
+- ✅ no failed tool calls
+- ✅ lot path Lot → PO → Vehicle → Dealer / Customer
+- ✅ ≥3 kinds of action (rule 9): 3
+- **Graph path (1 of 181):** Lot LOT-0017 → Part HARN-B → Supplier SUP-07 → Plant P_TX
+- **Summary:** The message reports a quality hold on heavy-duty wiring harness (HARN-B) at Wacky Wheels San Antonio (P_TX) for builds 2027-02-22 through 2027-02-24. Affected records: 181 quality records. The tower completed 1 lot hold, 36 stop-sales, and 94 customer notices.
+
+### E-15 — TC3 Quality Hold — PASS
+> QUALITY BULLETIN QB-368: Lot LOT-0191 (CHIP-IVI, supplier SUP-12) installed at P_IN on vehicles built 2027-03-02 to 2027-03-03 has a faulty weld. Place the lot on hold, stop sale of unsold vehicles and contact owners.
+
+- **Read as:** `quality_hold` (reader: rules)
+  - quality_hold: `{"supplier_id": "SUP-12", "part_id": "CHIP-IVI", "plant_id": "P_IN", "lot_id": "LOT-0191", "build_start": "2027-03-02", "build_end": "2027-03-03"}`
+- **Expected:** [{"kind": "quality_hold", "lots": ["LOT-0191"]}]; escalate=false
+- **Calls:** {'quality.hold_lot': 1, 'dealer.stop_sale': 25, 'crm.notify_customer': 76}
+- ✅ summary and reason recorded
+- ✅ no failed tool calls
+- ✅ lot path Lot → PO → Vehicle → Dealer / Customer
+- ✅ ≥3 kinds of action (rule 9): 3
+- **Graph path (1 of 117):** Lot LOT-0191 → Part CHIP-IVI → Supplier SUP-12 → Plant P_IN
+- **Summary:** The message reports a quality hold on lot LOT-0191 at Wacky Wheels Princeton (P_IN) for builds 2027-03-02 through 2027-03-03. Affected records: 117 quality records. The tower completed 1 lot hold, 25 stop-sales, and 76 customer notices.
+
