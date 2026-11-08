@@ -46,7 +46,7 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels San Antonio (P_TX) from 2027-03-19 through 2027-03-22 and a supplier delay of infotainment chip (CHIP-IVI) from Quanta Silicon (SUP-12) into Wacky Wheels Princeton (P_IN) from 2027-03-15 until 2027-03-19 on shipment SH-0190. Affected records: 14 production orders and 122 customer orders. The tower completed 14 reschedules, 41 dealer notices, and 26 loaner assignments.",
-    "seconds": 34.8
+    "seconds": 35.5
   },
   {
     "id": "E-02",
@@ -71,7 +71,7 @@
       }
     ],
     "summary": "The report is not safe to act on: The message reports a possible problem with a seat material from a supplier, but no specific details or dates are provided, making it unconfirmed. It is escalated for a human to confirm. No operational records were changed. The tower escalated the report and wrote nothing else.",
-    "seconds": 2.8
+    "seconds": 3.0
   },
   {
     "id": "E-03",
@@ -113,7 +113,7 @@
       }
     ],
     "summary": "The message reports a quality hold on lot LOT-0130 at Wacky Wheels Jackson (P_MS) for builds 2027-02-25 through 2027-03-01. Affected records: 261 quality records. The tower completed 1 lot hold, 37 stop-sales, and 150 customer notices.",
-    "seconds": 9.7
+    "seconds": 12.6
   },
   {
     "id": "E-04",
@@ -150,7 +150,7 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-16 through 2027-03-18. Affected records: 9 production orders and 79 customer orders. The tower completed 9 reschedules, 32 dealer notices, and 18 loaner assignments.",
-    "seconds": 28.4
+    "seconds": 22.7
   },
   {
     "id": "E-05",
@@ -174,8 +174,8 @@
         "model_reason": "qwen3:1.7b: This message is about a request for information regarding a new brochure PDF, which is not related to the company's deliveries, plants, part quality, or any potential issues. It is a general inquiry about a document, not involving any of the specified categories."
       }
     ],
-    "summary": "\"Dealer Amarillo, TX asks where to find the new brochure PDF\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
-    "seconds": 5.4
+    "summary": "No action: This message is about a request for information regarding a new brochure PDF, which is not related to the company's deliveries, plants, part quality, or any potential issues. It is a general inquiry about a document, not involving any of the specified categories. No operational records are affected. Nothing was written.",
+    "seconds": 3.7
   },
   {
     "id": "E-06",
@@ -199,8 +199,8 @@
         "model_reason": "qwen3:1.7b: This message is about a request for information regarding a new brochure PDF, which is not related to the company's deliveries, plants, part quality, or any potential issues. It is a general inquiry about where to find a document, not related to the specific operations or events mentioned in the company's messages."
       }
     ],
-    "summary": "\"Dealer Little Rock, AR asks where to find the new brochure PDF\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
-    "seconds": 6.5
+    "summary": "No action: This message is about a request for information regarding a new brochure PDF, which is not related to the company's deliveries, plants, part quality, or any potential issues. It is a general inquiry about where to find a document, not related to the specific operations or events mentioned in the company's messages. No operational records are affected. Nothing was written.",
+    "seconds": 4.5
   },
   {
     "id": "E-07",
@@ -224,8 +224,8 @@
         "model_reason": "qwen3:1.7b: This message is about a request for information regarding a brochure PDF, which is not related to the company's deliveries, plants, part quality, or any potential issues. It is a general inquiry about where to find a document, not related to the specific operations or events mentioned in the company's messages."
       }
     ],
-    "summary": "\"Dealer Pensacola, FL asks where to find the new brochure PDF\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
-    "seconds": 6.4
+    "summary": "No action: This message is about a request for information regarding a brochure PDF, which is not related to the company's deliveries, plants, part quality, or any potential issues. It is a general inquiry about where to find a document, not related to the specific operations or events mentioned in the company's messages. No operational records are affected. Nothing was written.",
+    "seconds": 4.3
   },
   {
     "id": "E-08",
@@ -262,7 +262,7 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-24 through 2027-03-25. Affected records: 6 production orders and 56 customer orders. The tower completed 6 reschedules, 25 dealer notices, and 15 loaner assignments.",
-    "seconds": 9.2
+    "seconds": 6.8
   },
   {
     "id": "E-09",
@@ -302,7 +302,7 @@
       }
     ],
     "summary": "The message reports a supplier delay of surround-view camera kit (CAM-360) from Orbit Optics (SUP-11) into Wacky Wheels Huntsville (P_AL) from 2027-03-29 until 2027-04-01 on shipment SH-0256. Affected records: 6 production orders and 54 customer orders. The tower completed 4 reschedules, 2 transfers, 26 dealer notices, and 10 loaner assignments.",
-    "seconds": 11.9
+    "seconds": 12.4
   },
   {
     "id": "E-10",
@@ -342,7 +342,7 @@
       }
     ],
     "summary": "The message reports a supplier delay of 60 kWh battery pack (BATT-60) from Lumen Cells (SUP-18) into Wacky Wheels Huntsville (P_AL) from 2027-03-29 until 2027-04-01 on shipment SH-0248. Affected records: 3 production orders and 29 customer orders. The tower completed 3 reschedules, 18 dealer notices, and 7 loaner assignments.",
-    "seconds": 10.7
+    "seconds": 8.9
   },
   {
     "id": "E-11",
@@ -379,7 +379,7 @@
       }
     ],
     "summary": "The message reports a plant outage at Wacky Wheels Jackson (P_MS) from 2027-03-26 through 2027-03-30. Affected records: 9 production orders and 79 customer orders. The tower completed 6 reschedules, 3 transfers, 36 dealer notices, and 17 loaner assignments.",
-    "seconds": 26.5
+    "seconds": 23.9
   },
   {
     "id": "E-12",
@@ -419,7 +419,7 @@
       }
     ],
     "summary": "The message reports a supplier delay of surround-view camera kit (CAM-360) from Orbit Optics (SUP-11) into Wacky Wheels Princeton (P_IN) from 2027-03-15 until 2027-03-18 on shipment SH-0182. Affected records: 3 production orders and 26 customer orders. The tower completed 3 reschedules, 14 dealer notices, and 10 loaner assignments.",
-    "seconds": 11.1
+    "seconds": 10.1
   },
   {
     "id": "E-13",
@@ -444,7 +444,7 @@
       }
     ],
     "summary": "The report is not safe to act on: The message reports a possible shortage of something electronic that has not been confirmed by anyone, indicating uncertainty about the actual situation. It is escalated for a human to confirm. No operational records were changed. The tower escalated the report and wrote nothing else.",
-    "seconds": 2.7
+    "seconds": 2.1
   },
   {
     "id": "E-14",
@@ -486,7 +486,7 @@
       }
     ],
     "summary": "The message reports a quality hold on lot LOT-0017 at Wacky Wheels San Antonio (P_TX) for builds 2027-02-22 through 2027-02-24. Affected records: 181 quality records. The tower completed 1 lot hold, 36 stop-sales, and 94 customer notices.",
-    "seconds": 10.0
+    "seconds": 9.0
   },
   {
     "id": "E-15",
@@ -528,6 +528,6 @@
       }
     ],
     "summary": "The message reports a quality hold on lot LOT-0191 at Wacky Wheels Princeton (P_IN) for builds 2027-03-02 through 2027-03-03. Affected records: 117 quality records. The tower completed 1 lot hold, 25 stop-sales, and 76 customer notices.",
-    "seconds": 11.0
+    "seconds": 12.4
   }
 ]

@@ -9519,7 +9519,7 @@
     "incidents": [
       {
         "kind": "noise",
-        "summary": "\"Dealer Amarillo, TX asks where to find the new brochure PDF\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold.",
+        "summary": "No action: This message is about a request for information regarding a new brochure PDF, which is not related to the company's deliveries, plants, part quality, or any potential issues. It is a general inquiry about a document, not involving any of the specified categories.",
         "supplier_id": null,
         "part_id": null,
         "plant_id": null,
@@ -9541,7 +9541,7 @@
     ],
     "results": [],
     "calls": [],
-    "summary": "\"Dealer Amarillo, TX asks where to find the new brochure PDF\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "summary": "No action: This message is about a request for information regarding a new brochure PDF, which is not related to the company's deliveries, plants, part quality, or any potential issues. It is a general inquiry about a document, not involving any of the specified categories. No operational records are affected. Nothing was written.",
     "guardrail": "Noise writes nothing; an unconfirmed report is escalate only; confirmed incidents change only the affected records.",
     "handoffs": [
       {
@@ -9567,7 +9567,7 @@
     "incidents": [
       {
         "kind": "noise",
-        "summary": "\"Dealer Little Rock, AR asks where to find the new brochure PDF\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold.",
+        "summary": "No action: This message is about a request for information regarding a new brochure PDF, which is not related to the company's deliveries, plants, part quality, or any potential issues. It is a general inquiry about where to find a document, not related to the specific operations or events mentioned in the company's messages.",
         "supplier_id": null,
         "part_id": null,
         "plant_id": null,
@@ -9589,7 +9589,7 @@
     ],
     "results": [],
     "calls": [],
-    "summary": "\"Dealer Little Rock, AR asks where to find the new brochure PDF\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "summary": "No action: This message is about a request for information regarding a new brochure PDF, which is not related to the company's deliveries, plants, part quality, or any potential issues. It is a general inquiry about where to find a document, not related to the specific operations or events mentioned in the company's messages. No operational records are affected. Nothing was written.",
     "guardrail": "Noise writes nothing; an unconfirmed report is escalate only; confirmed incidents change only the affected records.",
     "handoffs": [
       {
@@ -9615,7 +9615,7 @@
     "incidents": [
       {
         "kind": "noise",
-        "summary": "\"Dealer Pensacola, FL asks where to find the new brochure PDF\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold.",
+        "summary": "No action: This message is about a request for information regarding a brochure PDF, which is not related to the company's deliveries, plants, part quality, or any potential issues. It is a general inquiry about where to find a document, not related to the specific operations or events mentioned in the company's messages.",
         "supplier_id": null,
         "part_id": null,
         "plant_id": null,
@@ -9637,7 +9637,7 @@
     ],
     "results": [],
     "calls": [],
-    "summary": "\"Dealer Pensacola, FL asks where to find the new brochure PDF\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "summary": "No action: This message is about a request for information regarding a brochure PDF, which is not related to the company's deliveries, plants, part quality, or any potential issues. It is a general inquiry about where to find a document, not related to the specific operations or events mentioned in the company's messages. No operational records are affected. Nothing was written.",
     "guardrail": "Noise writes nothing; an unconfirmed report is escalate only; confirmed incidents change only the affected records.",
     "handoffs": [
       {
