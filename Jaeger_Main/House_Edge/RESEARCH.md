@@ -105,6 +105,22 @@ source identities, runtime and failures. Incompatible data/fold/runtime contexts
 not silently paired. Repeated source versions are reported separately from distinct
 configurations; run count is not scientific diversity.
 
+For a portable, versioned dashboard snapshot, run from House Edge:
+
+```powershell
+.venv/Scripts/python.exe -B -m research.registry --root research_runs/main --out research_runs/analytics/main-v1
+```
+
+From the repository root, launch the separately owned dashboard against that folder:
+
+```powershell
+python -m dashboard --path Jaeger_Main/House_Edge/research_runs/analytics/main-v1 --headless
+```
+
+The snapshot includes real trial metrics and provenance without a database/model
+dependency. Export opens the source registry read-only; see the version-1 contract
+in `research/CONTRACTS.md`. Grouped Brier remains separate from official points.
+
 The coordinator evaluates sampled query outcomes from training episodes. It does not
 score test truth or repeatedly tune on public true-probability validation. Official
 points require a separate, explicitly recorded public-validation check.

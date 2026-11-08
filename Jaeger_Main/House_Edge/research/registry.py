@@ -5,7 +5,52 @@ import os
 from pathlib import Path
 import sqlite3
 import psutil
-from .common import canonical, digest, now, write_json
+from .common import canonical, digest, now, tree_hashes, write_json
+
+
+def export_snapshot(rows, out):
+    """Versioned, self-contained dashboard data; never opens/writes the source DB."""
+    path = Path(out) / "registry.json"
+    previous = json.loads(path.read_text()) if path.exists() else {}
+    if previous and (not isinstance(previous, dict) or previous.get("schema") != "jaegers.experiment_registry" or previous.get("schema_version") != 1):
+        raise ValueError("Unsupported prior export schema; use a new destination")
+    sealed = {r["trial_id"]: r for r in previous.get("trials", [])}
+    records = []
+    for row in rows:
+        config, identity = json.loads(row["config"]), json.loads(row["identity"])
+        artifact = Path(row["artifact"]) if row.get("artifact") else None
+        result_path = artifact / "result.json" if artifact else None
+        result = json.loads(result_path.read_text()) if result_path and result_path.exists() else {}
+        if row["status"] == "SUCCEEDED" and not result:
+            raise ValueError(f"Completed trial lacks result evidence: {row['id']}")
+        if result and result.get("evaluation_source") != "sampled_outcome_group_cv":
+            raise ValueError("Core registry export requires explicit sampled_outcome_group_cv provenance")
+        terminal = row["status"] not in ("PENDING", "RUNNING")
+        hashes = tree_hashes(artifact) if terminal and artifact and artifact.exists() else None
+        old = sealed.get(row["id"])
+        if old and old.get("artifact_sha256") is not None and old["attempt"] == row["attempt"] and old["artifact_sha256"] != hashes:
+            raise ValueError(f"Sealed trial artifact bytes changed: {row['id']}")
+        metrics = result if row["status"] == "SUCCEEDED" else {}
+        records.append({
+            "trial_id": row["id"], "study_name": row["study"],
+            "family": config.get("family", "unknown"), "status": row["status"],
+            "attempt": row["attempt"], "created_at": row["created_at"],
+            "finished_at": row["finished_at"], "wall_seconds": row["wall_seconds"],
+            "provenance": "TRAIN_GROUP_CV", "evaluation_source": result.get("evaluation_source"),
+            "official_points": None, "mean_brier": metrics.get("mean_brier"),
+            "condition_losses": None, "sampled_brier_by_condition": metrics.get("by_condition"),
+            "per_episode_errors": metrics.get("per_episode"),
+            "episode_conditions": metrics.get("episode_conditions"),
+            "calibration_bins": metrics.get("calibration"),
+            "hyperparameters": config, "source_commit": identity.get("head", ""),
+            "error_message": row["error"], "is_synthetic": False,
+            "artifact_path": None, "artifact_sha256": hashes,
+            "identity": identity, "result": result,
+        })
+    content = {"schema": "jaegers.experiment_registry", "schema_version": 1, "trials": records}
+    content["content_sha256"] = digest(content)
+    write_json(path, content)
+    return content
 
 
 class Registry:
@@ -99,4 +144,19 @@ class Registry:
     def export(self):
         rows = self.rows()
         write_json(self.root / "registry.json", rows)
+        export_snapshot(rows, self.root / "exports/v1")
         return rows
+
+
+if __name__ == "__main__":
+    import argparse
+    from .report import read_rows
+    parser = argparse.ArgumentParser(description="Export an existing registry read-only for portable dashboard use")
+    parser.add_argument("--root", required=True, help="Existing directory containing registry.sqlite")
+    parser.add_argument("--out", required=True, help="Destination folder; never the source registry directory")
+    args = parser.parse_args()
+    if Path(args.root).resolve() == Path(args.out).resolve():
+        parser.error("Export destination must differ from source registry directory")
+    snapshot = export_snapshot(read_rows(args.root), args.out)
+    print(json.dumps({"schema_version": snapshot["schema_version"], "trials": len(snapshot["trials"]),
+                      "content_sha256": snapshot["content_sha256"]}))
