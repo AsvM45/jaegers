@@ -1,14 +1,16 @@
 # Source inventory — ChatGPT Library, Drive and JAEGERS docs
 
-**As-of:** 2026-11-07. This index captures *relevant House Edge and Datathon artifacts* from the user's recent ChatGPT Library view and Drive folder. It does **not** imply all Library files have been imported, or that every document is suitable for a public repository. Use [Agent Context](AGENT_CONTEXT.md) for concise working facts; read the full artifacts only for relevant architecture/design questions.
+**As-of:** 2026-11-07. See [migration blockers](LIBRARY_MIGRATION_BLOCKERS.md): full Library raw materialization was unavailable. Only source-labeled curated synopses were created, **not exact artifact import**.
+
+This index captures *relevant House Edge and Datathon artifacts* from the user's recent ChatGPT Library view and Drive folder. It does **not** imply all Library files have been imported, or that every document is suitable for a public repository. Use [Agent Context](AGENT_CONTEXT.md) for concise working facts; read the full artifacts only for relevant architecture/design questions.
 
 ## Canonical and historical references
 
 | Original artifact from recent Library | Relative freshness / type | Safe treatment in public GitHub |
 | --- | --- | --- |
-| `JAEGERS_House_Edge_Warehouse_Experiment_Factory_Implementation_Handoff_v7.md` | Most comprehensive v7 warehouse+experiment design, ~84 KB, Nov 7; explicitly DESIGN / RESEARCH, NOT IMPLEMENTED | Curated Markdown reference at [research/EXPERIMENT_FACTORY_v7.md](research/EXPERIMENT_FACTORY_v7.md) once reviewed; **never** promote as runtime proof |
-| `JAEGERS_House_Edge_Experiment_Factory_Human_Readable_Guide.md` | Newest Nov 7 human guide | Markdown reading layer at [research/EXPERIMENT_FACTORY_GUIDE.md](research/EXPERIMENT_FACTORY_GUIDE.md) once reviewed |
-| `JAEGERS_House_Edge_Implementation_Architecture_v6.md` | Design + baseline architecture earlier Nov 7 | Curated reviewed Markdown reference at [research/ARCHITECTURE_v6.md](research/ARCHITECTURE_v6.md) if reviewed; repo `docs/AGENT_CONTEXT.md` has live corrected summary |
+| `JAEGERS_House_Edge_Warehouse_Experiment_Factory_Implementation_Handoff_v7.md` | Most comprehensive v7 warehouse+experiment design, ~84 KB, Nov 7; explicitly DESIGN / RESEARCH, NOT IMPLEMENTED | Curated Markdown reference at [research/EXPERIMENT_FACTORY_v7.md](research/EXPERIMENT_FACTORY_v7.md) as a **curated synopsis only**, not an exact source copy; **never** promote as runtime proof |
+| `JAEGERS_House_Edge_Experiment_Factory_Human_Readable_Guide.md` | Newest Nov 7 human guide | Markdown reading layer at [research/EXPERIMENT_FACTORY_GUIDE.md](research/EXPERIMENT_FACTORY_GUIDE.md) (curated synopsis, original bytes inaccessible) |
+| `JAEGERS_House_Edge_Implementation_Architecture_v6.md` | Design + baseline architecture earlier Nov 7 | Curated reviewed Markdown reference at [research/ARCHITECTURE_v6.md](research/ARCHITECTURE_v6.md) (curated synopsis, original bytes inaccessible); repo `docs/AGENT_CONTEXT.md` has live corrected summary |
 | `JAEGERS_CODEX_AUTONOMOUS_EXECUTION_MANDATE.md` | Agent execution wishlist | Historical plan; current [AGENT_OPERATING_POLICY.md](AGENT_OPERATING_POLICY.md), issue claims and source contracts supersede it |
 | `House_Edge_v5_Codex_Engineering_Handoff.md`, v5 PDFs, v4/v3 plans, combined team report | Earlier design/report versions | Archive by title/date only; avoid duplicate stale sources for agents |
 | `main-participants-60-40.zip`; organizer participant DOCX | Official kit and conflicting older guide | **Organizer primary rules already represented inside House Edge**; do not republish third-party ZIP/DOCX unnecessarily |
