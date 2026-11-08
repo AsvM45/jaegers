@@ -196,8 +196,8 @@ def test_cache_key_tracks_inputs_source_and_settings(tmp_path, monkeypatch):
     changed = dataset.build_cache(data, cache, stride=16, max_rows=4)
     assert changed != a, "input bytes must change the key"
     real = dataset.file_hash
-    monkeypatch.setattr(dataset, "file_hash", lambda p: ("x" + real(p)) if Path(p).name == "features.py" else real(p))
-    assert dataset.build_cache(data, cache, stride=16, max_rows=4) != changed, "features.py source must change the key"
+    monkeypatch.setattr(dataset, "file_hash", lambda p: ("x" + real(p)) if Path(p).name == "feature_api.py" else real(p))
+    assert dataset.build_cache(data, cache, stride=16, max_rows=4) != changed, "feature_api.py source must change the key"
 
 
 def test_cache_rows_are_strictly_as_of(tmp_path):
