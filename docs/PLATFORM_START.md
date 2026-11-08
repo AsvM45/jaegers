@@ -1,5 +1,8 @@
 # Platform bootstrapping: Codex, Claude Code, Antigravity, Grok Build, Cursor
 
+> **Offline-first entrypoint:** every platform should begin with root `AGENT_START_HERE.md` or `Jaeger_Main/House_Edge/AGENT_START_HERE.md`; these do not depend on Issues/Wiki/plugins. For a claimed task, current issue comments and `AGENT_COLLABORATION_PROTOCOL.md` supersede the static agent map. See `docs/KNOWLEDGE_DISTRIBUTION.md` for every copy's path.
+
+
 **One canonical behavioral policy:** [AGENT_OPERATING_POLICY](AGENT_OPERATING_POLICY.md). **One task source:** current issue + latest comments and [#18](https://github.com/AsvM45/jaegers/issues/18). **One compact knowledge source:** [AGENT_CONTEXT](AGENT_CONTEXT.md). **One independent working tree per editing agent**. These directions do not launch agents automatically.
 
 ## Common startup prompt (customize issue + lane)

@@ -1,4 +1,7 @@
 # JAEGERS | Repository guardrails
+
+> **Local-only fallback for every coding agent:** read `AGENT_START_HERE.md` (full scientific contract, five-agent ownership, worktree/PR rules) and `Jaeger_Main/House_Edge/AGENT_START_HERE.md` when working on House Edge. Both are self-contained; GitHub Issues/Wiki/plugins are optional for initial context. Live issue claims and the organizer kit override older snapshots.
+
 - Public monorepo: `Jaeger_Main/House_Edge/` and `Jaeger_Main/Hitachi/` are separate. Work only in the requested subtree. Do not alter Hitachi when solving House Edge.
 - At the start of a substantive task inspect `git status --short`, branch, HEAD and relevant files; preserve teammate modifications. The public remote may be behind/ahead of the local working tree.
 - Scope changes narrowly, run real checks, and report observed commands/results; never invent scores, tests, acceptance or hidden labels.

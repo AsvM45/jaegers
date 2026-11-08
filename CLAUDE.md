@@ -1,5 +1,8 @@
 @AGENTS.md
 
+> **Claude startup / restricted-tool fallback:** read `AGENT_START_HERE.md` and `Jaeger_Main/House_Edge/AGENT_START_HERE.md` directly from this checkout, plus `.claude/skills/jaegers-team-context/SKILL.md` when applicable. Never require GitHub Issues or Wiki access just to understand the scientific task; do require a verified claim before editing.
+
+
 # Claude Code / Grok Build compatible project instructions
 Read the root and scoped House Edge AGENTS.md, then:
 - docs/AGENT_COLLABORATION_PROTOCOL.md (binding branch/issue claim and PR checker)
