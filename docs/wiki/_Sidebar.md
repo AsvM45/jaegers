@@ -1,8 +1,12 @@
-**JAEGERS House Edge**
-- [Home](Home)
-- [Agent collaboration](https://github.com/AsvM45/jaegers/blob/main/docs/MULTI_AGENT_OWNERSHIP.md)
-- [Experiment research](https://github.com/AsvM45/jaegers/blob/main/docs/research/EXPERIMENT_FACTORY_GUIDE.md)
-- [Issues](https://github.com/AsvM45/jaegers/issues)
-- [Coordination #18](https://github.com/AsvM45/jaegers/issues/18)
-- [Scientific contract](https://github.com/AsvM45/jaegers/blob/main/docs/VALIDATION_PROTOCOL.md)
-- [Artifact provenance](https://github.com/AsvM45/jaegers/blob/main/docs/LIBRARY_ARTIFACTS.md)
+# JAEGERS wiki navigation
+
+- [Home](Home.md)
+- [Current state](../CURRENT_STATE.md)
+- [Architecture](../architecture/SYSTEM_OVERVIEW.md)
+- [Evaluation science](../science/EVALUATION_AND_PROVENANCE.md)
+- [CI and release](../runbooks/CI_AND_RELEASE.md)
+- [Agents and worktrees](../agents/GITHUB_AGENTS_AND_WORKTREES.md)
+- [Governance runbook](../ops/PR_GOVERNANCE_RUNBOOK.md)
+- [GitHub feature decisions](../adr/0001-github-engineering-features.md)
+- [Root README](../../README.md)
+- [Live issue board](https://github.com/AsvM45/jaegers/issues/18)
