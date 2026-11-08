@@ -34,7 +34,8 @@ def check(event, paths, comments, other_pr_paths):
     # Existing PRs #19-#22 existed before this workflow and are exempt from new claim metadata.
     if int(pr["number"]) > 22:
         for k in FIELDS:
-            if len(fields[k]) < 3: errors.append("Missing PR field: " + k)
+            if k != "Issue" and len(fields[k]) < 3:
+                errors.append("Missing PR field: " + k)
         issue = re.fullmatch(r"#([1-9][0-9]*)", fields["Issue"])
         if not issue: errors.append("Issue must be #NN")
         claim = latest_claim(comments, branch)
