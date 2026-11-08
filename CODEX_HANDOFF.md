@@ -15,3 +15,6 @@ Priorities: preserve/reproduce champion, test historical information availabilit
 verify cold offline release, then automate grouped research, analytics, and adaptation.
 Keep competition inference independent of cloud services. No upload, push, paid cloud
 resources, or Hitachi edits without explicit authorization.
+
+## Parallel Antigravity lane
+Antigravity reuses shared `AGENTS.md` and `.agents/skills/`; see `docs/MULTI_AGENT_OWNERSHIP.md`. Its default assignments are **#13 dashboard/analytics** and only later **#14 optional Databricks**. Codex retains ownership of #1, #4, #6 and #8 and the existing `research/*.py` shared implementation files. Coordinate trial-record schema; do not take over Antigravity's `dashboard/` files or edit the same worktree.
