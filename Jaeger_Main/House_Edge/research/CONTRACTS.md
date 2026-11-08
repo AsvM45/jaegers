@@ -12,6 +12,9 @@ specialist `research/challengers/` namespace; do not create a
 second flat `research/models.py`. The integration-owned existing-model adapters live
 in `research/adapters.py`. Public interface:
 
+`research.models` re-exports these adapters for existing consumers, while remaining
+a package for specialist modules. The implementations live only in `adapters.py`.
+
 ```python
 model.fit(queries, history, labels)  # returns self
 predictions = model.predict_proba(queries, history)

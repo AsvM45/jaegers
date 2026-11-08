@@ -40,6 +40,7 @@ evidence = {
     "memory_limit_enforced": resource.getrlimit(resource.RLIMIT_AS)[0] == 16*1024**3,
     "time_limit_enforced": True,
     "installed_distributions":{d.metadata["Name"]:d.version for d in importlib.metadata.distributions()},
+    "numpy_disabled_cpu_features":os.environ.get("NPY_DISABLE_CPU_FEATURES", ""),
 }
 if not all(evidence[k] for k in ("python_313", "network_disabled", "submission_read_only", "data_read_only", "cpu_limit_enforced", "memory_limit_enforced")):
     raise RuntimeError(f"Sandbox preflight failed: {evidence}")

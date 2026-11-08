@@ -9,6 +9,12 @@ See [current measured results](../../docs/CURRENT_STATE.md) and the
 [coordination board](https://github.com/AsvM45/jaegers/issues/18) for execution status.
 This guide describes supported commands, not a claim that every planned study is done.
 
+Offline parity is specific to the recorded runtime and CPU policy. The unchanged
+champion has shown large differences across platforms and NumPy CPU-dispatch settings;
+dependency pins alone do not establish portability. Preserve failed attempts. Any
+recorded cold-verification failure invalidates that release directory's success status;
+stage a separate candidate and obtain release-owner review before selecting it.
+
 ## Python 3.13 setup
 
 Run from `Jaeger_Main/House_Edge`. On Windows:

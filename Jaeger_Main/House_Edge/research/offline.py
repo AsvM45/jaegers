@@ -4,9 +4,9 @@ from pathlib import Path
 import sys
 import json
 import subprocess
-from .common import ROOT, require_python, write_json
+from .common import ROOT, require_python
 from .process import run
-from .release import verify
+from .release import verify, record_failure
 
 
 def offline(release, data, prediction_python=None):
@@ -39,13 +39,13 @@ def offline(release, data, prediction_python=None):
                 "--setenv", "TMP", "/tmp", "--setenv", "TEMP", "/tmp", "--setenv", "TMPDIR", "/tmp",
                 "--setenv", "PATH", str(venv / "bin")+":/usr/bin:/bin",
                 "--chdir", "/submission", str(executable), "/runner.py"]
-    run(command, ROOT, attempt_root / "process", timeout=1800)
-    if sum(p.stat().st_size for p in output.rglob("*") if p.is_file()) > 32*1024**2:
-        raise ValueError("Output scratch limit exceeded")
     try:
+        run(command, ROOT, attempt_root / "process", timeout=1800)
+        if sum(p.stat().st_size for p in output.rglob("*") if p.is_file()) > 32*1024**2:
+            raise ValueError("Output scratch limit exceeded")
         result = verify(release, output / "submission.csv", output / "environment.json")
     except Exception as exc:
-        write_json(attempt_root/"verification_failure.json",{"status":"FAILED", "error":str(exc)})
+        record_failure(release, attempt_root, exc)
         raise
     print(result["status"], result["parity"], flush=True)
     return result
