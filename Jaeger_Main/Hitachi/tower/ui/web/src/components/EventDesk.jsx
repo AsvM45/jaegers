@@ -46,6 +46,10 @@ export function EventDesk() {
   };
 
   useEffect(() => { loadChat(); }, []);
+  // Event run writes each finished event into the feed: refresh the page data as it lands, and
+  // once when a run starts (the feed is cleared) and ends.
+  const progress = job ? `${job.running}:${job.done}` : "";
+  useEffect(() => { if (progress) reload(); }, [progress]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const box = log.current;
     if (box) box.scrollTop = box.scrollHeight;

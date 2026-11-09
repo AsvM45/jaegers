@@ -143,6 +143,34 @@ def _handle(event: dict) -> tuple[dict, list[dict]]:
     return trace.to_dict(), records
 
 
+# The run the Event feed shows (the same folder tower/ui/server.py reads). Event run starts it
+# empty and writes each event into it as it finishes, so the feed fills in live. The frozen
+# submission copy lives in runs/submission and is never touched.
+FEED_DIR = os.path.join(HITACHI, os.environ.get("TOWER_RUN_DIR", os.path.join("runs", "run1")))
+FEED_TRACES = os.path.join(FEED_DIR, "traces.json")
+FEED_LOG = os.path.join(FEED_DIR, "action_log.jsonl")
+FEED_OUTBOX = os.path.join(FEED_DIR, "outbox.jsonl")
+
+
+def _clear_feed() -> None:
+    with _files:
+        os.makedirs(FEED_DIR, exist_ok=True)
+        _write(FEED_TRACES, [])
+        for path in (FEED_LOG, FEED_OUTBOX):
+            open(path, "w", encoding="utf-8").close()
+
+
+def _save_to_feed(trace: dict, records: list[dict]) -> None:
+    """Add one finished event to the feed's run, replacing an older copy of the same event."""
+    with _files:
+        traces = [t for t in _read(FEED_TRACES, []) if t.get("event_id") != trace.get("event_id")]
+        traces.append(trace)
+        _write(FEED_TRACES, traces)
+        with open(FEED_LOG, "a", encoding="utf-8") as handle:
+            for record in records:
+                handle.write(json.dumps(record) + "\n")
+
+
 def _append_saved(event: dict, trace: dict, records: list[dict], reply: str) -> None:
     with _files:
         events = _read(EVENTS_PATH, [])
@@ -246,6 +274,7 @@ def start() -> dict:
         _seen = []
         _emit({"type": "reset"})
         total = _total
+    _clear_feed()
     threading.Thread(target=_worker, args=(events,), name="tower-event-run", daemon=True).start()
     return {"started": True, "total": total}
 
@@ -291,6 +320,8 @@ def _worker(events: list[dict]) -> None:
                 _current = event["event_id"]
                 _emit({"type": "reading", "id": event["event_id"]})
             trace, records = _handle(event)
+            if event.get("event_id", "").startswith("E-"):
+                _save_to_feed(trace, records)   # added events are already in the desk files
             row = {
                 "id": event["event_id"],
                 "classification": trace.get("classification") or "noise",
