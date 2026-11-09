@@ -1,0 +1,8 @@
+{
+  "name": "orb-graph",
+  "version": "1.0.0",
+  "description": "3D glowing node graph, served locally with Node.js",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=16" }
+}

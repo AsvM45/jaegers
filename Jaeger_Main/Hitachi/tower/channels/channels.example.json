@@ -1,0 +1,62 @@
+{
+  "_comment": "Copy to channels.json (gitignored). Secrets live in environment variables or Hitachi/.env; this file only names them. Set enabled:false to switch any source or sink off.",
+
+  "sources": {
+    "gmail_ops": {
+      "kind": "gmail", "enabled": false,
+      "query": "label:control-tower is:unread newer_than:2d",
+      "source_label": "supplier email", "mark_read": false, "limit": 25,
+      "client_id_env": "GOOGLE_CLIENT_ID", "client_secret_env": "GOOGLE_CLIENT_SECRET", "refresh_token_env": "GOOGLE_REFRESH_TOKEN"
+    },
+    "outlook_ops": {
+      "kind": "outlook", "enabled": false,
+      "mailbox": "control-tower@wackywheels.example", "folder": "inbox", "unread_only": true, "mark_read": false,
+      "tenant_id_env": "MS_TENANT_ID", "client_id_env": "MS_CLIENT_ID", "client_secret_env": "MS_CLIENT_SECRET"
+    },
+    "slack_ops_chat": {
+      "kind": "slack", "enabled": false,
+      "channel_id": "C0123456789", "token_env": "SLACK_BOT_TOKEN", "source_label": "ops chat", "react": "eyes"
+    },
+    "teams_plant_floor": {
+      "kind": "teams", "enabled": false,
+      "team_id": "00000000-0000-0000-0000-000000000000", "channel_id": "19:abc123@thread.tacv2",
+      "source_label": "plant alert",
+      "tenant_id_env": "MS_TENANT_ID", "client_id_env": "MS_CLIENT_ID", "client_secret_env": "MS_CLIENT_SECRET"
+    },
+    "imap_supplier_inbox": {
+      "kind": "imap", "enabled": false,
+      "host": "imap.example.com", "port": 993, "folder": "INBOX", "search": "UNSEEN",
+      "user_env": "IMAP_USER", "password_env": "IMAP_PASSWORD"
+    }
+  },
+
+  "sinks": {
+    "slack_ops":        {"kind": "slack", "webhook_env": "SLACK_OPS_WEBHOOK_URL", "min_interval_s": 1},
+    "slack_ops_bot":    {"kind": "slack", "enabled": false, "token_env": "SLACK_BOT_TOKEN", "channel_id": "C0123456789", "min_interval_s": 1},
+    "teams_ops":        {"kind": "teams", "webhook_env": "TEAMS_WEBHOOK_URL", "min_interval_s": 1},
+    "pagerduty_oncall": {"kind": "pagerduty", "routing_key_env": "PAGERDUTY_ROUTING_KEY"},
+    "outlook_mail":     {"kind": "outlook", "mailbox": "control-tower@wackywheels.example",
+                         "tenant_id_env": "MS_TENANT_ID", "client_id_env": "MS_CLIENT_ID", "client_secret_env": "MS_CLIENT_SECRET"},
+    "gmail_mail":       {"kind": "gmail", "enabled": false,
+                         "client_id_env": "GOOGLE_CLIENT_ID", "client_secret_env": "GOOGLE_CLIENT_SECRET", "refresh_token_env": "GOOGLE_REFRESH_TOKEN"},
+    "smtp_mail":        {"kind": "smtp", "enabled": false, "host": "smtp.example.com", "port": 587,
+                         "user_env": "SMTP_USER", "password_env": "SMTP_PASSWORD", "from": "control-tower@wackywheels.example"},
+    "google_chat_ops":  {"kind": "google_chat", "enabled": false, "webhook_env": "GOOGLE_CHAT_WEBHOOK_URL"},
+    "servicenow":       {"kind": "webhook", "enabled": false, "url_env": "SERVICENOW_WEBHOOK_URL", "secret_env": "TOWER_WEBHOOK_SECRET"}
+  },
+
+  "routes": {
+    "ops":         ["slack_ops", "teams_ops"],
+    "escalations": ["slack_ops", "teams_ops", "pagerduty_oncall"],
+    "dealers":     ["outlook_mail"],
+    "customers":   ["outlook_mail"]
+  },
+
+  "contacts": "contacts.json",
+
+  "safety": {
+    "redirect_to": ["control-tower-qa@wackywheels.example"],
+    "max_messages": 200,
+    "notify_noise": false
+  }
+}

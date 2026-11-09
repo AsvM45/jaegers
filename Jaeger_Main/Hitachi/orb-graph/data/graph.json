@@ -1,0 +1,414 @@
+{
+ "nodes": [
+  {
+   "id": "Gateway",
+   "type": "service"
+  },
+  {
+   "id": "Auth",
+   "type": "service"
+  },
+  {
+   "id": "Billing",
+   "type": "service"
+  },
+  {
+   "id": "Search",
+   "type": "service"
+  },
+  {
+   "id": "Notify",
+   "type": "service"
+  },
+  {
+   "id": "Orders",
+   "type": "service"
+  },
+  {
+   "id": "Catalog",
+   "type": "service"
+  },
+  {
+   "id": "Ingest",
+   "type": "service"
+  },
+  {
+   "id": "Render",
+   "type": "service"
+  },
+  {
+   "id": "Metrics",
+   "type": "service"
+  },
+  {
+   "id": "Postgres",
+   "type": "database"
+  },
+  {
+   "id": "Redis",
+   "type": "database"
+  },
+  {
+   "id": "Elastic",
+   "type": "database"
+  },
+  {
+   "id": "S3 Bucket",
+   "type": "database"
+  },
+  {
+   "id": "Kafka",
+   "type": "database"
+  },
+  {
+   "id": "Warehouse",
+   "type": "database"
+  },
+  {
+   "id": "Ada",
+   "type": "person"
+  },
+  {
+   "id": "Linus",
+   "type": "person"
+  },
+  {
+   "id": "Grace",
+   "type": "person"
+  },
+  {
+   "id": "Alan",
+   "type": "person"
+  },
+  {
+   "id": "Margaret",
+   "type": "person"
+  },
+  {
+   "id": "Dennis",
+   "type": "person"
+  },
+  {
+   "id": "Ken",
+   "type": "person"
+  },
+  {
+   "id": "Barbara",
+   "type": "person"
+  },
+  {
+   "id": "Latency",
+   "type": "concept"
+  },
+  {
+   "id": "Caching",
+   "type": "concept"
+  },
+  {
+   "id": "Consistency",
+   "type": "concept"
+  },
+  {
+   "id": "Queues",
+   "type": "concept"
+  },
+  {
+   "id": "Scaling",
+   "type": "concept"
+  },
+  {
+   "id": "Privacy",
+   "type": "concept"
+  },
+  {
+   "id": "Observability",
+   "type": "concept"
+  },
+  {
+   "id": "schema.sql",
+   "type": "file"
+  },
+  {
+   "id": "routes.js",
+   "type": "file"
+  },
+  {
+   "id": "deploy.yml",
+   "type": "file"
+  },
+  {
+   "id": "policy.md",
+   "type": "file"
+  },
+  {
+   "id": "pipeline.py",
+   "type": "file"
+  }
+ ],
+ "links": [
+  {
+   "source": "Gateway",
+   "target": "Postgres"
+  },
+  {
+   "source": "Gateway",
+   "target": "Metrics"
+  },
+  {
+   "source": "Gateway",
+   "target": "Consistency"
+  },
+  {
+   "source": "Auth",
+   "target": "Redis"
+  },
+  {
+   "source": "Auth",
+   "target": "Ingest"
+  },
+  {
+   "source": "Auth",
+   "target": "Queues"
+  },
+  {
+   "source": "Billing",
+   "target": "Redis"
+  },
+  {
+   "source": "Billing",
+   "target": "Ingest"
+  },
+  {
+   "source": "Billing",
+   "target": "Privacy"
+  },
+  {
+   "source": "Search",
+   "target": "S3 Bucket"
+  },
+  {
+   "source": "Search",
+   "target": "Catalog"
+  },
+  {
+   "source": "Search",
+   "target": "Scaling"
+  },
+  {
+   "source": "Notify",
+   "target": "Kafka"
+  },
+  {
+   "source": "Notify",
+   "target": "Billing"
+  },
+  {
+   "source": "Notify",
+   "target": "Consistency"
+  },
+  {
+   "source": "Orders",
+   "target": "Kafka"
+  },
+  {
+   "source": "Orders",
+   "target": "Catalog"
+  },
+  {
+   "source": "Orders",
+   "target": "Latency"
+  },
+  {
+   "source": "Catalog",
+   "target": "Kafka"
+  },
+  {
+   "source": "Catalog",
+   "target": "Notify"
+  },
+  {
+   "source": "Catalog",
+   "target": "Observability"
+  },
+  {
+   "source": "Ingest",
+   "target": "Kafka"
+  },
+  {
+   "source": "Ingest",
+   "target": "Queues"
+  },
+  {
+   "source": "Render",
+   "target": "Warehouse"
+  },
+  {
+   "source": "Render",
+   "target": "Catalog"
+  },
+  {
+   "source": "Render",
+   "target": "Scaling"
+  },
+  {
+   "source": "Metrics",
+   "target": "S3 Bucket"
+  },
+  {
+   "source": "Metrics",
+   "target": "Observability"
+  },
+  {
+   "source": "Ada",
+   "target": "Search"
+  },
+  {
+   "source": "Ada",
+   "target": "pipeline.py"
+  },
+  {
+   "source": "Linus",
+   "target": "Search"
+  },
+  {
+   "source": "Linus",
+   "target": "Auth"
+  },
+  {
+   "source": "Linus",
+   "target": "routes.js"
+  },
+  {
+   "source": "Grace",
+   "target": "Notify"
+  },
+  {
+   "source": "Grace",
+   "target": "Billing"
+  },
+  {
+   "source": "Grace",
+   "target": "pipeline.py"
+  },
+  {
+   "source": "Alan",
+   "target": "Orders"
+  },
+  {
+   "source": "Alan",
+   "target": "Ingest"
+  },
+  {
+   "source": "Alan",
+   "target": "pipeline.py"
+  },
+  {
+   "source": "Margaret",
+   "target": "Gateway"
+  },
+  {
+   "source": "Margaret",
+   "target": "Billing"
+  },
+  {
+   "source": "Margaret",
+   "target": "deploy.yml"
+  },
+  {
+   "source": "Dennis",
+   "target": "Orders"
+  },
+  {
+   "source": "Dennis",
+   "target": "Notify"
+  },
+  {
+   "source": "Dennis",
+   "target": "schema.sql"
+  },
+  {
+   "source": "Ken",
+   "target": "Metrics"
+  },
+  {
+   "source": "Ken",
+   "target": "Gateway"
+  },
+  {
+   "source": "Ken",
+   "target": "routes.js"
+  },
+  {
+   "source": "Barbara",
+   "target": "Search"
+  },
+  {
+   "source": "Barbara",
+   "target": "Catalog"
+  },
+  {
+   "source": "Barbara",
+   "target": "pipeline.py"
+  },
+  {
+   "source": "schema.sql",
+   "target": "Orders"
+  },
+  {
+   "source": "routes.js",
+   "target": "Auth"
+  },
+  {
+   "source": "deploy.yml",
+   "target": "Notify"
+  },
+  {
+   "source": "policy.md",
+   "target": "Billing"
+  },
+  {
+   "source": "pipeline.py",
+   "target": "Search"
+  },
+  {
+   "source": "Latency",
+   "target": "Elastic"
+  },
+  {
+   "source": "Caching",
+   "target": "Redis"
+  },
+  {
+   "source": "Consistency",
+   "target": "S3 Bucket"
+  },
+  {
+   "source": "Queues",
+   "target": "S3 Bucket"
+  },
+  {
+   "source": "Scaling",
+   "target": "Redis"
+  },
+  {
+   "source": "Privacy",
+   "target": "Warehouse"
+  },
+  {
+   "source": "Observability",
+   "target": "Elastic"
+  },
+  {
+   "source": "Gateway",
+   "target": "Auth"
+  },
+  {
+   "source": "Gateway",
+   "target": "Orders"
+  },
+  {
+   "source": "Orders",
+   "target": "Billing"
+  }
+ ]
+}

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orb graph</title>
+<style>
+  :root { --bg:#04050b; --ink:#dfe6ff; --dim:#8a93b8; --panel:rgba(12,14,28,.6); --line:rgba(255,255,255,.09); }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--ink); overflow:hidden;
+    font:14px/1.45 "Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif; }
+  canvas { display:block; }
+  .panel { position:fixed; background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); padding:14px 16px; }
+  #title { top:18px; left:18px; }
+  #title h1 { margin:0; font-size:17px; font-weight:600; letter-spacing:.01em; }
+  #title p { margin:2px 0 0; color:var(--dim); font-size:12.5px; }
+  #mode { top:18px; left:50%; transform:translateX(-50%); display:flex; gap:2px; padding:4px; }
+  #mode button { all:unset; cursor:pointer; padding:6px 18px; border-radius:10px; color:var(--dim); font-weight:600; }
+  #mode button:hover { color:var(--ink); }
+  #mode button[aria-pressed="true"] { background:rgba(255,255,255,.12); color:var(--ink); }
+  #mode button:focus-visible { outline:2px solid #fff; outline-offset:-2px; }
+  #zoom { right:18px; bottom:18px; display:flex; flex-direction:column; gap:2px; padding:4px; }
+  #zoom button { all:unset; cursor:pointer; width:36px; height:36px; display:grid; place-items:center; border-radius:10px; color:var(--ink); }
+  #zoom button:hover { background:rgba(255,255,255,.08); }
+  #zoom button:focus-visible { outline:2px solid #fff; outline-offset:-2px; }
+  #zoom svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  #legend { left:18px; bottom:18px; display:flex; flex-direction:column; gap:2px; padding:8px; }
+  #legend button { all:unset; cursor:pointer; display:flex; align-items:center; gap:10px; padding:6px 10px;
+    border-radius:8px; color:var(--ink); }
+  #legend button:hover { background:rgba(255,255,255,.06); }
+  #legend button:focus-visible { outline:2px solid #fff; outline-offset:-2px; }
+  #legend button[aria-pressed="false"] { opacity:.38; }
+  #legend .dot { width:11px; height:11px; border-radius:50%; background:var(--c); box-shadow:0 0 10px 2px var(--c); }
+  #legend .n { margin-left:auto; padding-left:18px; color:var(--dim); font-variant-numeric:tabular-nums; }
+  #info { top:18px; right:18px; width:260px; display:none; max-height:calc(100% - 36px); overflow:auto; }
+  #info .more { padding:3px 4px; font-size:12.5px; color:var(--dim); }
+  body.embed #info { width:230px; max-height:calc(100% - 90px); }
+  #info h2 { margin:0 0 2px; font-size:18px; font-weight:600; }
+  #info .type { display:flex; align-items:center; gap:8px; color:var(--dim); font-size:12.5px; margin-bottom:10px; }
+  #info .dot { width:9px; height:9px; border-radius:50%; background:var(--c); box-shadow:0 0 8px 2px var(--c); }
+  #info .detail { margin:-4px 0 10px; color:var(--ink); font-size:12.5px; }
+  #info .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  #info .chips button { all:unset; cursor:pointer; padding:3px 10px; border-radius:99px; font-size:12.5px;
+    border:1px solid var(--c); color:var(--ink); }
+  #info .chips button:hover { background:color-mix(in srgb, var(--c) 28%, transparent); }
+  #info .chips button:focus-visible { outline:2px solid #fff; }
+  #hint { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); color:var(--dim); font-size:12.5px;
+    pointer-events:none; text-align:center; padding:0 12px; }
+  #err { position:fixed; inset:0; display:none; place-items:center; color:#ff8a8a; text-align:center; padding:24px; }
+  body.embed #hint { display:none; }
+  body.embed .panel { padding:10px 12px; }
+  body.embed #title h1 { font-size:15px; }
+  @media (max-width:640px) { #zoom { bottom:auto; top:76px; } #mode { left:auto; right:18px; transform:none; } #info { width:auto; left:18px; top:auto; bottom:18px; right:18px; } #legend { display:none; } #hint { display:none; } }
+</style>
+</head>
+<body>
+  <div id="title" class="panel"><h1>Orb graph</h1><p id="stats">Loading…</p></div>
+  <div id="mode" class="panel" role="group" aria-label="View mode"><button data-mode="2d" aria-pressed="false">2D</button><button data-mode="3d" aria-pressed="true">3D</button></div>
+  <div id="zoom" class="panel" role="group" aria-label="Zoom">
+    <button id="zoom-in" aria-label="Zoom in" title="Zoom in"><svg viewBox="0 0 18 18"><path d="M9 3v12M3 9h12"/></svg></button>
+    <button id="zoom-out" aria-label="Zoom out" title="Zoom out"><svg viewBox="0 0 18 18"><path d="M3 9h12"/></svg></button>
+    <button id="zoom-fit" aria-label="Zoom to fit all nodes" title="Zoom to fit all nodes"><svg viewBox="0 0 18 18"><path d="M3 7V3h4M11 3h4v4M15 11v4h-4M7 15H3v-4"/></svg></button>
+  </div>
+  <div id="legend" class="panel" aria-label="Node types"></div>
+  <div id="info" class="panel" aria-live="polite"></div>
+  <div id="hint">Drag an orb to move it. Click to focus its links. Drag empty space to orbit. Scroll or use the buttons to zoom.</div>
+  <div id="err"></div>
+  <script type="importmap">
+  { "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }
+  </script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

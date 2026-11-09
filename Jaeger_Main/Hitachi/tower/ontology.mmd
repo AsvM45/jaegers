@@ -1,0 +1,14 @@
+flowchart LR
+  Supplier -->|ships| Shipment
+  Shipment -->|part| Part
+  Shipment -->|plant| Plant
+  Part -->|BOM| Model
+  Plant -->|builds| ProductionOrder
+  Model -->|built as| ProductionOrder
+  ProductionOrder -->|promised as| CustomerOrder
+  CustomerOrder --> Dealer
+  CustomerOrder --> Customer
+  Lot -->|installed on| Vehicle
+  ProductionOrder --> Vehicle
+  Vehicle --> Dealer
+  Vehicle -->|sold| Customer
