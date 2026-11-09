@@ -1,0 +1,1489 @@
+"""Read one message into incidents.
+
+The function takes the message text and the company graph. It does not take
+an event id, and it does not keep a table of answers. A compound message
+with two or more markers such as (1) and (2) becomes one incident per
+section. Anything else is a single section.
+
+Classification priority, first match wins:
+quality hold, plant outage, supplier delay, unconfirmed rumor, noise.
+"""
+
+from __future__ import annotations
+
+import re
+import html
+import unicodedata
+from datetime import date, timedelta
+
+from tower.calendar_util import TODAY, extract_dates, impossible_dates, is_working_day, next_working_day
+from tower.contracts import Incident, Mention
+
+# '(1)', '(2)' ... markers split a compound message into sections.
+_MARKER = re.compile(r"\((\d+)\)")
+# The same list written without the opening parenthesis: "1) ... 2) ...".
+_MARKER_BARE = re.compile(r"(?:(?<=\s)|^)(\d)\)\s")
+# "1. ... 2. ..." The number has to count from 1, so "March 16. The line" is not a list.
+_MARKER_DOT = re.compile(r"(?:(?<=\s)|^)(\d{1,2})\.\s+")
+# A bullet at the start of the message, after a newline, or after a sentence: "- Lexington... . - Voicemail..."
+# A date range ("March 16 - March 18") has no period in front of the hyphen, so it is not a bullet.
+_BULLET = re.compile(r"(?:(?<=\n)|^|(?<=\.))\s*[-•]\s+(?=[A-Z])")
+# "A) ... B) ..." and "First, ... Second, ...".
+_LETTER = re.compile(r"(?:(?<=\s)|^)([A-D])\)\s")
+_ORDINAL = re.compile(r"(?:(?<=\s)|^)(First|Second|Third)(?:ly)?,", re.I)
+# A sentence that starts a second, separate item: "Also, ...", "Separately, ...", or "Also" after a period.
+_CONNECTOR = re.compile(
+    r"(?<=[.!?;])\s+(?:also|separately|in addition|additionally|and another thing|unrelated)(?:[,:]\s+|\s+)",
+    re.I,
+)
+# Restart wording after an outage ("the line restarts the following working day", "back up
+# Monday", "production resumes on the 22nd"). Dates after it are the restart, not outage days.
+_RESTART = re.compile(r"\b(?:restart\w*|resum\w*|reopen\w*|back (?:on|up|online|running|in operation))\b", re.I)
+# Record ids written in a message. One that is not in the tables makes the message unclear.
+_ID_SHAPE = re.compile(r"\b(?:SH|LOT|PO|CO|SUP)-\d+\b|\bP_[A-Z]{2}\b")
+
+# Word families for the rule reader, as regular expressions over the lower-cased message (curly
+# apostrophes folded to straight ones, see _fold). They describe how people talk about each kind
+# of incident in general; they are not taken from any particular message. A keyword alone is never
+# enough: each kind also needs the records and dates it can act on (see _read_section).
+_NEG = r"(?:can't|cannot|can not|won't|will not|isn't|is not|aren't|are not|not|unable to|no longer)"
+_QUALITY = (
+    r"quality (?:alert|bulletin|issue|problem|notice|hold|concern|escape|incident)",
+    r"defect\w*", r"fault(?:y|s)?", r"contaminat\w*", r"suspect(?:ed)?", r"recall\w*",
+    r"crack(?:ed|s|ing)?", r"corro\w*", r"bad (?:batch|lot|parts?|run)", r"non-?conform\w*",
+    r"fail(?:ed|s)? (?:inspection|testing|qa|qc)", r"out[- ]of[- ]spec\w*",
+    r"(?:inspection|audit|testing|qa|qc) (?:found|flagged|shows?|showed)",
+    # Not a bare "on hold": a shipment can be "on hold at customs". Placing a lot on hold is quality.
+    r"(?:place\w*\s+(?:\w+\s+){0,3}on|put\s+(?:\w+\s+){0,3}on) hold", r"hold (?:the |this |that )?lots?",
+    r"stop[- ]sale",
+    # A lot can be quarantined, or a defect named, without the word "quality".
+    r"quarantin\w*", r"\bqa hold\b", r"field reports?", r"\bflagged\b",
+    r"porosit\w*", r"checksum", r"water ingress", r"delamination", r"contaminated grease",
+    r"undersized fasteners", r"torque spec", r"seal leaks?", r"thread pitch", r"mislabeled",
+    r"excess solder", r"brittle plastic", r"intermittent shorts?",
+    # "scrap LOT-0001" / "stop using lot LOT-0001". A bare "scrap" is not enough: a picnic note
+    # can say "scrap the brochure" and name a plant.
+    r"scrap(?:ped|ping)?\s+(?:the\s+)?(?:lot\s+)?lot-\d+",
+    r"lot-\d+\s+is\s+scrap",
+    r"stop using\s+(?:lot\s+)?lot-\d+",
+    r"(?:do not|don't) use\s+(?:lot\s+)?lot-\d+",
+    r"do not install\s+(?:lot\s+)?lot-\d+",
+    r"out of tolerance",
+    r"hold(?:\s+[\w-]+){0,8}\s+for inspection",
+    r"seals?(?:\s+[\w-]+){0,6}\s+leak",
+    r"reject(?:ed)?\s+(?:lot\s+)?lot-\d+",
+    r"lot-\d+\s+is\s+rejected",
+    r"(?:do not|don't) install\s+(?:lot\s+)?lot-\d+",
+    r"(?:do not|don't) build with\s+(?:lot\s+)?lot-\d+",
+    r"containment",
+    r"held for inspection",
+    r"incoming check",
+    r"\bscrapped\b",
+    r"fail(?:ed|s)?\s+(?:\w+\s+){0,2}inspection",
+)
+_OUTAGE = (
+    r"outages?", r"power (?:failure|cut|loss|outage)", r"blackout",
+    # Words may sit between the subject and the verb: "production at Lexington is suspended".
+    r"(?:production|builds?|the line|lines?|assembly|plant|operations?)"
+    r"(?:\s+[\w'’-]+){0,5}\s+"
+    r"(?:is |are |was |were |has |have |will be )?"
+    r"(?:stopped|stops|halted|halts|suspended|shut down|down|offline|idle|dark|paused|closed)",
+    r"(?:we're|we are|we'll be|will be|is|are|was|went|going|stays?) (?:dark|down|offline|idle)",
+    # "we're losing Princeton for the 16th through the 18th" is the plant, not a parts shortage.
+    r"(?:we(?:'re| are)|they(?:'re| are))\s+losing\b",
+    r"shut ?down", r"shutdown", r"stoppage", r"standstill",
+    r"(?:lost|losing|halt\w*|stop\w*|suspend\w*|no) (?:all )?(?:production|builds?|output)",
+    _NEG + r" (?:build|produce|run (?:the line|production))",
+    r"(?:down|dark|offline) (?:from|on|until|through|for)",
+    # The plant itself is idle, as opposed to "is not down" (an all-clear, handled separately).
+    r"(?:is not|isn't|will not be|won't be|cannot|will not) (?:be )?running\b",
+    r"(?:is not|isn't) producing\b",
+    r"cannot operate", r"will not operate", r"\bhalts?\b",
+    r"will be closed", r"\bcloses\b", r"set to close", r"stay closed", r"remains shut",
+    r"downtime", r"out of service", r"\bidled\b", r"in maintenance", r"into maintenance",
+    r"ceased operations", r"(?:operations?)(?:\s+\w+){0,5}\s+cease",
+    r"(?:production|builds?)(?:\s+\w+){0,5}\s+cancell\w*",
+    r"power is out", r"no power", r"blacked out", r"no assembly", r"goes offline",
+    r"suspended operations", r"will idle", r"\bshuttered\b",
+)
+_DELAY = (
+    r"delay\w*", r"late", r"later than", r"behind schedule", r"running behind",
+    r"(?:new|revised|updated|adjusted) (?:eta|arrival|delivery|ship) ?(?:date|time)?", r"\beta\b",
+    r"slip\w*", r"\bslid\b", r"push\w* (?:back|out|to|from)", r"postpon\w*", r"reschedul\w*",
+    r"\bshifted\b", r"\bbumped\b", r"\bdeferred\b", r"put off", r"did(?:n't| not) ship",
+    r"\bpushed\b", r"\brevised\b", r"\bquoted\b", r"\bquoting\b", r"instead of", r"\bmoved\b",
+    r"(?:arrival|delivery|shipment)(?:\s+[\w-]+){0,10}\s+(?:has been |was |is )?moved\b",
+    # "was March 15, now March 18" names both ends without the word "delay".
+    r"\bwas\b[^.]{0,120}\bnow\b",
+    r"\bdue\b[^.]{0,40}\bexpected\b",
+    _NEG + r" (?:make it|arriv\w*|land\w*|deliver\w*|ship\w*|show|be there|reach)",
+    r"(?:won'?t|will not|does(?:n't| not)|do(?:n't| not))\s+show",
+    r"(?:will now|now|instead) (?:arriv\w*|land\w*|ship\w*|deliver\w*|come|com\w*)",
+    r"now quoting", r"revised (?:date|eta|delivery|arrival)", r"\bno longer\b", r"missed the\b",
+    r"waiting (?:on|for)", r"(?:originally|original|was|were|had been) (?:due|scheduled|planned|expected|set)",
+    r"original (?:drop|date|eta|delivery)",
+)
+_RUMOR = (
+    r"rumou?rs?\w*", r"(?:not |un)(?:confirmed|verified|official)", r"nothing (?:confirmed|official|definite)",
+    r"no (?:dates?|details|specifics|confirmation|official word|word yet)",
+    r"possibl[ey]", r"maybe", r"might", r"may be", r"could (?:be|slip|have)", r"perhaps",
+    r"heard", r"hearsay", r"hint\w*", r"apparently", r"supposedly", r"word is", r"people (?:say|are saying)",
+    r"(?:someone|somebody|people|a guy|word) (?:\w+ ){0,4}(?:said|says|say|mentioned|thinks|heard)", r"(?:can't|cannot|can not) confirm", r"not sure", r"unclear",
+    r"claims?", r"speculat\w*", r"a vibe",
+)
+# What makes a vague message "possibly about us" (handbook: unconfirmed) rather than noise: it
+# hints at trouble in our operations. A hedge with no trouble stays noise ("temperatures may
+# reach 105 F", "is a plant tour possible next Friday?").
+_TROUBLE = (
+    r"shortages?", r"short on", r"delay\w*", r"late", r"slip\w*", r"behind", r"problems?", r"issues?",
+    r"trouble", r"wrong", r"(?:off|up) with", r"strikes?", r"walkout", r"defect\w*", r"quality",
+    r"outages?", r"(?:lose|lost|losing|loses) power", r"down", r"shut\w*", r"stop\w*", r"recall\w*",
+    r"disrupt\w*", r"bottleneck", r"backlog",
+    r"miss(?:es|ed|ing)?\s+(?:a\s+|the\s+)?(?:deliver\w*|shipment\w*)",
+)
+
+
+# Hearsay: checked before a quality hold, an outage or a delay, so a fully specified sentence that
+# is still a rumor is escalated. The weaker _RUMOR words ("might", "possible") do not block a fully
+# specified incident.
+_HEARSAY = (
+    r"(?:not |un)confirmed", r"nothing confirmed", r"rumou?rs?", r"someone (?:\w+ ){0,4}mentioned",
+    r"someone on the floor", r"may be off", r"no dates",
+)
+# Non-events: checked before a quality hold, an outage or a delay.
+_NON_EVENT = (r"no delay expected", r"if it goes past", r"drills?")
+# An explicit all-clear. "Is not running" is not one of these: the plant being down is an outage.
+_ALL_CLEAR = (
+    r"not\s+(?:down|shut\s*down|closed|offline|delayed|late)\b",
+    r"no\s+(?:outage|delay|defects?|faults?|cracks?)\b",
+    r"(?:hold|outage|delay)(?:\s+[\w-]+){0,14}\s+(?:is |was |has been )?(?:lifted|released|cancelled|canceled|resolved)",
+    r"cancel\w*\s+(?:the\s+)?(?:[\w-]+\s+){0,6}(?:outage|delay|hold)",
+    r"back on schedule",
+)
+# Cafeteria, tour, and picnic notes name a plant without being about production.
+_CHATTER = re.compile(r"\b(?:cafeteria|lunch line|plant tour|picnic|parking garage)\b", re.I)
+_SEMI = re.compile(r";\s+")
+_AND_NEXT = re.compile(r"\s+and\s+(?=[A-Z])")
+_NEGATED_BEFORE = re.compile(r"\b(?:not|no)\s+$")
+_NEGATED_INSIDE = re.compile(r"\bnot\s+(?:down|closed|offline|shut|delayed|late|halted|stopped)\b")
+_CONTROLS = re.compile(r"[\x00-\x08\x0e-\x1f\x7f]")
+# Labels that bind a delay's dates when both appear, whatever their order.
+_ORIGINAL_ETA = ("original drop", "was due", "due", "instead of", "in place of", "not")
+_NEW_ETA = ("new eta", "will now arrive", "arrive", "comes", "quoting", "quoted")
+_ZERO_WIDTH = str.maketrans("", "", "\u200b\u200c\u200d\ufeff")
+_DASH = str.maketrans({"\u2013": "-", "\u2014": "-", "\u2212": "-"})
+_UNICODE_SPACE = re.compile(r"[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]+")
+_SPACE_RUN = re.compile(r"[ \t\r\n\f\v]+")
+
+
+def _prepare(text: str) -> str:
+    """Make messy wording readable before the phrase and date scan: HTML entities, fullwidth
+    letters, odd dashes, zero-width characters and broken whitespace are folded into the sentence
+    a person would read, so none of them can hide a phrase or open an extra incident."""
+    raw = html.unescape(unicodedata.normalize("NFKC", text or ""))
+    raw = _CONTROLS.sub("", raw)
+    raw = raw.translate(_ZERO_WIDTH).translate(_DASH)
+    raw = _UNICODE_SPACE.sub(" ", raw)
+    return _SPACE_RUN.sub(" ", raw).strip()
+
+
+# Entry point called by the coordinator. Returns one Incident per section.
+def understand(graph, text: str, llm=None, anchor=None) -> list[Incident]:
+    """Split a message into sections and classify each one.
+
+    With an llm (tower.agents.llm_reader.LLMReader), the model reads each section and code
+    verifies it; the rule reader is the fallback and the referee. `anchor` is the date relative
+    phrases are measured from (the day the event was received); None means TODAY.
+    """
+    text = _prepare(text)
+    when = TODAY if anchor is None else anchor
+    read = ((lambda part: _read_section(graph, part, when)) if llm is None
+            else (lambda part: _read_with_llm(graph, part, llm, when)))
+    out = []
+    for section in _sections(text):
+        out.extend(_read_connected(section, read))
+    return out
+
+
+_ACTIONABLE = ("plant_outage", "supplier_delay", "quality_hold")
+
+
+def _read_connected(section: str, read) -> list[Incident]:
+    """Read "<item>. Also, <item>." as two items when both halves are about something; otherwise as
+    one, so a single report whose second sentence starts with "Also" is not cut in two.
+
+    A semicolon splits only when both sides are finished incidents. "Original ETA Mar 22; revised
+    ETA Mar 23" and "suspended; back up on the 24th" stay one item.
+    """
+    cut = _CONNECTOR.search(section)
+    semi = None if cut else _SEMI.search(section)
+    # "Lexington is down ... and San Antonio is down ..." is two outages. Other "and" joins stay one item.
+    and_cut = _AND_NEXT.search(section)
+    if and_cut and not cut and not semi:
+        parts = [section[:and_cut.start()].strip(), section[and_cut.end():].strip()]
+        readings = [read(part) for part in parts if part]
+        if len(readings) == 2 and all(item.kind == "plant_outage" for item in readings):
+            return readings
+    if not cut and not semi:
+        return [read(section)]
+    mark = cut or semi
+    parts = [section[:mark.start()].strip(), section[mark.end():].strip()]
+    parts[1] = parts[1][:1].upper() + parts[1][1:]
+    readings = [read(part) for part in parts if part]
+    if semi:
+        if len(readings) == 2 and all(item.kind in _ACTIONABLE for item in readings):
+            return readings
+        return [read(section)]
+    if len(readings) == 2 and all(r.kind != "noise" for r in readings):
+        return readings
+    # One half is chatter ("Stock markets closed higher. Also, <outage>"). Keep that half so a
+    # date in the chatter ("today") is not treated as the first day of the outage. When the whole
+    # message agrees with that half, the whole is the one that swallowed the chatter.
+    whole = read(section)
+    useful = [r for r in readings if r.kind != "noise"]
+    if len(useful) == 1 and (whole.kind == "noise" or useful[0].kind == whole.kind):
+        return useful
+    return [whole]
+
+
+# Kinds that lead to no operational change.
+_QUIET = frozenset({"noise", "unconfirmed"})
+
+
+# The model decides; code checks. Step 1: the model says what kind of event a section is and why.
+# Step 2 (real incidents): it picks the records and dates that kind needs from candidates code found
+# in the message and the tables. Code checks the picks make a complete, consistent incident; a
+# reading that does not check out (after one retry with the reason) is escalated to a human, never
+# guessed. The rule reader does not vote and is not run alongside: it is only the backup when the
+# model gives no usable answer (Ollama down, broken output).
+def _read_with_llm(graph, section: str, llm, anchor=None) -> Incident:
+    """Model decides, code verifies. The trace keeps the model's reason."""
+    box: dict = {}
+    incident = _decide_with_llm(graph, section, llm, box, anchor)
+    if box.get("reason"):
+        incident.model_reason = f"{llm.model}: {box['reason']}"
+    return incident
+
+
+def _decide_with_llm(graph, section: str, llm, box: dict, anchor=None) -> Incident:
+    """The model-first reading behind _read_with_llm; box gets the model's reason."""
+    from tower.agents.llm_reader import LLMUnavailable
+
+    try:
+        first = llm.classify(section)
+    except (LLMUnavailable, ValueError) as exc:
+        return _fallback(_read_section(graph, section, anchor),
+                         f"{llm.model} gave no usable answer ({exc}); used the rule reader.")
+    kind, reason = first["kind"], first["reason"]
+    box["reason"] = reason
+    said = f"{llm.model} read '{kind}': {reason or 'no reason given'}"
+    mentions = graph.resolve_mentions(section)
+    picked = {t: _pick(mentions, t) for t in ("plant", "part", "lot", "supplier", "shipment")}
+
+    if kind == "noise":
+        out = _noise(section, picked, [], [], [])
+        # The summary is the model's own reason, not a template, so it explains this message.
+        out.summary = f"No action: {reason.rstrip('.')}." if reason else out.summary
+        out.evidence = [said, *out.evidence[1:]]
+    elif kind == "unconfirmed":
+        out = Incident(
+            kind="unconfirmed",
+            summary=f"The report is not safe to act on: {reason.rstrip('.')}. It is escalated for a human to confirm.",
+            evidence=[said, *_chosen_lines(picked, ("plant", "part", "supplier", "shipment", "lot"))],
+        )
+    else:
+        out = _model_incident(graph, section, llm, kind, reason, said, anchor)
+    out.reader = llm.model
+    return out
+
+
+def model_options(graph, section: str, anchor=None) -> tuple[dict[str, list[tuple[str, str]]], dict[str, object]]:
+    """Candidates for step 2: every record the message names (through aliases.csv, ids and
+    one-typo names) and every date it gives, as labels the model chooses from.
+    Returns (labels by role type, label -> Mention or date item)."""
+    # Each option is (value the model answers with, how it is shown). The value is the record id or
+    # the ISO date: short plain values are what small models pick reliably under a strict format.
+    labels: dict[str, list[tuple[str, str]]] = {t: [] for t in ("plant", "part", "supplier", "lot", "shipment", "date")}
+    lookup: dict[str, object] = {}
+    for m in graph.resolve_mentions(section):
+        if m.entity_type not in labels or m.entity_id in lookup:
+            continue
+        lookup[m.entity_id] = m
+        labels[m.entity_type].append((m.entity_id, f'{m.entity_id} = "{m.alias}"{_record_note(graph, m.entity_type, m.entity_id, m.alias)}'))
+    for item in extract_dates(section, anchor):
+        iso = item["date"]
+        if iso in lookup:
+            continue
+        lookup[iso] = item
+        labels["date"].append((iso, f'{iso} = "{item["phrase"]}" ({date.fromisoformat(iso):%A})'))
+    return labels, lookup
+
+
+def _record_note(graph, entity_type: str, entity_id: str, alias: str) -> str:
+    """What the tables say about a record, so the model can tell candidates apart."""
+    if entity_type in ("plant", "part", "supplier"):
+        row = {"plant": graph.plants, "part": graph.parts, "supplier": graph.suppliers}[entity_type].get(entity_id)
+        name = (row or {}).get("name", "")
+        return f" ({name})" if name and name.casefold() != alias.casefold() else ""
+    if entity_type == "lot" and entity_id in graph.lots:
+        r = graph.lots[entity_id]
+        return f" ({r['part_id']} from {r['supplier_id']} at {r['plant_id']}, builds {r['first_build_date']} to {r['last_build_date']})"
+    if entity_type == "shipment" and entity_id in graph.shipments:
+        r = graph.shipments[entity_id]
+        return f" ({r['part_id']} from {r['supplier_id']} to {r['plant_id']}, due {r['eta_date']})"
+    return ""
+
+
+def _model_incident(graph, section: str, llm, kind: str, reason: str, said: str, anchor=None) -> Incident:
+    """Step 2 for a real incident. In order, until the reading checks out:
+    1. the reader model picks records and dates from the candidates in the message;
+    2. code fills any gap the tables settle uniquely (inside _incident_from_choices);
+    3. a stronger model investigates with read-only lookup tools (at most MAX_LOOKUPS calls) and
+       picks again, now also from the records and dates the lookups found;
+    4. otherwise the event is escalated with a question naming exactly what is missing."""
+    from tower.agents.llm_reader import TOOL_MODEL, LLMReader, LLMUnavailable
+    from tower.agents.lookup_tools import Lookups
+
+    options, lookup = model_options(graph, section, anchor)
+    notes = [said]
+    answer, problem = None, ""
+    named = {value for rtype, items in options.items() if rtype != "date" for value, _ in items}
+    if not named:
+        # No plant, part, supplier, lot or shipment in the message: no pick could check out and
+        # there is nothing to look up, so ask straight away instead of spending model calls.
+        notes.append("the message names no plant, part, supplier, lot or shipment, so there is nothing to pick or look up")
+        return _needs_info(graph, kind, {}, lookup, _NOTHING_NAMED[kind], notes)
+    try:
+        answer = llm.fill(section, kind, options)
+        built, problem = _incident_from_choices(graph, kind, answer, lookup)
+        notes.append(f"{llm.model} picked {_picks(answer)}")
+        if built is not None:
+            built.evidence[:0] = [*notes, "every pick checks out against the tables and the message"]
+            return built
+    except (LLMUnavailable, ValueError) as exc:
+        problem = f"no usable answer ({exc})"
+    notes.append(f"does not check out: {problem}")
+
+    tool = _tool_reader(llm, TOOL_MODEL, LLMReader)
+    lookups = Lookups(graph, section, grounded=named)
+    try:
+        finding = tool.investigate(section, kind, problem, lookups)
+        _add_found(graph, options, lookup, lookups)
+        notes.extend(f"lookup by {tool.model}: {line}" for line in lookups.log)
+        if finding:
+            notes.append(f"{tool.model} found: {finding}")
+        answer = tool.fill(section, kind, options, previous=answer, problem=problem, findings=finding)
+        built, problem = _incident_from_choices(graph, kind, answer, lookup)
+        notes.append(f"{tool.model} picked {_picks(answer)}")
+        if built is not None:
+            built.evidence[:0] = [*notes, "every pick checks out against the tables and the message"]
+            built.reader = tool.model
+            return built
+        notes.append(f"does not check out: {problem}")
+    except (LLMUnavailable, ValueError) as exc:
+        notes.append(f"lookup step unavailable ({exc})")
+    return _needs_info(graph, kind, answer, lookup, problem, notes)
+
+
+_NOTHING_NAMED = {
+    "supplier_delay": "a delay needs a shipment, or a part and a plant",
+    "plant_outage": "an outage needs a plant",
+    "quality_hold": "a quality hold needs a known lot, or a plant and a part",
+}
+
+
+def _needs_info(graph, kind: str, answer, lookup: dict, problem: str, notes: list[str]) -> Incident:
+    """Escalate with one question naming everything still missing."""
+    question = _question(kind, problem, _missing(graph, kind, answer or {}, lookup))
+    understood = _understood(kind, answer or {}, lookup)
+    return Incident(
+        kind="unconfirmed",
+        summary=f"Needs more information. Understood so far: {understood}. {question}",
+        evidence=[*notes, f"asked for: {question}"],
+        question=question,
+    )
+
+
+_TOOL_READERS: dict = {}
+
+
+def _tool_reader(llm, name: str, cls):
+    """One investigating client per model, sharing the reader's Ollama address."""
+    if name == llm.model:
+        return llm
+    if name not in _TOOL_READERS:
+        _TOOL_READERS[name] = cls(model=name, url=llm.url, timeout=max(llm.timeout, 120.0))
+    return _TOOL_READERS[name]
+
+
+def _picks(answer: dict) -> str:
+    return ", ".join(f"{k}={v or '-'}" for k, v in answer.items())
+
+
+def _add_found(graph, options: dict, lookup: dict, lookups) -> None:
+    """Make the records and dates the lookup tools returned into options for the next pick."""
+    for eid, etype in lookups.records.items():
+        if etype not in options or eid in lookup:
+            continue
+        lookup[eid] = Mention(eid, etype, eid, -1, -1)
+        options[etype].append((eid, f"{eid}{_record_note(graph, etype, eid, eid)} (found in the tables)"))
+    for iso in sorted(lookups.dates):
+        if iso in lookup:
+            continue
+        lookup[iso] = {"phrase": f"{iso} (from the tables)", "date": iso}
+        options["date"].append((iso, f"{iso} ({date.fromisoformat(iso):%A}, found in the tables)"))
+
+
+# What to ask a person when a reading does not check out, keyed by the failed check. Each names
+# exactly what is missing, so the reply can be added to the message and the event read again.
+_QUESTIONS = {
+    "the new date must be a date the message gives": "What is the new arrival date?",
+    "the first day must be a date the message gives": "What is the first day the plant cannot build, and the last?",
+    "the last day down must be a date the message gives": "What is the last day the plant cannot build?",
+    "the restart day must be a date the message gives": "What is the last day the plant cannot build?",
+    "a quality hold needs a known lot, or a plant and a part": "Which part lot is affected, or which part at which plant?",
+    "a quality hold needs the first and last build dates": "What are the first and last build dates affected?",
+    "the build window ends before it starts": "The build dates look reversed. What are the first and last build dates affected?",
+    "an outage needs a plant": "Which plant cannot build?",
+    "an outage needs its first day down": "What is the first day the plant cannot build, and the last?",
+    "the outage ends before it starts": "The outage dates look reversed. What are the first and last days down?",
+    "a delay needs a shipment, or a part and a plant": "Which shipment is late, or which part is late to which plant?",
+    "a delay needs the new arrival date": "What is the new arrival date?",
+    "a delay needs the original due date": "What date was the delivery originally due?",
+}
+
+
+# What each kind needs, as the words a question uses. A field counts as known if the model picked
+# it or a table lookup filled it.
+_NEEDS = {
+    "supplier_delay": [(("shipment",), "which shipment is late (or which part, to which plant)", ("part", "plant")),
+                       (("original_date",), "the date it was originally due", ()),
+                       (("new_date",), "the new arrival date", ())],
+    "plant_outage": [(("plant",), "which plant cannot build", ()),
+                     (("first_day",), "the first day down", ()),
+                     (("last_day_down", "restart_day"), "the last day down (or the day it builds again)", ())],
+    "quality_hold": [(("lot",), "which part lot is affected (or which part, at which plant)", ("part", "plant")),
+                     (("first_build_date", "last_build_date"), "the first and last build dates affected", ())],
+}
+
+
+def _missing(graph, kind: str, answer: dict, lookup: dict) -> list[str]:
+    """Everything the reading still lacks, in words, so one question can ask for all of it."""
+    have = {role for role, value in answer.items() if value and value in lookup}
+    out = []
+    for roles, words, alternative in _NEEDS[kind]:
+        if not (have & set(roles)) and not (alternative and set(alternative) <= have):
+            out.append(words)
+    return out
+
+
+def _question(kind: str, problem: str, missing: list[str] | None = None) -> str:
+    """One question naming everything that is missing; the failed check's question otherwise."""
+    if missing and len(missing) > 1:
+        return "Please tell me " + ", ".join(missing[:-1]) + f", and {missing[-1]}."
+    if problem in _QUESTIONS:
+        return _QUESTIONS[problem]
+    need = {"supplier_delay": "which part is late to which plant, the original date and the new date",
+            "plant_outage": "which plant is down and its first and last days down",
+            "quality_hold": "which part or lot is defective, at which plant, and the build dates"}[kind]
+    return f"Please confirm {need}."
+
+
+def _understood(kind: str, answer: dict, lookup: dict) -> str:
+    """What the model did get, in words: the kind plus each pick that resolved."""
+    from tower.agents.llm_reader import ROLES
+
+    bits = [f"a {kind.replace('_', ' ')}"]
+    for role, (rtype, _) in ROLES[kind].items():
+        item = lookup.get(answer.get(role, "")) if answer.get(role) else None
+        if item is None:
+            continue
+        shown = item["date"] if rtype == "date" else item.entity_id
+        bits.append(f"{role.replace('_', ' ')} {shown}")
+    return ", ".join(bits)
+
+
+def _incident_from_choices(graph, kind: str, answer: dict, lookup: dict) -> tuple[Incident | None, str]:
+    """Build the incident from the model's picks, with the same completeness checks as the rule
+    reader. Returns (incident, "") or (None, what is missing or inconsistent)."""
+    from tower.agents.llm_reader import ROLES
+
+    def chosen(role):
+        label = answer.get(role, "")
+        return lookup.get(label) if label else None
+
+    picked = {t: (None, [], []) for t in ("plant", "part", "lot", "supplier", "shipment")}
+    for role, (rtype, _) in ROLES[kind].items():
+        m = chosen(role) if rtype != "date" else None
+        if m is not None:
+            picked[rtype] = (m, [m.alias], [])
+    looked_up = _fill_from_tables(graph, kind, picked, chosen)
+    plant, part, lot, shipment = (picked[t][0] for t in ("plant", "part", "lot", "shipment"))
+    hits = [f"{kind} (model)"]
+    built, problem = _checked_incident(graph, kind, picked, chosen, answer, hits)
+    if built is not None and looked_up:
+        built.evidence.extend(looked_up)
+    return built, problem
+
+
+def _found(entity_type: str, entity_id: str) -> tuple:
+    """A record code looked up in the tables (not written in the message), in _pick's shape."""
+    return (Mention(entity_id, entity_type, entity_id, -1, -1), [entity_id], [])
+
+
+def _fill_from_tables(graph, kind: str, picked: dict, chosen) -> list[str]:
+    """Look up what the message left out when the tables settle it uniquely: the one shipment of
+    that part to that plant (due before the new date), or the one lot of that part at that plant in
+    that build window. Fills picked in place; returns evidence lines. Never guesses between rows."""
+    ids = {t: (picked[t][0].entity_id if picked[t][0] is not None else None) for t in picked}
+    notes = []
+    if kind == "supplier_delay" and ids["shipment"] is None:
+        known = [ids[t] for t in ("supplier", "part", "plant") if ids[t]]
+        original, new = chosen("original_date"), chosen("new_date")
+        if len(known) >= 2:
+            rows = graph.find_shipments(ids["supplier"], ids["part"], ids["plant"],
+                                        eta=original["date"] if original else None)
+            if original is None and new is not None:
+                rows = [r for r in rows if r["eta_date"] < new["date"]]
+            if len(rows) == 1:
+                picked["shipment"] = _found("shipment", rows[0]["shipment_id"])
+                notes.append(f"looked up shipment {rows[0]['shipment_id']}: the only shipment matching "
+                             f"{', '.join(known)}" + (f" due {original['date']}" if original else
+                                                       f" due before {new['date']}" if new else ""))
+            else:
+                notes.append(f"looked up shipments for {', '.join(known)}: {len(rows)} match, so none was chosen")
+    if kind == "quality_hold" and (ids["lot"] is None or ids["lot"] not in graph.lots):
+        first, last = chosen("first_build_date"), chosen("last_build_date")
+        known = [ids[t] for t in ("supplier", "part", "plant") if ids[t]]
+        if ids["part"] and known:
+            rows = graph.find_lots(ids["supplier"], ids["part"], ids["plant"],
+                                   build_start=first["date"] if first and last else None,
+                                   build_end=last["date"] if first and last else None)
+            if len(rows) == 1:
+                picked["lot"] = _found("lot", rows[0]["lot_id"])
+                notes.append(f"looked up lot {rows[0]['lot_id']}: the only lot of {', '.join(known)}"
+                             + (f" built between {first['date']} and {last['date']}" if first and last else ""))
+            else:
+                notes.append(f"looked up lots for {', '.join(known)}: {len(rows)} match, so none was chosen")
+    return notes
+
+
+def _from_tables(item) -> bool:
+    """A date a lookup returned rather than one the message gives."""
+    return bool(item) and "(from the tables)" in str(item.get("phrase", ""))
+
+
+def _checked_incident(graph, kind: str, picked: dict, chosen, answer: dict, hits: list) -> tuple[Incident | None, str]:
+    """The completeness checks and the build, after the table lookups."""
+    plant, part, lot, shipment = (picked[t][0] for t in ("plant", "part", "lot", "shipment"))
+    # What happened, and when, must be in the message: a table can fill a stored due date or a
+    # named lot's build window, never the new arrival date or the days a plant is down.
+    for role in ("new_date", "first_day", "last_day_down", "restart_day"):
+        if _from_tables(chosen(role)):
+            return None, f"the {role.replace('_', ' ')} must be a date the message gives"
+    if kind == "quality_hold":
+        first, last = chosen("first_build_date"), chosen("last_build_date")
+        lot_known = lot is not None and lot.entity_id in graph.lots
+        if not lot_known and (plant is None or part is None):
+            return None, "a quality hold needs a known lot, or a plant and a part"
+        if not lot_known and (first is None or last is None):
+            return None, "a quality hold needs the first and last build dates"
+        dates = [d for d in (first, last) if d is not None]
+        if len(dates) == 2 and dates[1]["date"] < dates[0]["date"]:
+            return None, "the build window ends before it starts"
+        return _quality(graph, picked, dates, hits), ""
+
+    if kind == "plant_outage":
+        first, last, restart = chosen("first_day"), chosen("last_day_down"), chosen("restart_day")
+        if plant is None:
+            return None, "an outage needs a plant"
+        if first is None:
+            return None, "an outage needs its first day down"
+        dates, notes = [first], []
+        if last is None and restart is not None:
+            # Only the restart is dated: the outage ends the working day before it.
+            end = _day_before_restart(restart["date"])
+            notes.append(f"'{restart['phrase']}' is when work resumes, so the last day down is {end}")
+            last = {**restart, "date": end}
+        if last is not None:
+            dates.append(last)
+        if len(dates) == 2 and dates[1]["date"] < dates[0]["date"]:
+            return None, "the outage ends before it starts"
+        return _outage(picked, dates, hits, notes), ""
+
+    original, new = chosen("original_date"), chosen("new_date")
+    if shipment is None and (part is None or plant is None):
+        return None, "a delay needs a shipment, or a part and a plant"
+    if new is None:
+        return None, "a delay needs the new arrival date"
+    if original is None:
+        if shipment is not None and shipment.entity_id in graph.shipments:
+            eta = graph.shipments[shipment.entity_id]["eta_date"]
+            original = {"phrase": f"stored ETA of {shipment.entity_id}", "date": eta}
+        else:
+            return None, "a delay needs the original due date"
+    return _delay(graph, picked, [original, new], hits), ""
+
+
+def checked_model_reading(graph, section: str, llm, fields: dict, anchor=None) -> tuple[Incident | None, str, dict, str]:
+    """The model's reading of a real incident, checked against the tables and the message, with
+    one retry when it fails: the model is told exactly what did not check out and answers again.
+
+    Returns (incident or None, problem, the fields used, a note about the retry or "").
+    """
+    from tower.agents.llm_reader import LLMUnavailable
+
+    built, problem = _incident_from_fields(graph, section, fields, anchor)
+    if built is not None or fields["kind"] in _QUIET:
+        return built, problem, fields, ""
+    try:
+        again = llm.extract(section, previous=fields, problem=problem)
+    except (LLMUnavailable, ValueError) as exc:
+        return None, problem, fields, f"retry gave no usable answer ({exc})"
+    note = f"first reading failed ({problem}); retried with that feedback"
+    if again["kind"] in _QUIET:
+        return None, f"{problem}; on retry the model read '{again['kind']}'", again, note
+    built, problem2 = _incident_from_fields(graph, section, again, anchor)
+    return built, problem2 if built is None else "", again, note + ("" if built is None else ", and it checked out")
+
+
+def _fallback(rules: Incident, *notes: str) -> Incident:
+    """Return the rule reading, with notes on why the model was not used at the top of the evidence."""
+    rules.evidence[:0] = list(notes)
+    rules.reader = "rules"
+    return rules
+
+
+# Model output field -> graph entity type it must resolve to.
+_FIELD_TYPE = {
+    "plant": "plant",
+    "part": "part",
+    "supplier": "supplier",
+    "lot_id": "lot",
+    "shipment_id": "shipment",
+}
+
+
+# Entity fields each kind cannot act without. Anything else is optional:
+# an optional phrase that fails verification is dropped, not fatal.
+_NEEDED = {
+    "quality_hold": {"plant"},
+    "plant_outage": {"plant"},
+    "supplier_delay": set(),
+}
+
+
+def _ground(graph, section: str, phrase: str, entity_type: str):
+    """Resolve a phrase, or the alias in the message that contains it ("Texas" -> "the Texas plant")."""
+    # First try: the phrase itself is a known name.
+    found = [m for m in graph.resolve_mentions(phrase) if m.entity_type == entity_type]
+    if found:
+        return found[0]
+    # Otherwise the model copied part of a longer alias. Find where the phrase sits in the message
+    # and use the alias of the right type that covers that spot.
+    at = _fold(section).find(_fold(phrase))
+    for mention in graph.resolve_mentions(section):
+        if mention.entity_type == entity_type and mention.start <= at < mention.end:
+            return mention
+    return None
+
+
+def _incident_from_fields(graph, section: str, fields: dict, anchor=None) -> tuple[Incident | None, str]:
+    """Resolve the model's phrases with code. Every phrase must be in the text."""
+    folded = _fold(section)
+    kind = fields["kind"]
+    dropped = []
+    # Every date must be a date the message gives (or the last day down before a stated restart).
+    # The model may rewrite it ("the 24th" as "March 24th"); a date that is not in the message is
+    # invented, and it rejects the whole reading.
+    dates = []
+    for name in ("start_date", "end_date"):
+        if not fields[name]:
+            return None, f"{name} is empty"
+        found, problem = _model_date(section, fields[name], anchor)
+        if found is None:
+            return None, f"{name} '{fields[name]}' {problem}"
+        dates.append(found)
+    # "back up on the 26th" is the restart, not a day down: an outage ends the working day before.
+    restart = _RESTART.search(section)
+    if kind == "plant_outage" and restart and dates[1]["start"] >= restart.start() and "note" not in dates[1]:
+        last = _day_before_restart(dates[1]["date"])
+        dates[1] = {**dates[1], "date": last, "note": f"'{dates[1]['phrase']}' is when work resumes, so the last day down is {last}"}
+
+    picked = {}
+    for name, entity_type in _FIELD_TYPE.items():
+        phrase = fields[name]
+        mention = None
+        if phrase:
+            problem = None
+            if _fold(phrase) not in folded:
+                problem = f"{name} '{phrase}' is not in the message"
+            else:
+                mention = _ground(graph, section, phrase, entity_type)
+                if mention is None:
+                    problem = f"{name} '{phrase}' does not resolve to a known {entity_type}"
+            if problem:
+                if name in _NEEDED[kind]:
+                    return None, problem
+                dropped.append(problem)
+        # Same (chosen, aliases, extras) shape that _pick gives the rule reader, so the builders
+        # below serve both paths.
+        picked[entity_type] = (mention, [mention.alias] if mention else [], [])
+
+    built, problem = _build(graph, kind, picked, fields, dates)
+    if built is not None and dropped:
+        built.evidence.append("dropped optional model field: " + "; ".join(dropped))
+    return built, problem
+
+
+def _model_date(section: str, phrase: str, anchor=None) -> tuple[dict | None, str]:
+    """Check one of the model's date phrases against the message. Returns (date item, "") or
+    (None, why). Read in context when the words are in the message, so "the 1st" after "2/25" is
+    March 1; otherwise the phrase must resolve to a date the message gives."""
+    message = extract_dates(section, anchor)
+    folded, want = _fold(section), _fold(phrase).strip()
+    at = folded.find(want)
+    if at >= 0:
+        for item in message:
+            if item["start"] <= at < item["end"] or at <= item["start"] < at + len(want):
+                return {**item, "phrase": phrase}, ""
+    parsed = extract_dates(phrase, anchor)
+    if len(parsed) != 1:
+        return None, "is not one calendar date"
+    when = parsed[0]["date"]
+    if any(item["date"] == when for item in message):
+        source = next(item for item in message if item["date"] == when)
+        return {**source, "phrase": phrase, "note": f"model wrote '{phrase}' for '{source['phrase']}'"}, ""
+    restart = _RESTART.search(section)
+    for item in message:
+        if restart and item["start"] >= restart.start() and _day_before_restart(item["date"]) == when:
+            return {**item, "phrase": phrase, "date": when,
+                    "note": f"last day down before work resumes {item['date']}"}, ""
+    return None, f"is {when}, which is not a date in the message"
+
+
+def _build(graph, kind: str, picked: dict, fields: dict, resolved: list[dict] | None = None) -> tuple[Incident | None, str]:
+    """Check the model's reading has what its kind needs, then build the Incident.
+
+    Returns (incident, "") or (None, reason). The checks mirror the rule reader's conditions
+    in _read_section, so neither path can act on less evidence than the other.
+    """
+    # Each date phrase must parse to exactly one calendar date ("next Friday", "2027-03-24").
+    dates = resolved or []
+    for name in ("start_date", "end_date") if not resolved else ():
+        phrase = fields[name]
+        if not phrase:
+            return None, f"{name} is empty"
+        parsed = extract_dates(phrase)
+        if len(parsed) != 1:
+            return None, f"{name} '{phrase}' is not one calendar date"
+        dates.append({**parsed[0], "phrase": phrase})
+
+    hits = [f"{kind} (model)"]
+    plant, part, lot, supplier, shipment = (picked[k][0] for k in ("plant", "part", "lot", "supplier", "shipment"))
+    if kind == "quality_hold":
+        if plant is None or (part is None and lot is None):
+            return None, "quality hold needs a plant and a part or lot"
+        if dates[1]["date"] < dates[0]["date"]:
+            return None, "build window ends before it starts"
+        return _quality(graph, picked, dates, hits), ""
+    if kind == "plant_outage":
+        if plant is None:
+            return None, "outage needs a plant"
+        if dates[1]["date"] < dates[0]["date"]:
+            return None, "outage ends before it starts"
+        return _outage(picked, dates, hits, []), ""
+    if shipment is None and None in (supplier, part, plant):
+        return None, "delay needs a shipment, or a supplier, part, and plant"
+    return _delay(graph, picked, dates, hits), ""
+
+
+def _field_diffs(built: Incident, rules: Incident) -> list[str]:
+    """Fields where the model's incident and the rule incident disagree, for the evidence."""
+    names = (
+        "plant_id", "part_id", "supplier_id", "lot_id", "shipment_id",
+        "blocked_from", "blocked_until", "outage_start", "outage_end", "build_start", "build_end",
+    )
+    return [
+        f"{name} {getattr(built, name)} vs {getattr(rules, name)}"
+        for name in names
+        if getattr(built, name) != getattr(rules, name)
+    ]
+
+
+def _chunks(text: str, marks: list) -> list[str]:
+    """Text after each list marker. A header before the first marker is dropped."""
+    chunks = []
+    for index, mark in enumerate(marks):
+        stop = marks[index + 1].start() if index + 1 < len(marks) else len(text)
+        chunk = text[mark.end():stop].strip()
+        if chunk:
+            chunks.append(chunk)
+    return chunks or [text]
+
+
+def _sections(text: str) -> list[str]:
+    """Parts of a compound message, or the whole text when it is not a list.
+
+    Recognized lists: "(1) ... (2) ...", "1) ... 2) ...", "1. ... 2. ...",
+    "A) ... B) ...", "First, ... Second, ...", and bullets. A single marker is not a list.
+    """
+    marks = list(_MARKER.finditer(text))
+    if len(marks) < 2:
+        marks = _numbered(_MARKER_BARE, text)
+    if len(marks) < 2:
+        marks = _numbered(_MARKER_DOT, text)
+    if len(marks) < 2:
+        letters = list(_LETTER.finditer(text))
+        got = [m.group(1).upper() for m in letters]
+        if len(got) >= 2 and got == [chr(ord("A") + i) for i in range(len(got))]:
+            marks = letters
+    if len(marks) < 2:
+        ordinals = list(_ORDINAL.finditer(text))
+        names = [m.group(1).lower() for m in ordinals]
+        if len(names) >= 2 and names == ["first", "second", "third"][: len(names)]:
+            marks = ordinals
+    if len(marks) < 2:
+        bullets = list(_BULLET.finditer(text))
+        if len(bullets) >= 2:
+            marks = bullets
+    if len(marks) < 2:
+        return [text]
+    return _chunks(text, marks)
+
+
+def _numbered(pattern, text: str) -> list:
+    """Markers whose numbers are exactly 1, 2, 3, ... otherwise not a list."""
+    marks = []
+    for mark in pattern.finditer(text):
+        # "March 18." is a date, not item 18 of a list.
+        before = text[max(0, mark.start() - 16): mark.start()]
+        if re.search(r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*$", before, re.I):
+            continue
+        marks.append(mark)
+    nums = [int(m.group(1)) for m in marks]
+    if len(marks) >= 2 and nums == list(range(1, len(marks) + 1)):
+        return marks
+    return []
+
+
+def _plant_is_subject(section: str, plant) -> bool:
+    """False when the plant is only a place: 'the cafeteria at Lexington is closed'."""
+    if plant is None:
+        return False
+    before = section[max(0, plant.start - 24): plant.start]
+    return re.search(r"\b(?:at|in|near|inside|by)\s+$", before, re.I) is None
+
+
+def _name_closed(section: str, plant) -> bool:
+    """True when 'closed' follows the plant name ('Lexington closed', 'San Antonio plant closed').
+
+    'Markets closed' does not: the word has to sit next to the resolved plant.
+    'The cafeteria at Lexington is closed' does not either: Lexington is the place, not the subject.
+    """
+    if not _plant_is_subject(section, plant):
+        return False
+    tail = section[plant.end: plant.end + 48]
+    # "Lexington closed", "Lexington plant closed", and "Lexington is closed".
+    return re.match(
+        r"(?:\W+(?:plant|line))?\W+(?:(?:is|are|was|were|stays?|remains?|will be|will stay)\W+)?(?:closed|shut)\b",
+        tail,
+        re.I,
+    ) is not None
+
+
+def _plant_will_not_run(section: str, plant) -> bool:
+    """True when the plant itself 'will not run' ('San Antonio will not run', 'the plant will not run')."""
+    if not _plant_is_subject(section, plant):
+        return False
+    tail = section[plant.end: plant.end + 48]
+    return re.match(
+        r"(?:\W+(?:plant|line))?\W+(?:will not|won't|cannot|can't|can not)\W+run\b",
+        tail,
+        re.I,
+    ) is not None
+
+
+# The rule reader. Kinds are tried in priority order; each needs its keywords AND the fields to
+# act on, otherwise it falls through to rumor, then noise.
+def _read_section(graph, section: str, anchor=None) -> Incident:
+    """Deterministic reading of one section. Always returns an Incident (noise at worst).
+
+    Order: hearsay, non-events, quality hold, plant outage, supplier delay, a weaker rumor,
+    incident wording too incomplete to act on (escalate), noise.
+    """
+    mentions = graph.resolve_mentions(section)
+    dates, restart_notes = _operational_dates(section, anchor)
+    folded = _fold(section)
+    quality_hits = _hits(section, _QUALITY, folded, drop_negated=True)
+    outage_hits = _hits(section, _OUTAGE, folded, drop_negated=True)
+    delay_hits = _hits(section, _DELAY, folded, drop_negated=True)
+    rumor_hits = _hits(section, _RUMOR, folded)
+    # For each entity type: (first mention, its aliases, other ids of that type).
+    picked = {kind: _pick(mentions, kind) for kind in ("plant", "part", "lot", "supplier", "shipment")}
+
+    plant = picked["plant"][0]
+    part = picked["part"][0]
+    lot = picked["lot"][0]
+    supplier = picked["supplier"][0]
+    shipment = picked["shipment"][0]
+    # "Lexington closed 16 Mar" and "the San Antonio plant will not run" name the plant
+    # as the subject. The verb has to follow that name, so "the tour will not run at San Antonio" does not.
+    if _name_closed(section, plant):
+        outage_hits = [*outage_hits, "closed"]
+    if _plant_will_not_run(section, plant):
+        outage_hits = [*outage_hits, "will not run"]
+
+    # Hearsay first: a fully specified sentence that is still a rumor is escalated, never acted on.
+    hearsay = _hits(section, _HEARSAY, folded)
+    if hearsay:
+        return _unconfirmed(section, picked, dates, hearsay, inverted=False)
+    # Non-events ("no delay expected", "if it goes past", a fire drill) write nothing.
+    if _hits(section, _NON_EVENT, folded):
+        return _noise(section, picked, [], [], [])
+    # "Not down" and "the hold is lifted" are all-clears. A cafeteria or a plant tour is not production.
+    lot_known_early = lot is not None and lot.entity_id in graph.lots
+    if _CHATTER.search(section) and not lot_known_early:
+        return _noise(section, picked, [], [], [])
+    if _hits(section, _ALL_CLEAR, folded):
+        return _noise(section, picked, [], [], [])
+    # A date that is not a real day ("March 32") leaves the window unknown: escalate, never guess.
+    bad_dates = impossible_dates(section)
+    if bad_dates and (quality_hits or outage_hits or delay_hits):
+        unclear = _unclear(graph, section, picked, dates, quality_hits + outage_hits + delay_hits)
+        unclear.summary = (f"The message names {', '.join(repr(d) for d in bad_dates)}, which is not a real date, "
+                           "so its window cannot be trusted. It is escalated for a human to confirm.")
+        unclear.evidence.append("impossible date: " + ", ".join(bad_dates))
+        return unclear
+    # Quality: a bulletin can also say "on hold" or "delayed", and the hold is what matters. A known
+    # lot is enough on its own; the lot record supplies plant, part and build dates.
+    lot_known = lot is not None and lot.entity_id in graph.lots
+    quality_specified = plant is not None and (part is not None or lot is not None) and len(dates) >= 2
+    if quality_hits and (lot_known or quality_specified):
+        return _quality(graph, picked, dates, quality_hits)
+    if outage_hits and plant is not None and len(dates) >= 1:
+        return _outage(picked, dates, outage_hits, restart_notes)
+    # A delay is located by a shipment id, or by a known part and plant (the supplier may be unnamed:
+    # the shipment table supplies it). Labelled dates ("original drop", "new ETA") bind in any order.
+    if delay_hits and len(dates) >= 2 and (shipment is not None or (part is not None and plant is not None)):
+        return _delay(graph, picked, _bind_labeled_etas(section, dates), delay_hits)
+    # Rumor wording, or an incident too incomplete to act on, is escalated, not ignored.
+    if rumor_hits and (_hits(section, _TROUBLE) or quality_hits or outage_hits or delay_hits):
+        return _unconfirmed(section, picked, dates, rumor_hits, inverted=False)
+    # Incident wording about our records, but not enough to act on (or an id that does not
+    # exist): rule 8 says escalate rather than guess or ignore.
+    if (quality_hits or outage_hits or delay_hits) and (mentions or _ID_SHAPE.search(section)):
+        return _unclear(graph, section, picked, dates, quality_hits + outage_hits + delay_hits)
+    return _noise(section, picked, quality_hits, outage_hits, delay_hits)
+
+
+# --- Builders: turn resolved entities and dates into an Incident with a summary and evidence
+# lines. Both the rule reader and the model path use them.
+def _quality(graph, picked, dates, hits) -> Incident:
+    """Quality-hold Incident. The first two dates are the suspect build window."""
+    plant, part, lot, supplier = picked["plant"], picked["part"], picked["lot"], picked["supplier"]
+    plant_id = plant[0].entity_id if plant[0] is not None else None
+    part_id = part[0].entity_id if part[0] is not None else None
+    lot_id = lot[0].entity_id if lot[0] is not None else None
+    supplier_id = supplier[0].entity_id if supplier[0] is not None else None
+    start = dates[0]["date"] if dates else None
+    end = dates[1]["date"] if len(dates) > 1 else None
+    evidence = [f"quality language: {', '.join(hits)}"]
+    if dates:
+        evidence.append(_date_line(dates))
+    evidence.extend(_chosen_lines(picked, ("plant", "part", "lot", "supplier")))
+    if len(dates) > 2:
+        evidence.append(f"used the first two dates {start} and {end}")
+
+    # A named lot fills in whatever the message left out. The message's own values are never
+    # overwritten.
+    if lot_id and lot_id in graph.lots:
+        row = graph.lots[lot_id]
+        filled = []
+        if part_id is None:
+            part_id = row["part_id"]
+            filled.append(f"part {part_id}")
+        if supplier_id is None:
+            supplier_id = row["supplier_id"]
+            filled.append(f"supplier {supplier_id}")
+        if plant_id is None:
+            plant_id = row["plant_id"]
+            filled.append(f"plant {plant_id}")
+        if start is None:
+            start = row["first_build_date"]
+            filled.append(f"build_start {start}")
+        if end is None:
+            end = row["last_build_date"]
+            filled.append(f"build_end {end}")
+        if filled:
+            evidence.append(f"copied {', '.join(filled)} from lot {lot_id}")
+
+    summary = (
+        f"Quality hold on {_hold_subject(graph, lot_id, part_id)} "
+        f"at {_plant_name(graph, plant, plant_id)}, "
+        f"covering builds from {start} through {end} inclusive."
+    )
+    return Incident(
+        kind="quality_hold",
+        summary=summary,
+        supplier_id=supplier_id,
+        part_id=part_id,
+        plant_id=plant_id,
+        lot_id=lot_id,
+        build_start=start,
+        build_end=end,
+        evidence=evidence,
+    )
+
+
+def _outage(picked, dates, hits, restart_notes) -> Incident:
+    """Plant-outage Incident: the first two dates are the first and last day down, inclusive."""
+    plant = picked["plant"]
+    plant_id = plant[0].entity_id
+    start = dates[0]["date"]
+    end = dates[1]["date"] if len(dates) > 1 else start
+    evidence = [f"outage language: {', '.join(hits)}", _date_line(dates)]
+    if len(dates) == 1:
+        evidence.append(f"one date given, so a single-day outage on {start}")
+    evidence.extend(restart_notes)
+    evidence.extend(_chosen_lines(picked, ("plant", "part")))
+    if len(dates) > 2:
+        evidence.append(f"used the first two dates {start} and {end}")
+    # Use the name as the message wrote it ("the Kentucky plant") in the summary.
+    name = plant[1][0] if plant[1] else plant_id
+    summary = f"{name} ({plant_id}) cannot build from {start} through {end} inclusive."
+    return Incident(
+        kind="plant_outage",
+        summary=summary,
+        plant_id=plant_id,
+        outage_start=start,
+        outage_end=end,
+        evidence=evidence,
+    )
+
+
+# A delay blocks builds from the original ETA (first date) until the new ETA (second date). If the
+# new ETA is not later, the message is treated as unconfirmed.
+def _delay(graph, picked, dates, hits) -> Incident:
+    """Supplier-delay Incident, or unconfirmed when the dates run backwards."""
+    supplier, part, plant, shipment = (
+        picked["supplier"],
+        picked["part"],
+        picked["plant"],
+        picked["shipment"],
+    )
+    supplier_id = supplier[0].entity_id if supplier[0] is not None else None
+    part_id = part[0].entity_id if part[0] is not None else None
+    plant_id = plant[0].entity_id if plant[0] is not None else None
+    # A date on a weekend becomes the next working day: nothing builds on weekends anyway.
+    blocked_from, blocked_until = _roll(dates[0]["date"]), _roll(dates[1]["date"])
+    rolled = [
+        f"'{item['phrase']}' ({item['date']}) is a weekend; using the next working day {_roll(item['date'])}"
+        for item in dates[:2]
+        if _roll(item["date"]) != item["date"]
+    ]
+    shipment_id = None
+    evidence = [f"delay language: {', '.join(hits)}", _date_line(dates)]
+    evidence.extend(rolled)
+    evidence.extend(_chosen_lines(picked, ("shipment", "supplier", "part", "plant")))
+    if len(dates) > 2:
+        evidence.append(f"used the first two dates {blocked_from} and {blocked_until}")
+
+    # Three ways to tie the delay to a shipment: a named shipment that exists (fills any gaps),
+    # a named one that does not (noted and left unset), or a lookup by supplier, part, plant
+    # and original ETA (used only when exactly one row matches).
+    mentioned = shipment[0]
+    if mentioned is not None and mentioned.entity_id in graph.shipments:
+        shipment_id = mentioned.entity_id
+        row = graph.shipments[shipment_id]
+        filled = []
+        if supplier_id is None:
+            supplier_id = row["supplier_id"]
+            filled.append(f"supplier {supplier_id}")
+        if part_id is None:
+            part_id = row["part_id"]
+            filled.append(f"part {part_id}")
+        if plant_id is None:
+            plant_id = row["plant_id"]
+            filled.append(f"plant {plant_id}")
+        if filled:
+            evidence.append(f"filled {', '.join(filled)} from shipment {shipment_id}")
+        evidence.append(
+            f"text dates {blocked_from} until {blocked_until} win over stored ETA {row['eta_date']} "
+            f"on {shipment_id}"
+        )
+    elif mentioned is not None:
+        evidence.append(f"shipment {mentioned.entity_id} is not in the shipment table")
+    elif part_id and plant_id:
+        found = graph.find_shipments(supplier_id, part_id, plant_id, eta=blocked_from)
+        if supplier_id is None:
+            suppliers = {row["supplier_id"] for row in found}
+            if len(suppliers) == 1:
+                supplier_id = next(iter(suppliers))
+                evidence.append(
+                    f"supplier {supplier_id} is the only one shipping {part_id} to {plant_id} on {blocked_from}"
+                )
+            else:
+                found = []
+        found_ids = [row["shipment_id"] for row in found]
+        if len(found) == 1:
+            shipment_id = found_ids[0]
+            evidence.append(
+                f"find_shipments({supplier_id}, {part_id}, {plant_id}, eta={blocked_from}) "
+                f"returned {shipment_id}"
+            )
+        else:
+            shown = ", ".join(found_ids) if found_ids else "no rows"
+            evidence.append(
+                f"find_shipments({supplier_id}, {part_id}, {plant_id}, eta={blocked_from}) "
+                f"returned {shown}; shipment_id left unset"
+            )
+
+    # A new ETA on or before the original is contradictory. Do not guess; escalate.
+    if blocked_until <= blocked_from:
+        evidence.append(
+            f"dates are inverted: {blocked_until} is not strictly after {blocked_from}"
+        )
+        return _unconfirmed(
+            "",
+            picked,
+            dates,
+            hits,
+            inverted=True,
+            evidence=evidence,
+            supplier_id=supplier_id,
+            part_id=part_id,
+            plant_id=plant_id,
+            shipment_id=shipment_id,
+            blocked_from=blocked_from,
+            blocked_until=blocked_until,
+        )
+
+    who = _party_name(graph, supplier, supplier_id, "supplier")
+    what = _party_name(graph, part, part_id, "part")
+    where = _party_name(graph, plant, plant_id, "plant")
+    load = f" Shipment {shipment_id} matches the original ETA." if shipment_id else (
+        " No unique shipment matched that original ETA."
+    )
+    summary = (
+        f"{who} will deliver {what} to {where} late, blocking builds from {blocked_from} "
+        f"until {blocked_until}.{load}"
+    )
+    return Incident(
+        kind="supplier_delay",
+        summary=summary,
+        supplier_id=supplier_id,
+        part_id=part_id,
+        plant_id=plant_id,
+        shipment_id=shipment_id,
+        blocked_from=blocked_from,
+        blocked_until=blocked_until,
+        evidence=evidence,
+    )
+
+
+def _unconfirmed(
+    section,
+    picked,
+    dates,
+    hits,
+    inverted: bool,
+    evidence: list[str] | None = None,
+    supplier_id: str | None = None,
+    part_id: str | None = None,
+    plant_id: str | None = None,
+    shipment_id: str | None = None,
+    blocked_from: str | None = None,
+    blocked_until: str | None = None,
+) -> Incident:
+    """Unconfirmed Incident: the coordinator escalates it and writes nothing.
+
+    inverted=True is the delay-with-backwards-dates case. It keeps the delay's fields and
+    evidence so a human can see what was read. Otherwise it is a plain rumor.
+    """
+    if inverted:
+        summary = (
+            f"The dates are inverted ({dates[0]['phrase']} = {blocked_from}, then "
+            f"{dates[1]['phrase']} = {blocked_until}), so it is not safe to act "
+            f"because the new ETA is not after the original ETA."
+        )
+        lines = list(evidence or [])
+    else:
+        quoted = ", ".join(hits)
+        summary = (
+            f"The report is not safe to act on because it is unconfirmed ({quoted}) "
+            f"and does not name a specific shipment, outage, or lot to change."
+        )
+        lines = [f"rumor language: {quoted}"]
+        if dates:
+            lines.append(_date_line(dates))
+        lines.extend(_chosen_lines(picked, ("plant", "part", "supplier", "shipment", "lot")))
+    return Incident(
+        kind="unconfirmed",
+        summary=summary,
+        supplier_id=supplier_id,
+        part_id=part_id,
+        plant_id=plant_id,
+        shipment_id=shipment_id,
+        blocked_from=blocked_from,
+        blocked_until=blocked_until,
+        evidence=lines,
+    )
+
+
+def _unclear(graph, section, picked, dates, hits) -> Incident:
+    """Sounds like an incident about our records but cannot be pinned down. Escalate it."""
+    unknown = [tok for tok in dict.fromkeys(_ID_SHAPE.findall(section)) if not graph.resolve_mentions(tok)]
+    if unknown:
+        why = f"it names {', '.join(unknown)}, which is not in the company records"
+    else:
+        why = "the plant, part, lot, shipment, or dates needed to act are missing"
+    summary = (
+        f"The message reads like an incident ({', '.join(hits)}) but is not specific enough to act on: "
+        f"{why}. It is escalated for a human to confirm."
+    )
+    evidence = [f"incident language without enough detail: {', '.join(hits)}"]
+    if dates:
+        evidence.append(_date_line(dates))
+    evidence.extend(_chosen_lines(picked, ("plant", "part", "supplier", "shipment", "lot")))
+    if unknown:
+        evidence.append("unknown record ids: " + ", ".join(unknown))
+    return Incident(kind="unconfirmed", summary=summary, evidence=evidence)
+
+
+def _noise(section, picked, quality_hits, outage_hits, delay_hits) -> Incident:
+    """Noise Incident. The evidence says which incident wording was seen but incomplete, if any."""
+    # Quote the message, on one line and at most 180 characters, in the summary.
+    excerpt = " ".join(section.split()).strip().rstrip(".")
+    if len(excerpt) > 180:
+        excerpt = excerpt[:177].rstrip() + "..."
+    summary = (
+        f'"{excerpt}" is not an operational disruption because it does not report '
+        f"a supplier delay, a plant outage, or a quality hold."
+    )
+    evidence = ["no confirmed supplier delay, plant outage, or quality hold"]
+    if quality_hits:
+        evidence.append(
+            "quality wording was incomplete (needs a plant, a part or lot, and two dates): "
+            + ", ".join(quality_hits)
+        )
+    if outage_hits:
+        evidence.append(
+            "outage wording was incomplete (needs a plant and two dates): " + ", ".join(outage_hits)
+        )
+    if delay_hits:
+        evidence.append(
+            "delay wording was incomplete (needs two dates and a shipment, or a part and a plant): "
+            + ", ".join(delay_hits)
+        )
+    evidence.extend(_chosen_lines(picked, ("plant", "part", "supplier", "shipment", "lot")))
+    return Incident(kind="noise", summary=summary, evidence=evidence)
+
+
+def _bind_labeled_etas(section: str, dates: list[dict]) -> list[dict]:
+    """Order a delay's dates as original ETA, then new ETA, when both labels are present.
+
+    The date after "original drop", "was due" or "due" is the original ETA; the date after
+    "new ETA" or "will now arrive" is the new one. With either label missing, reading order stays,
+    so "can't make it next Monday ... next Friday" still reads first date, then second.
+    """
+    if len(dates) < 2:
+        return dates
+    # "was March 15 ... yesterday ... now March 18": the date after "was" is the original,
+    # the date after "now" is the new one. A date in between is not the window.
+    was = re.search(r"\bwas\b", section, re.I)
+    if was:
+        now = re.search(r"\bnow\b", section[was.end(): was.end() + 120], re.I)
+        if now:
+            now_at = was.end() + now.end()
+            original_was = next((item for item in dates if was.end() <= item["start"] < was.end() + now.start()), None)
+            revised_now = next((item for item in dates if item["start"] >= now_at), None)
+            if original_was is not None and revised_now is not None and original_was is not revised_now:
+                rest = [item for item in dates if item is not original_was and item is not revised_now]
+                return [original_was, revised_now, *rest]
+    original = _date_after(dates, _label_ends(section, _ORIGINAL_ETA))
+    revised = _date_after(dates, _label_ends(section, _NEW_ETA))
+    if original is None or revised is None or original is revised:
+        return dates
+    rest = [item for item in dates if item is not original and item is not revised]
+    return [original, revised, *rest]
+
+
+def _label_ends(text: str, phrases: tuple[str, ...]) -> list[int]:
+    """End offsets of the phrases. A longer phrase owns its span."""
+    occupied: list[tuple[int, int]] = []
+    ends: list[int] = []
+    for phrase in sorted(phrases, key=len, reverse=True):
+        for match in re.finditer(rf"(?<![A-Za-z0-9]){re.escape(phrase)}(?![A-Za-z0-9])", text, re.I):
+            span = (match.start(), match.end())
+            if any(span[0] < stop and start < span[1] for start, stop in occupied):
+                continue
+            occupied.append(span)
+            ends.append(match.end())
+    return ends
+
+
+def _date_after(dates: list[dict], ends: list[int]) -> dict | None:
+    """The first date that starts at or after the earliest usable label."""
+    for end in sorted(ends):
+        for item in dates:
+            if item["start"] >= end:
+                return item
+    return None
+
+
+def _operational_dates(section: str, anchor=None) -> tuple[list[dict], list[str]]:
+    """Dates in reading order, without a trailing restart day.
+
+    A restart date is not a day down. When the message gives one start date and then when work
+    resumes ("suspended starting 3/24 ... back up on 3/26"), the last day down is the working day
+    before the restart, and that is added as the second date.
+    """
+    dates = extract_dates(section, anchor)
+    restart = _RESTART.search(section)
+    if not restart:
+        return dates, []
+    earlier = [item for item in dates if item["start"] < restart.start()]
+    # Every date is after the restart phrase: the trimming would leave nothing, so keep them all.
+    if not earlier:
+        return dates, []
+    ignored = [item for item in dates if item["start"] >= restart.start()]
+    note = f"ignored trailing wording '{restart.group(0)}'; it is not an extra outage day"
+    if ignored:
+        shown = ", ".join(f"'{item['phrase']}' = {item['date']}" for item in ignored)
+        note += f"; ignored dates {shown}"
+    if len(earlier) == 1 and ignored:
+        last = _day_before_restart(ignored[0]["date"])
+        if last and last >= earlier[0]["date"]:
+            earlier = earlier + [{"phrase": f"the day before '{ignored[0]['phrase']}'", "date": last,
+                                  "start": ignored[0]["start"], "end": ignored[0]["end"]}]
+            note += f"; work resumes {ignored[0]['date']}, so the last day down is {last}"
+    return earlier, [note]
+
+
+def _day_before_restart(iso_day: str) -> str | None:
+    """The working day before a restart date."""
+    d = date.fromisoformat(iso_day) - timedelta(days=1)
+    while not is_working_day(d):
+        d -= timedelta(days=1)
+    return d.isoformat()
+
+
+def _roll(iso_day: str) -> str:
+    """The same day, or the next working day when it falls on a weekend."""
+    day = date.fromisoformat(iso_day)
+    return iso_day if is_working_day(day) else next_working_day(day).isoformat()
+
+
+def _fold(text: str) -> str:
+    """Casefold and straighten curly apostrophes, so "we\u2019re dark" matches "we're dark"."""
+    return (
+        text.replace("\u2019", "'")
+        .replace("\u2018", "'")
+        .replace("\u02bc", "'")
+        .casefold()
+    )
+
+
+_COMPILED_HITS: dict[tuple[str, ...], tuple[re.Pattern, ...]] = {}
+
+
+def _hits(text: str, patterns: tuple[str, ...], folded: str | None = None, drop_negated: bool = False) -> list[str]:
+    """The words in text that match any pattern, as whole words, in reading order, each once.
+    The matched words are quoted in the evidence, so the trace shows what was actually read.
+    `folded` is _fold(text) when the caller already has it; the patterns are compiled once."""
+    if folded is None:
+        folded = _fold(text)
+    compiled = _COMPILED_HITS.get(patterns)
+    if compiled is None:
+        compiled = tuple(re.compile(r"(?<![a-z0-9])(?:" + p + r")(?![a-z0-9])") for p in patterns)
+        _COMPILED_HITS[patterns] = compiled
+    found = []
+    for pattern in compiled:
+        for m in pattern.finditer(folded):
+            if drop_negated:
+                before = folded[max(0, m.start() - 16): m.start()]
+                if _NEGATED_BEFORE.search(before) or _NEGATED_INSIDE.search(m.group(0)):
+                    continue
+            if m.group(0) not in found:
+                found.append(m.group(0))
+    return found
+
+
+def _pick(mentions, entity_type: str):
+    """First mention of a type, its aliases, and later mentions of other ids."""
+    chosen = None
+    aliases: list[str] = []
+    extras = []
+    seen = set()
+    for mention in mentions:
+        if mention.entity_type != entity_type:
+            continue
+        if chosen is None:
+            chosen = mention
+            aliases.append(mention.alias)
+            continue
+        if mention.entity_id == chosen.entity_id:
+            if mention.alias not in aliases:
+                aliases.append(mention.alias)
+            continue
+        if mention.entity_id not in seen:
+            seen.add(mention.entity_id)
+            extras.append(mention)
+    return chosen, aliases, extras
+
+
+def _chosen_lines(picked, kinds: tuple[str, ...]) -> list[str]:
+    """Evidence lines: which words resolved to which id, plus any other ids of the same type."""
+    lines = []
+    for kind in kinds:
+        chosen, aliases, extras = picked[kind]
+        if chosen is None:
+            continue
+        shown = ", ".join(f"'{alias}'" for alias in aliases)
+        lines.append(f"{kind}: {shown} -> {chosen.entity_id}")
+        for extra in extras:
+            lines.append(f"other {kind}: '{extra.alias}' -> {extra.entity_id}")
+    return lines
+
+
+def _date_line(dates: list[dict]) -> str:
+    """Evidence line listing each date phrase and the ISO date it resolved to."""
+    shown = ", ".join(f"'{item['phrase']}' = {item['date']}" for item in dates)
+    return f"dates: {shown}"
+
+
+def _plant_name(graph, picked_plant, plant_id: str | None) -> str:
+    """Display name for the plant, as in _party_name."""
+    return _party_name(graph, picked_plant, plant_id, "plant")
+
+
+def _party_name(graph, picked, entity_id: str | None, kind: str) -> str:
+    """Business label for the first resolved id. A raw id is shown by its table name."""
+    table = {"plant": graph.plants, "part": graph.parts, "supplier": graph.suppliers}[kind]
+    # Prefer the official name when the message used the id or the name itself; keep a nickname
+    # ("the Texas plant") as written, so the summary reads like the message.
+    if picked is not None and picked[0] is not None:
+        entity_id = picked[0].entity_id
+        alias = picked[1][0] if picked[1] else picked[0].alias
+        row = table.get(entity_id)
+        official = row.get("name") if row else None
+        if official and alias.casefold() in {entity_id.casefold(), official.casefold()}:
+            return f"{official} ({entity_id})"
+        return f"{alias} ({entity_id})"
+    if not entity_id:
+        return f"an unnamed {kind}"
+    row = table.get(entity_id)
+    if row and row.get("name"):
+        return f"{row['name']} ({entity_id})"
+    return entity_id
+
+
+def _hold_subject(graph, lot_id: str | None, part_id: str | None) -> str:
+    """What is on hold, for the summary: "lot LOT-0191, <part>", the lot, or the part."""
+    part = _party_name(graph, None, part_id, "part") if part_id else None
+    if lot_id and part:
+        return f"lot {lot_id}, {part}"
+    if lot_id:
+        return f"lot {lot_id}"
+    return part or "an unnamed part"

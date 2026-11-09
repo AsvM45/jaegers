@@ -1,0 +1,225 @@
+{
+  "_note": "TEST FIXTURE ONLY. Expected answers for the 15 given events, written by hand from the message text and the CSVs, used only by tests/run_given.py to grade a finished run. The control tower (tower/) never reads this file; it works from the event text and the tables alone.",
+  "cases": [
+    {
+      "id": "E-01",
+      "tc": "TC5",
+      "category": "compound",
+      "expect": {
+        "incidents": [
+          {
+            "kind": "plant_outage",
+            "plant_id": "P_TX",
+            "outage_start": "2027-03-19",
+            "outage_end": "2027-03-22"
+          },
+          {
+            "kind": "supplier_delay",
+            "supplier_id": "SUP-12",
+            "part_id": "CHIP-IVI",
+            "plant_id": "P_IN",
+            "blocked_from": "2027-03-15",
+            "blocked_until": "2027-03-19"
+          }
+        ],
+        "escalate": false
+      }
+    },
+    {
+      "id": "E-02",
+      "tc": "TC6",
+      "category": "unconfirmed",
+      "expect": {
+        "incidents": [],
+        "escalate": true
+      }
+    },
+    {
+      "id": "E-03",
+      "tc": "TC3",
+      "category": "quality_hold",
+      "expect": {
+        "incidents": [
+          {
+            "kind": "quality_hold",
+            "lots": [
+              "LOT-0130"
+            ]
+          }
+        ],
+        "escalate": false
+      }
+    },
+    {
+      "id": "E-04",
+      "tc": "TC2",
+      "category": "plant_outage",
+      "expect": {
+        "incidents": [
+          {
+            "kind": "plant_outage",
+            "plant_id": "P_KY",
+            "outage_start": "2027-03-16",
+            "outage_end": "2027-03-18"
+          }
+        ],
+        "escalate": false
+      }
+    },
+    {
+      "id": "E-05",
+      "tc": "TC4",
+      "category": "noise",
+      "expect": {
+        "incidents": [],
+        "escalate": false
+      }
+    },
+    {
+      "id": "E-06",
+      "tc": "TC4",
+      "category": "noise",
+      "expect": {
+        "incidents": [],
+        "escalate": false
+      }
+    },
+    {
+      "id": "E-07",
+      "tc": "TC4",
+      "category": "noise",
+      "expect": {
+        "incidents": [],
+        "escalate": false
+      }
+    },
+    {
+      "id": "E-08",
+      "tc": "TC2",
+      "category": "plant_outage",
+      "expect": {
+        "incidents": [
+          {
+            "kind": "plant_outage",
+            "plant_id": "P_KY",
+            "outage_start": "2027-03-24",
+            "outage_end": "2027-03-25"
+          }
+        ],
+        "escalate": false
+      }
+    },
+    {
+      "id": "E-09",
+      "tc": "TC1",
+      "category": "supplier_delay",
+      "expect": {
+        "incidents": [
+          {
+            "kind": "supplier_delay",
+            "supplier_id": "SUP-11",
+            "part_id": "CAM-360",
+            "plant_id": "P_AL",
+            "blocked_from": "2027-03-29",
+            "blocked_until": "2027-04-01"
+          }
+        ],
+        "escalate": false
+      }
+    },
+    {
+      "id": "E-10",
+      "tc": "TC1",
+      "category": "supplier_delay",
+      "expect": {
+        "incidents": [
+          {
+            "kind": "supplier_delay",
+            "supplier_id": "SUP-18",
+            "part_id": "BATT-60",
+            "plant_id": "P_AL",
+            "blocked_from": "2027-03-29",
+            "blocked_until": "2027-04-01"
+          }
+        ],
+        "escalate": false
+      }
+    },
+    {
+      "id": "E-11",
+      "tc": "TC2",
+      "category": "plant_outage",
+      "expect": {
+        "incidents": [
+          {
+            "kind": "plant_outage",
+            "plant_id": "P_MS",
+            "outage_start": "2027-03-26",
+            "outage_end": "2027-03-30"
+          }
+        ],
+        "escalate": false
+      }
+    },
+    {
+      "id": "E-12",
+      "tc": "TC1",
+      "category": "supplier_delay",
+      "expect": {
+        "incidents": [
+          {
+            "kind": "supplier_delay",
+            "supplier_id": "SUP-11",
+            "part_id": "CAM-360",
+            "plant_id": "P_IN",
+            "shipment_id": "SH-0182",
+            "blocked_from": "2027-03-15",
+            "blocked_until": "2027-03-18"
+          }
+        ],
+        "escalate": false
+      }
+    },
+    {
+      "id": "E-13",
+      "tc": "TC6",
+      "category": "unconfirmed",
+      "expect": {
+        "incidents": [],
+        "escalate": true
+      }
+    },
+    {
+      "id": "E-14",
+      "tc": "TC3",
+      "category": "quality_hold",
+      "expect": {
+        "incidents": [
+          {
+            "kind": "quality_hold",
+            "lots": [
+              "LOT-0017"
+            ]
+          }
+        ],
+        "escalate": false
+      }
+    },
+    {
+      "id": "E-15",
+      "tc": "TC3",
+      "category": "quality_hold",
+      "expect": {
+        "incidents": [
+          {
+            "kind": "quality_hold",
+            "lots": [
+              "LOT-0191"
+            ]
+          }
+        ],
+        "escalate": false
+      }
+    }
+  ]
+}

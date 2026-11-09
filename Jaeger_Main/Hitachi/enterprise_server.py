@@ -14,7 +14,10 @@ import os
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from Jaeger_Main.Hitachi.enterprise import TOOLS, Enterprise, ToolError, load_events
+try:  # `python enterprise_server.py ...` from this folder, as the challenge documents
+    from enterprise import TOOLS, Enterprise, ToolError, load_events
+except ImportError:  # `python -m Jaeger_Main.Hitachi.enterprise_server` from the repo root
+    from Jaeger_Main.Hitachi.enterprise import TOOLS, Enterprise, ToolError, load_events
 
 
 class Server(ThreadingHTTPServer):

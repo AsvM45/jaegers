@@ -1,0 +1,284 @@
+{
+  "today": "2027-03-08",
+  "nodes": [
+    {
+      "type": "Supplier",
+      "table": "suppliers.csv",
+      "id": "supplier_id",
+      "count": 18,
+      "attributes": [
+        "name",
+        "city"
+      ]
+    },
+    {
+      "type": "Part",
+      "table": "parts.csv",
+      "id": "part_id",
+      "count": 20,
+      "attributes": [
+        "name",
+        "category"
+      ]
+    },
+    {
+      "type": "Model",
+      "table": "models.csv",
+      "id": "model",
+      "count": 6,
+      "attributes": [
+        "segment"
+      ]
+    },
+    {
+      "type": "Plant",
+      "table": "plants.csv",
+      "id": "plant_id",
+      "count": 6,
+      "attributes": [
+        "name",
+        "city",
+        "slots_per_day"
+      ]
+    },
+    {
+      "type": "Shipment",
+      "table": "inbound_shipments.csv",
+      "id": "shipment_id",
+      "count": 364,
+      "attributes": [
+        "supplier_id",
+        "part_id",
+        "plant_id",
+        "eta_date",
+        "covers_days"
+      ]
+    },
+    {
+      "type": "Lot",
+      "table": "part_lots.csv",
+      "id": "lot_id",
+      "count": 364,
+      "attributes": [
+        "part_id",
+        "supplier_id",
+        "plant_id",
+        "first_build_date",
+        "last_build_date"
+      ]
+    },
+    {
+      "type": "ProductionOrder",
+      "table": "production_orders.csv",
+      "id": "production_order_id",
+      "count": 540,
+      "attributes": [
+        "plant_id",
+        "build_date",
+        "model",
+        "units"
+      ]
+    },
+    {
+      "type": "CustomerOrder",
+      "table": "customer_orders.csv",
+      "id": "customer_order_id",
+      "count": 3263,
+      "attributes": [
+        "production_order_id",
+        "dealer_id",
+        "customer_id",
+        "model",
+        "promised_date"
+      ]
+    },
+    {
+      "type": "Customer",
+      "table": "customers.csv",
+      "id": "customer_id",
+      "count": 7000,
+      "attributes": [
+        "name",
+        "tier"
+      ]
+    },
+    {
+      "type": "Dealer",
+      "table": "dealers.csv",
+      "id": "dealer_id",
+      "count": 50,
+      "attributes": [
+        "name",
+        "city",
+        "region",
+        "transit_days"
+      ]
+    },
+    {
+      "type": "Vehicle",
+      "table": "finished_vehicles.csv",
+      "id": "vin",
+      "count": 5348,
+      "attributes": [
+        "production_order_id",
+        "model",
+        "plant_id",
+        "build_date",
+        "dealer_id",
+        "status",
+        "customer_id"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "Shipment",
+      "relation": "SUPPLIED_BY",
+      "to": "Supplier",
+      "table": "inbound_shipments.csv",
+      "via": "supplier_id",
+      "count": 364
+    },
+    {
+      "from": "Shipment",
+      "relation": "CARRIES",
+      "to": "Part",
+      "table": "inbound_shipments.csv",
+      "via": "part_id",
+      "count": 364
+    },
+    {
+      "from": "Shipment",
+      "relation": "DELIVERS_TO",
+      "to": "Plant",
+      "table": "inbound_shipments.csv",
+      "via": "plant_id",
+      "count": 364
+    },
+    {
+      "from": "Part",
+      "relation": "USED_IN (BOM)",
+      "to": "Model",
+      "table": "bom.csv",
+      "via": [
+        "part_id",
+        "model"
+      ],
+      "count": 47
+    },
+    {
+      "from": "Plant",
+      "relation": "CAN_BUILD",
+      "to": "Model",
+      "table": "plant_models.csv",
+      "via": [
+        "plant_id",
+        "model"
+      ],
+      "count": 18
+    },
+    {
+      "from": "ProductionOrder",
+      "relation": "SCHEDULED_AT",
+      "to": "Plant",
+      "table": "production_orders.csv",
+      "via": "plant_id",
+      "count": 540
+    },
+    {
+      "from": "ProductionOrder",
+      "relation": "BUILDS",
+      "to": "Model",
+      "table": "production_orders.csv",
+      "via": "model",
+      "count": 540
+    },
+    {
+      "from": "CustomerOrder",
+      "relation": "FILLED_BY",
+      "to": "ProductionOrder",
+      "table": "customer_orders.csv",
+      "via": "production_order_id",
+      "count": 3263
+    },
+    {
+      "from": "CustomerOrder",
+      "relation": "PLACED_BY",
+      "to": "Customer",
+      "table": "customer_orders.csv",
+      "via": "customer_id",
+      "count": 3263
+    },
+    {
+      "from": "CustomerOrder",
+      "relation": "SOLD_THROUGH",
+      "to": "Dealer",
+      "table": "customer_orders.csv",
+      "via": "dealer_id",
+      "count": 3263
+    },
+    {
+      "from": "Lot",
+      "relation": "OF_PART",
+      "to": "Part",
+      "table": "part_lots.csv",
+      "via": "part_id",
+      "count": 364
+    },
+    {
+      "from": "Lot",
+      "relation": "FROM_SUPPLIER",
+      "to": "Supplier",
+      "table": "part_lots.csv",
+      "via": "supplier_id",
+      "count": 364
+    },
+    {
+      "from": "Lot",
+      "relation": "USED_AT",
+      "to": "Plant",
+      "table": "part_lots.csv",
+      "via": "plant_id",
+      "count": 364
+    },
+    {
+      "from": "Vehicle",
+      "relation": "BUILT_BY",
+      "to": "ProductionOrder",
+      "table": "finished_vehicles.csv",
+      "via": "production_order_id",
+      "count": 5348
+    },
+    {
+      "from": "Vehicle",
+      "relation": "AT_DEALER",
+      "to": "Dealer",
+      "table": "finished_vehicles.csv",
+      "via": "dealer_id",
+      "count": 5348
+    },
+    {
+      "from": "Vehicle",
+      "relation": "OWNED_BY",
+      "to": "Customer",
+      "table": "finished_vehicles.csv",
+      "via": "customer_id",
+      "count": 2927
+    }
+  ],
+  "aliases": {
+    "count": 61,
+    "resolves_to": [
+      "part",
+      "plant",
+      "supplier"
+    ]
+  },
+  "traversals": {
+    "supplier_delay": "Shipment \u2192 Part \u2192 Model (BOM) \u2192 ProductionOrder (receiving plant, blocked window) \u2192 CustomerOrder \u2192 Dealer / Customer",
+    "plant_outage": "Plant \u2192 ProductionOrder (outage days) \u2192 CustomerOrder \u2192 Dealer / Customer",
+    "quality_hold": "Lot \u2192 ProductionOrder (lot plant, lot build dates, models using the part) \u2192 Vehicle \u2192 Dealer (in stock) / Customer (sold)",
+    "rescheduling": "ProductionOrder \u2192 Model \u2192 Plant (CAN_BUILD) for transfers; Plant.slots_per_day for capacity",
+    "loaners": "CustomerOrder \u2192 Customer (tier) and Dealer (loaner pool)"
+  }
+}
