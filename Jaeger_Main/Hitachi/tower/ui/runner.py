@@ -122,6 +122,14 @@ def _snapshot() -> dict:
     }
 
 
+def forget() -> None:
+    """Reset tests: drop the last grade so the page stops showing cases whose files are gone."""
+    global _running, _reader, _suites, _passed, _failed, _total, _ok, _error, _tail
+    with _lock:
+        _running, _reader, _suites, _passed, _failed, _total, _ok, _error, _tail = False, None, [], 0, 0, 0, None, None, []
+        _emit({"type": "reset"})
+
+
 def status() -> dict:
     ollama_info()
     with _lock:

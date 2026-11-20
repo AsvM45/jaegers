@@ -103,12 +103,20 @@ _EXAMPLE_OUT = {
 # an id or a date, and it never has to spell a date or an id itself.
 
 _CLASSIFY_SYSTEM = """You read operations messages for Wacky Wheels Co., a carmaker with plants, parts suppliers and dealers.
+The operations team handles three kinds of incident: supplier delays, plant outages and quality holds.
 Decide what the message reports, by its meaning (people word things in many different ways):
 - supplier_delay: a delivery of parts will arrive later than planned (a new date replaces the planned one).
 - plant_outage: a plant cannot build for some days (any cause).
 - quality_hold: parts, a part lot or the vehicles built with them over some dates are defective or suspect and must be held.
-- unconfirmed: a possible problem that nobody has confirmed (hearsay, guesses, vague reports without specifics).
-- noise: not about the company's deliveries, plants or part quality (announcements, questions, news elsewhere).
+- unconfirmed: anything related to one of those three that is not confirmed or has no specifics, so a person should check it:
+  a possible delay, shortage, strike, shipping or customs problem that could hold up parts; a possible shutdown,
+  breakdown or stoppage at a plant; a possible bad batch, defect or recall. Hearsay, rumors and guesses count.
+- noise: anything not related to supplier delays, plant outages or quality holds: office and admin reminders
+  (expenses, meetings, HR, finance), facilities (parking, cafeteria, tours, visitors), sales and marketing, dealer
+  questions, and news unrelated to parts, plants or quality. A message is noise even if it names a plant or says
+  "delay" about something else.
+Decide in this order: is it related to a supplier delay, a plant outage or a quality hold? If not, it is noise and is
+never escalated. If it is, but nothing is confirmed or specific, it is unconfirmed. Otherwise it is the matching kind.
 First write the reason: one short sentence on what the message says and why that makes it this kind.
 Answer with JSON only."""
 
@@ -147,8 +155,10 @@ ROLES = {
     "plant_outage": {
         "plant": ("plant", "the plant that cannot build"),
         "first_day": ("date", "the first day the plant cannot build"),
-        "last_day_down": ("date", "the last day the plant cannot build, if the message gives it"),
-        "restart_day": ("date", "the day the plant builds again, only if the message gives a date for it"),
+        "last_day_down": ("date", "the last day the plant cannot build ('down to/through X'), if the message gives it; "
+                                  "never the day it restarts"),
+        "restart_day": ("date", "the day the plant builds again, only if the message says so separately "
+                                "('restarts', 'resumes', 'back online' on a date); 'down to X' alone gives none"),
     },
     "quality_hold": {
         "lot": ("lot", "the defective part lot, if one is named"),
@@ -163,6 +173,8 @@ ROLES = {
 _FILL_SYSTEM = """You read operations messages for Wacky Wheels Co. You are told what kind of event the message reports.
 For each field, pick the option id that the message means, using the descriptions. The options were found in the message and the company records.
 Answer none when the message does not say it. Never pick an option just because it is listed.
+Plant outages: a plant is never down on the day it restarts. If the date it is down "until" is also the day production
+restarts, pick that date as restart_day and answer none for last_day_down.
 Answer with JSON only."""
 
 
@@ -210,6 +222,15 @@ class LLMReader:
                     "corrected JSON. Copy names and dates from the message; never invent one.")},
             ]
         return self._post(payload, check_kind=True, keys=("kind", *FIELDS, "reason"))
+
+    def warm(self) -> None:
+        """Load the model into memory (a one-token request), so the first real message does not pay
+        the load time. Reads no event."""
+        try:
+            self._chat({"model": self.model, "stream": False, "messages": [{"role": "user", "content": "ok"}],
+                        "options": {"num_predict": 1}})
+        except LLMUnavailable:
+            pass
 
     def classify(self, section: str) -> dict:
         """Step 1: {"kind", "reason"} for one message section."""

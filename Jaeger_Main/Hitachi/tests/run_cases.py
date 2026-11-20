@@ -336,8 +336,53 @@ def run(reader_name, cases, truth, graph):
     return results
 
 
+def grade_saved(run_dir, cases, truth, model):
+    """Grade a run the tower already made (traces.json + action_log.jsonl in run_dir) without reading
+    the events again: its action log is replayed on a fresh copy of the world, as the judges do, and
+    each event is graded exactly as run() grades it. Saved under OUT/llm_<model>."""
+    traces_by_id = {t["event_id"]: t for t in json.load(open(os.path.join(run_dir, "traces.json")))}
+    saved = [json.loads(line) for line in open(os.path.join(run_dir, "action_log.jsonl")) if line.strip()]
+    enterprise = Enterprise(DATA)
+    logged = Logged(enterprise)
+    results, traces = [], []
+    for case in cases:
+        trace = traces_by_id.get(case["id"])
+        start = len(logged.records)
+        for row in (r for r in saved if r.get("event_id") == case["id"]):
+            try:
+                logged.call(case["id"], row["tool"], row["args"])
+            except ToolError:
+                pass
+        rows = logged.records[start:]
+        if trace is None:
+            trace = {"event_id": case["id"], "incidents": [], "summary": "", "classification": "MISSING"}
+        verdict, fails, warns, stats = grade(truth, case, rows, trace, enterprise.state(case["id"]))
+        if trace.get("classification") == "MISSING":
+            verdict, fails = "FAIL", [f"{case['id']} is not in {run_dir}"] + fails
+        traces.append(trace)
+        results.append({
+            "id": case["id"], "category": case["category"], "edge": case.get("edge"),
+            "verdict": verdict, "fails": fails, "warnings": warns, "stats": stats,
+            "classification": trace.get("classification"),
+            "readers": [i.get("reader") for i in trace.get("incidents", [])],
+            "parsed": [{k: v for k, v in i.items() if v and k not in ("summary", "evidence")}
+                       for i in trace.get("incidents", [])],
+            "summary": trace.get("summary"), "seconds": 0.0,
+        })
+        print(f"[llm] {case['id']} {verdict:4} {case['category']:15} {trace.get('classification')}")
+    out = os.path.join(OUT, "llm_" + model.replace(":", "_"))
+    os.makedirs(out, exist_ok=True)
+    with open(os.path.join(out, "action_log.jsonl"), "w") as f:
+        for r in logged.records:
+            f.write(json.dumps(r) + "\n")
+    json.dump(traces, open(os.path.join(out, "traces.json"), "w"), indent=2)
+    json.dump(results, open(os.path.join(out, "results.json"), "w"), indent=2)
+    log_run(os.path.basename(OUT), os.path.basename(out), results)
+    return results
+
+
 # runs/ folder -> the dashboard's suite id.
-SUITE_OF_FOLDER = {"given": "given", "tests": "generated", "holdout": "holdout",
+SUITE_OF_FOLDER = {"given": "given", "blind": "blind", "blind100": "blind100", "tests": "generated", "holdout": "holdout",
                     "holdout2": "holdout2", "stress": "stress", "accuracy": "accuracy"}
 
 

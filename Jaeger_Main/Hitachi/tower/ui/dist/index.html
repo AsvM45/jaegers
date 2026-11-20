@@ -4,10 +4,41 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Wacky Wheels Control Tower</title>
-  <script type="module" crossorigin src="/assets/index-DL3j9-6L.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-Di8T8QGi.css">
+  <script>
+    // Before anything draws: apply the theme, text size and language saved in Settings, so a light
+    // theme does not flash dark while the app loads. lib/settings.jsx takes over once React runs.
+    (function () {
+      var s = {};
+      try { s = JSON.parse(localStorage.getItem("tower.settings.v1") || "{}") || {}; } catch (e) { s = {}; }
+      var dark = !window.matchMedia || window.matchMedia("(prefers-color-scheme: dark)").matches;
+      var theme = s.theme === "light" ? "light" : s.theme === "system" ? (dark ? "dark" : "light") : "dark";
+      var root = document.documentElement;
+      root.dataset.theme = theme;
+      root.dataset.size = s.textSize || "default";
+      root.dataset.motion = s.motion || "full";
+      if (s.language && s.language !== "auto") root.lang = s.language;
+    })();
+  </script>
+  <style>
+    /* The splash shown until the app's own styles and first page arrive (React replaces #root). */
+    html { background: #070c27; }
+    html[data-theme="light"] { background: #eef2fa; }
+    .boot { position: fixed; inset: 0; display: grid; place-items: center; font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .boot div { display: grid; justify-items: center; gap: 18px; animation: boot-in .4s ease .15s both; }
+    .boot i { width: 52px; height: 52px; border-radius: 15px; display: grid; place-items: center; font-style: normal;
+      font-weight: 800; font-size: 22px; color: #fff; background: linear-gradient(135deg, #0075ff, #4318ff);
+      box-shadow: 0 12px 40px rgba(0, 117, 255, .35); }
+    .boot b { display: block; width: 120px; height: 3px; border-radius: 99px; overflow: hidden; background: rgba(147, 161, 196, .18); }
+    .boot b::after { content: ""; display: block; width: 40%; height: 100%; border-radius: 99px; background: #2b8cff; animation: boot-slide 1.2s ease-in-out infinite; }
+    @keyframes boot-in { from { opacity: 0; transform: translateY(4px); } }
+    @keyframes boot-slide { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+    @media (prefers-reduced-motion: reduce) { .boot div, .boot b::after { animation: none; } }
+    html[data-motion="reduce"] .boot div, html[data-motion="reduce"] .boot b::after { animation: none; }
+  </style>
+  <script type="module" crossorigin src="/assets/index-Bvk5RLO7.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-B6evTlEu.css">
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root"><div class="boot" role="status" aria-label="Loading"><div><i>W</i><b></b></div></div></div>
 </body>
 </html>

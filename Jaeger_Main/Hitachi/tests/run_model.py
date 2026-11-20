@@ -41,7 +41,7 @@ from tower.agents.quality import _select_lots  # noqa: E402
 from tower.graph import WorldGraph  # noqa: E402
 
 GRAPHS = os.path.join(TESTS, "expected_graphs.json")
-SUITES = {"given": "given_cases.json"}
+SUITES = {"given": "given_cases.json", "blind": "blind_cases.json"}
 EFFECTS = [("Production orders moved", "production_orders"), ("Dealers notified", "dealers_notified"),
            ("Loaners", "loaners"), ("Lots held", "lots"), ("Stop-sale vehicles", "stop_sale_vins"),
            ("Owners notified", "owners_notified")]
@@ -146,12 +146,17 @@ def main() -> None:
     graphs = json.load(open(GRAPHS))
     truth, graph, llm, texts = rc.Truth(), WorldGraph(), LLMReader(), _texts()
     rows = []
-    for suite in (SUITES if cli.suite == "all" else [cli.suite]):
+    for suite in ([s for s in SUITES if os.path.isfile(os.path.join(TESTS, SUITES[s]))] if cli.suite == "all" else [cli.suite]):
         for case in _cases(suite)[: cli.limit]:
             text = case.get("text") or texts[case["id"]]
             t0 = time.time()
             incidents, said = model_reading(graph, llm, text)
             got = predicted_graph(truth, incidents)
+            # A set without saved expected graphs (the blind set) gets them from its answer keys,
+            # traced through the tables the same way.
+            if case["id"] not in graphs.get(suite, {}):
+                key = case["expect"]
+                graphs.setdefault(suite, {})[case["id"]] = {**predicted_graph(truth, key["incidents"]), "escalate": key["escalate"]}
             sc = score(graphs[suite][case["id"]], got)
             rows.append({"suite": suite, "id": case["id"], "category": case.get("category"), "text": text,
                          "expected": {k: graphs[suite][case["id"]][k] for k in ("incidents", "escalate")},

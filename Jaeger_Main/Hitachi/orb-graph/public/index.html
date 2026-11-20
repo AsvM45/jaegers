@@ -12,15 +12,25 @@
   canvas { display:block; }
   .panel { position:fixed; background:var(--panel); border:1px solid var(--line); border-radius:14px;
     backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); padding:14px 16px; }
-  #title { top:18px; left:18px; }
-  #title h1 { margin:0; font-size:17px; font-weight:600; letter-spacing:.01em; }
-  #title p { margin:2px 0 0; color:var(--dim); font-size:12.5px; }
+  /* Title card: a small view label, the title, and the counts as two quiet figures. */
+  #title { top:18px; left:18px; display:grid; gap:6px; min-width:196px; padding:12px 16px 12px 14px;
+    background:linear-gradient(180deg, rgba(22,26,52,.78), rgba(12,14,30,.72)); border-color:rgba(130,150,255,.16);
+    box-shadow:0 10px 30px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.05); }
+  #title .kicker { display:flex; align-items:center; gap:8px; font-size:10.5px; font-weight:700; letter-spacing:.14em;
+    text-transform:uppercase; color:#93a4ff; }
+  #title .kicker::before { content:""; width:7px; height:7px; border-radius:50%; background:#5b7cff; box-shadow:0 0 10px 2px rgba(91,124,255,.7); }
+  #title .kicker:empty { display:none; }
+  #title h1 { margin:0; font-size:16px; font-weight:650; letter-spacing:.005em; line-height:1.25; }
+  #title p { margin:0; display:flex; gap:14px; color:var(--dim); font-size:12px; }
+  #title p b { color:var(--ink); font-weight:650; font-variant-numeric:tabular-nums; margin-right:4px; }
+  /* No records yet: the empty 3D space (grid floor, controls), no legend, until events arrive. */
+  body.empty #legend, body.empty #info, body.empty #hint { display:none !important; }
   #mode { top:18px; left:50%; transform:translateX(-50%); display:flex; gap:2px; padding:4px; }
   #mode button { all:unset; cursor:pointer; padding:6px 18px; border-radius:10px; color:var(--dim); font-weight:600; }
   #mode button:hover { color:var(--ink); }
   #mode button[aria-pressed="true"] { background:rgba(255,255,255,.12); color:var(--ink); }
   #mode button:focus-visible { outline:2px solid #fff; outline-offset:-2px; }
-  #zoom { right:18px; bottom:18px; display:flex; flex-direction:column; gap:2px; padding:4px; }
+  #zoom { right:18px; bottom:calc(18px + var(--inset, 0px)); display:flex; flex-direction:column; gap:2px; padding:4px; }
   #zoom button { all:unset; cursor:pointer; width:36px; height:36px; display:grid; place-items:center; border-radius:10px; color:var(--ink); }
   #zoom button:hover { background:rgba(255,255,255,.08); }
   #zoom button:focus-visible { outline:2px solid #fff; outline-offset:-2px; }
@@ -47,15 +57,46 @@
   #info .chips button:focus-visible { outline:2px solid #fff; }
   #hint { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); color:var(--dim); font-size:12.5px;
     pointer-events:none; text-align:center; padding:0 12px; }
+  /* Loading: panels wait behind a spinner (standalone) or the dashboard's own loader (embedded). */
+  .panel, #hint { transition:opacity .35s ease; }
+  body.loading .panel, body.loading #hint { opacity:0; pointer-events:none; }
+  #boot { position:fixed; inset:0; display:grid; place-items:center; pointer-events:none; transition:opacity .35s ease; }
+  body:not(.loading) #boot, body.embed #boot { opacity:0; }
+  #boot i { width:38px; height:38px; border-radius:50%; border:3px solid rgba(255,255,255,.1); border-top-color:#2b8cff; animation:orb-spin 1s linear infinite; }
+  @keyframes orb-spin { to { transform:rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { #boot i { animation:none; border-top-color:rgba(255,255,255,.1); border-color:#2b8cff; } .panel, #hint, #boot { transition:none; } }
   #err { position:fixed; inset:0; display:none; place-items:center; color:#ff8a8a; text-align:center; padding:24px; }
   body.embed #hint { display:none; }
   body.embed .panel { padding:10px 12px; }
   body.embed #title h1 { font-size:15px; }
+  body.embed #title { padding:10px 14px 10px 12px; }
+  /* Sizing: the overlays fit whatever space the graph gets, so nothing covers anything else. */
+  #title { max-width:min(360px, calc(100% - 36px)); }
+  #title h1 { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #legend { max-height:calc(100% - 150px); overflow-y:auto; overscroll-behavior:contain; }   /* never up into the title card */
+  #legend button { white-space:nowrap; }
+  /* Shorter graph: the legend goes to two columns and everything tightens. */
+  @media (max-height:720px) {
+    #legend { display:grid; grid-template-columns:repeat(2, minmax(0, auto)); column-gap:4px; }
+    #legend button { padding:4px 8px; font-size:12.5px; gap:8px; }
+    #legend .n { padding-left:10px; }
+    .panel { padding:10px 12px; }
+    #title { gap:4px; } #title h1 { font-size:14.5px; }
+    #zoom button { width:32px; height:32px; }
+  }
+  @media (max-height:480px) {
+    #legend { grid-template-columns:repeat(3, minmax(0, auto)); }
+    #legend .n { display:none; }
+    #title p { display:none; }
+  }
+  /* Narrower graph: the 2D/3D switch moves to the right so it never meets the title card. */
+  @media (max-width:900px) { #mode { left:auto; right:18px; transform:none; } }
   @media (max-width:640px) { #zoom { bottom:auto; top:76px; } #mode { left:auto; right:18px; transform:none; } #info { width:auto; left:18px; top:auto; bottom:18px; right:18px; } #legend { display:none; } #hint { display:none; } }
 </style>
 </head>
-<body>
-  <div id="title" class="panel"><h1>Orb graph</h1><p id="stats">Loading…</p></div>
+<body class="loading">
+  <div id="boot" aria-hidden="true"><i></i></div>
+  <div id="title" class="panel"><span class="kicker" id="kicker"></span><h1>Orb Graph</h1><p id="stats">&nbsp;</p></div>
   <div id="mode" class="panel" role="group" aria-label="View mode"><button data-mode="2d" aria-pressed="false">2D</button><button data-mode="3d" aria-pressed="true">3D</button></div>
   <div id="zoom" class="panel" role="group" aria-label="Zoom">
     <button id="zoom-in" aria-label="Zoom in" title="Zoom in"><svg viewBox="0 0 18 18"><path d="M9 3v12M3 9h12"/></svg></button>
@@ -66,6 +107,16 @@
   <div id="info" class="panel" aria-live="polite"></div>
   <div id="hint">Drag an orb to move it. Click to focus its links. Drag empty space to orbit. Scroll or use the buttons to zoom.</div>
   <div id="err"></div>
+  <script>
+    // If the graph cannot start at all (no WebGL, a script error before its own error handling), say
+    // so at once: show the error and tell the dashboard, instead of leaving its loader up.
+    window.addEventListener('error', function (e) {
+      document.body.classList.remove('loading');
+      var box = document.getElementById('err');
+      if (box && !box.textContent) { box.style.display = 'grid'; box.textContent = 'Could not start the graph: ' + (e.message || 'unknown error') + '. This view needs WebGL.'; }
+      if (window.parent !== window) window.parent.postMessage({ source: 'orb', type: 'error' }, location.origin);
+    });
+  </script>
   <script type="importmap">
   { "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }
   </script>

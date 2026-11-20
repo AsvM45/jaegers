@@ -4,7 +4,8 @@ Three views, chosen with ?view= on /api/knowledge_graph:
 
     network   every supplier, part, model, plant and dealer, and how they connect (default)
     schema    the 11 node types and 16 edge types of the ontology, sized by record count
-    event     the records one event's graph paths touched (&event=E-01), read from the run traces
+    event     the records one event's graph paths touched (&event=E-01), or every event's (&event=all),
+              read from the run traces
 
 The full record graph has about 17,000 nodes, too many to lay out in a browser, so the network
 view keeps the entities the agents reason about and leaves out orders, customers and vehicles.
@@ -15,6 +16,7 @@ from __future__ import annotations
 import csv
 import json
 import os
+import re
 from collections import Counter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -86,7 +88,7 @@ def network() -> dict:
                 n["detail"] += f" · {orders} of {sum(plants.values())} orders from {plant}"
 
     # Wider spacing than the viewer's default: 100 orbs with hubs need room to read.
-    _network = {"title": "Company network", "colors": COLORS, "nodes": nodes, "links": links,
+    _network = {"kicker": "Network", "title": "Company Network", "colors": COLORS, "nodes": nodes, "links": links,
                 "layout": {"charge": 2.6, "distance": 1.6, "gravity": 0.5}}
     return _network
 
@@ -94,28 +96,34 @@ def network() -> dict:
 def schema(onto: dict) -> dict:
     """The ontology itself: one orb per node type, one link per edge type."""
     return {
-        "title": "Ontology schema",
+        "kicker": "Schema",
+        "title": "Ontology Schema",
         "colors": COLORS,
-        "nodes": [{"id": n["type"], "type": n["type"], "label": n["type"],
-                   "detail": f'{n["count"]:,} records in {n["table"]}'} for n in onto["nodes"]],
+        "nodes": [{"id": n["type"], "type": n["type"], "label": re.sub(r"([a-z])([A-Z])", r"\1 \2", n["type"]),
+                   "detail": f'{n["count"]:,} records'} for n in onto["nodes"]],
         "links": [{"source": e["from"], "target": e["to"], "relation": e["relation"]} for e in onto["edges"]],
         "layout": {"charge": 2.0, "distance": 1.8},
     }
 
 
-def event(traces_path: str, event_id: str) -> dict:
-    """The records on one event's graph paths, capped at EVENT_NODE_CAP orbs."""
+def event(traces_path: str, event_id: str, extra: list | None = None) -> dict:
+    """The records on one event's graph paths, or on every event's (event_id "all" or ""), capped at
+    EVENT_NODE_CAP orbs. extra: traces of events added from the dashboard, which are part of the feed."""
     traces = []
     if os.path.isfile(traces_path):
         with open(traces_path, encoding="utf-8") as handle:
             traces = json.load(handle)
-    trace = next((t for t in traces if t.get("event_id") == event_id), None)
-    title = f"{event_id} graph paths"
-    if trace is None:
-        return {"title": title, "colors": COLORS, "nodes": [], "links": []}
+    have = {t.get("event_id") for t in traces if isinstance(t, dict)}
+    traces += [t for t in (extra or []) if t.get("event_id") not in have]
+    every = event_id in ("", "all")
+    chosen = traces if every else [t for t in traces if t.get("event_id") == event_id]
+    title = "All Events" if every else event_id
+    # No records yet: the viewer shows empty space and fills in as events arrive.
+    if not chosen:
+        return {"kicker": "Graph Paths", "title": title, "colors": COLORS, "nodes": [], "links": []}
 
     ids, links, seen, truncated = {}, [], set(), False
-    for result in trace.get("results", []):
+    for result in (r for t in chosen for r in t.get("results", [])):
         for path in result.get("graph_paths", []):
             # "Dealer D18 / Customer C6387" is two records at the end of one path.
             steps = []
@@ -141,9 +149,10 @@ def event(traces_path: str, event_id: str) -> dict:
             break
     counts = Counter(ids.values())
     return {
+        "kicker": "Graph Paths",
         "title": title + (f" (first {len(ids)} records)" if truncated else ""),
         "colors": COLORS,
-        "nodes": [{"id": s, "type": kind, "label": s.split(" ", 1)[1], "detail": kind} for s, kind in ids.items()],
+        "nodes": [{"id": s, "type": kind, "label": s.split(" ", 1)[1], "detail": re.sub(r"([a-z])([A-Z])", r"\1 \2", kind)} for s, kind in ids.items()],
         "links": links,
         "counts": dict(counts),
         "layout": {"charge": 1.8, "distance": 1.3, "gravity": 0.6},

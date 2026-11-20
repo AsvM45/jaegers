@@ -11,12 +11,13 @@ quality hold, plant outage, supplier delay, unconfirmed rumor, noise.
 
 from __future__ import annotations
 
+import os
 import re
 import html
 import unicodedata
 from datetime import date, timedelta
 
-from tower.calendar_util import TODAY, extract_dates, impossible_dates, is_working_day, next_working_day
+from tower.calendar_util import TODAY, extract_dates, impossible_dates, is_working_day, next_working_day, ordered_window
 from tower.contracts import Incident, Mention
 
 # '(1)', '(2)' ... markers split a compound message into sections.
@@ -199,10 +200,31 @@ def understand(graph, text: str, llm=None, anchor=None) -> list[Incident]:
     when = TODAY if anchor is None else anchor
     read = ((lambda part: _read_section(graph, part, when)) if llm is None
             else (lambda part: _read_with_llm(graph, part, llm, when)))
-    out = []
-    for section in _sections(text):
-        out.extend(_read_connected(section, read))
-    return out
+    # A piece of text that names no record and gives no date cannot be an incident on its own.
+    grounded = lambda part: bool(graph.resolve_mentions(part)) or bool(extract_dates(part, when))  # noqa: E731
+    read.grounded = grounded
+    sections = _sections(text)
+    if llm is None or len(sections) == 1:
+        return [inc for section in sections for inc in _read_connected(section, read)]
+    # A digest's items are independent: read them at the same time (Ollama serves OLLAMA_NUM_PARALLEL
+    # requests at once). The order of the results is the order of the items.
+    return [inc for found in _parallel([lambda s=s: _read_connected(s, read) for s in sections]) for inc in found]
+
+
+_POOL = None
+
+
+def _parallel(jobs: list):
+    """Run zero-argument jobs at the same time; results in the same order."""
+    global _POOL
+    if len(jobs) <= 1:
+        return [job() for job in jobs]
+    if _POOL is None:
+        from concurrent.futures import ThreadPoolExecutor
+        _POOL = ThreadPoolExecutor(max_workers=int(os.environ.get("OLLAMA_NUM_PARALLEL", "2")) * 2, thread_name_prefix="reader")
+    return [f.result() for f in [_POOL.submit(job) for job in jobs]]
+
+
 
 
 _ACTIONABLE = ("plant_outage", "supplier_delay", "quality_hold")
@@ -217,11 +239,18 @@ def _read_connected(section: str, read) -> list[Incident]:
     """
     cut = _CONNECTOR.search(section)
     semi = None if cut else _SEMI.search(section)
+    grounded = getattr(read, "grounded", None)
+    # A semicolon splits only when both sides are finished incidents, and a side with no record and
+    # no date ("the line restarts the following working day") never is: read the whole once.
+    if semi and grounded and not all(grounded(p) for p in (section[:semi.start()], section[semi.end():])):
+        semi = None
     # "Lexington is down ... and San Antonio is down ..." is two outages. Other "and" joins stay one item.
     and_cut = _AND_NEXT.search(section)
+    if and_cut and grounded and not all(grounded(p) for p in (section[:and_cut.start()], section[and_cut.end():])):
+        and_cut = None
     if and_cut and not cut and not semi:
         parts = [section[:and_cut.start()].strip(), section[and_cut.end():].strip()]
-        readings = [read(part) for part in parts if part]
+        readings = _parallel([lambda p=p: read(p) for p in parts if p])
         if len(readings) == 2 and all(item.kind == "plant_outage" for item in readings):
             return readings
     if not cut and not semi:
@@ -229,17 +258,19 @@ def _read_connected(section: str, read) -> list[Incident]:
     mark = cut or semi
     parts = [section[:mark.start()].strip(), section[mark.end():].strip()]
     parts[1] = parts[1][:1].upper() + parts[1][1:]
-    readings = [read(part) for part in parts if part]
+    # The halves and the whole are read at the same time; the whole is only used when the halves
+    # do not stand on their own, but reading it alongside saves a wait.
+    jobs = [lambda p=p: read(p) for p in parts if p] + [lambda: read(section)]
+    *readings, whole = _parallel(jobs)
     if semi:
         if len(readings) == 2 and all(item.kind in _ACTIONABLE for item in readings):
             return readings
-        return [read(section)]
+        return [whole]
     if len(readings) == 2 and all(r.kind != "noise" for r in readings):
         return readings
     # One half is chatter ("Stock markets closed higher. Also, <outage>"). Keep that half so a
     # date in the chatter ("today") is not treated as the first day of the outage. When the whole
     # message agrees with that half, the whole is the one that swallowed the chatter.
-    whole = read(section)
     useful = [r for r in readings if r.kind != "noise"]
     if len(useful) == 1 and (whole.kind == "noise" or useful[0].kind == whole.kind):
         return useful
@@ -305,18 +336,36 @@ def model_options(graph, section: str, anchor=None) -> tuple[dict[str, list[tupl
     # the ISO date: short plain values are what small models pick reliably under a strict format.
     labels: dict[str, list[tuple[str, str]]] = {t: [] for t in ("plant", "part", "supplier", "lot", "shipment", "date")}
     lookup: dict[str, object] = {}
+    # Values are short codes (P1, D2...): fewer tokens for the model to write, so faster answers.
+    seen: set = set()
     for m in graph.resolve_mentions(section):
-        if m.entity_type not in labels or m.entity_id in lookup:
+        if m.entity_type not in labels or (m.entity_type, m.entity_id) in seen:
             continue
-        lookup[m.entity_id] = m
-        labels[m.entity_type].append((m.entity_id, f'{m.entity_id} = "{m.alias}"{_record_note(graph, m.entity_type, m.entity_id, m.alias)}'))
+        seen.add((m.entity_type, m.entity_id))
+        code = f"{_CODE[m.entity_type]}{len(labels[m.entity_type]) + 1}"
+        lookup[code] = m
+        labels[m.entity_type].append((code, f'{code} = {m.entity_id} "{m.alias}"{_record_note(graph, m.entity_type, m.entity_id, m.alias)}'))
+    # One option per day. A day the message names twice ("until 2027-03-25 ... restarts on the 25th")
+    # shows every phrase, and keeps the count for the calendar check.
+    by_iso: dict[str, str] = {}
     for item in extract_dates(section, anchor):
         iso = item["date"]
-        if iso in lookup:
+        if iso in by_iso:
+            known = lookup[by_iso[iso]]
+            known["mentions"] = known.get("mentions", 1) + 1
+            known["phrases"] = [*known.get("phrases", [known["phrase"]]), item["phrase"]]
             continue
-        lookup[iso] = item
-        labels["date"].append((iso, f'{iso} = "{item["phrase"]}" ({date.fromisoformat(iso):%A})'))
+        code = f"D{len(by_iso) + 1}"
+        by_iso[iso] = code
+        lookup[code] = {**item, "mentions": 1}
+    for code, item in lookup.items():
+        if code.startswith("D") and "date" in item:
+            said = " / ".join(f'"{p}"' for p in item.get("phrases", [item["phrase"]]))
+            labels["date"].append((code, f'{code} = {item["date"]} {said} ({date.fromisoformat(item["date"]):%A})'))
     return labels, lookup
+
+
+_CODE = {"plant": "P", "part": "T", "supplier": "S", "lot": "L", "shipment": "H", "date": "D"}
 
 
 def _record_note(graph, entity_type: str, entity_id: str, alias: str) -> str:
@@ -356,7 +405,7 @@ def _model_incident(graph, section: str, llm, kind: str, reason: str, said: str,
     try:
         answer = llm.fill(section, kind, options)
         built, problem = _incident_from_choices(graph, kind, answer, lookup)
-        notes.append(f"{llm.model} picked {_picks(answer)}")
+        notes.append(f"{llm.model} picked {_picks(answer, lookup)}")
         if built is not None:
             built.evidence[:0] = [*notes, "every pick checks out against the tables and the message"]
             return built
@@ -374,7 +423,7 @@ def _model_incident(graph, section: str, llm, kind: str, reason: str, said: str,
             notes.append(f"{tool.model} found: {finding}")
         answer = tool.fill(section, kind, options, previous=answer, problem=problem, findings=finding)
         built, problem = _incident_from_choices(graph, kind, answer, lookup)
-        notes.append(f"{tool.model} picked {_picks(answer)}")
+        notes.append(f"{tool.model} picked {_picks(answer, lookup)}")
         if built is not None:
             built.evidence[:0] = [*notes, "every pick checks out against the tables and the message"]
             built.reader = tool.model
@@ -416,22 +465,28 @@ def _tool_reader(llm, name: str, cls):
     return _TOOL_READERS[name]
 
 
-def _picks(answer: dict) -> str:
-    return ", ".join(f"{k}={v or '-'}" for k, v in answer.items())
+def _picks(answer: dict, lookup: dict | None = None) -> str:
+    def shown(v):
+        item = (lookup or {}).get(v)
+        return getattr(item, "entity_id", None) or (item.get("date") if isinstance(item, dict) else None) or v or "-"
+    return ", ".join(f"{k}={shown(v)}" for k, v in answer.items())
 
 
 def _add_found(graph, options: dict, lookup: dict, lookups) -> None:
     """Make the records and dates the lookup tools returned into options for the next pick."""
+    have = {(getattr(v, "entity_type", "date"), getattr(v, "entity_id", None) or v.get("date")) for v in lookup.values()}
     for eid, etype in lookups.records.items():
-        if etype not in options or eid in lookup:
+        if etype not in options or (etype, eid) in have:
             continue
-        lookup[eid] = Mention(eid, etype, eid, -1, -1)
-        options[etype].append((eid, f"{eid}{_record_note(graph, etype, eid, eid)} (found in the tables)"))
+        code = f"{_CODE[etype]}{len(options[etype]) + 1}"
+        lookup[code] = Mention(eid, etype, eid, -1, -1)
+        options[etype].append((code, f"{code} = {eid}{_record_note(graph, etype, eid, eid)} (found in the tables)"))
     for iso in sorted(lookups.dates):
-        if iso in lookup:
+        if ("date", iso) in have:
             continue
-        lookup[iso] = {"phrase": f"{iso} (from the tables)", "date": iso}
-        options["date"].append((iso, f"{iso} ({date.fromisoformat(iso):%A}, found in the tables)"))
+        code = f"D{len(options['date']) + 1}"
+        lookup[code] = {"phrase": f"{iso} (from the tables)", "date": iso}
+        options["date"].append((code, f"{code} = {iso} ({date.fromisoformat(iso):%A}, found in the tables)"))
 
 
 # What to ask a person when a reading does not check out, keyed by the failed check. Each names
@@ -450,6 +505,7 @@ _QUESTIONS = {
     "a delay needs a shipment, or a part and a plant": "Which shipment is late, or which part is late to which plant?",
     "a delay needs the new arrival date": "What is the new arrival date?",
     "a delay needs the original due date": "What date was the delivery originally due?",
+    "the original and new dates are the same day; pick the date it was due and the date it now arrives": "What date was the delivery originally due, and when does it arrive now?",
 }
 
 
@@ -511,6 +567,8 @@ def _incident_from_choices(graph, kind: str, answer: dict, lookup: dict) -> tupl
     def chosen(role):
         label = answer.get(role, "")
         return lookup.get(label) if label else None
+    # Every date the message gives, for the calendar checks that need more than the two picks.
+    chosen.message_dates = [item for code, item in lookup.items() if code.startswith("D") and isinstance(item, dict)]
 
     picked = {t: (None, [], []) for t in ("plant", "part", "lot", "supplier", "shipment")}
     for role, (rtype, _) in ROLES[kind].items():
@@ -540,6 +598,8 @@ def _fill_from_tables(graph, kind: str, picked: dict, chosen) -> list[str]:
     if kind == "supplier_delay" and ids["shipment"] is None:
         known = [ids[t] for t in ("supplier", "part", "plant") if ids[t]]
         original, new = chosen("original_date"), chosen("new_date")
+        if original is not None and new is not None and original["date"] == new["date"]:
+            original = None  # one date given: it is the new one; look the shipment up by route
         if len(known) >= 2:
             rows = graph.find_shipments(ids["supplier"], ids["part"], ids["plant"],
                                         eta=original["date"] if original else None)
@@ -589,9 +649,15 @@ def _checked_incident(graph, kind: str, picked: dict, chosen, answer: dict, hits
         if not lot_known and (first is None or last is None):
             return None, "a quality hold needs the first and last build dates"
         dates = [d for d in (first, last) if d is not None]
+        notes = []
         if len(dates) == 2 and dates[1]["date"] < dates[0]["date"]:
-            return None, "the build window ends before it starts"
-        return _quality(graph, picked, dates, hits), ""
+            # Calendar rule: a window cannot end before it starts, so the two dates were picked in
+            # the wrong roles. Use them in order.
+            dates.reverse()
+            notes.append(f"build dates were picked in reverse; using {dates[0]['date']} to {dates[1]['date']}")
+        built = _quality(graph, picked, dates, hits)
+        built.evidence.extend(notes)
+        return built, ""
 
     if kind == "plant_outage":
         first, last, restart = chosen("first_day"), chosen("last_day_down"), chosen("restart_day")
@@ -600,11 +666,23 @@ def _checked_incident(graph, kind: str, picked: dict, chosen, answer: dict, hits
         if first is None:
             return None, "an outage needs its first day down"
         dates, notes = [first], []
-        if last is None and restart is not None:
-            # Only the restart is dated: the outage ends the working day before it.
+        # Calendar rules: the plant builds again on the restart day, so the last day down is the
+        # working day before it. A "last day down" after the restart day is the same mix-up.
+        # A restart day on the first day down means nothing and is ignored.
+        # The same day picked for both is ambiguous on its own ("through Monday Mar 22; the line restarts the
+        # following working day" means the 22nd is the last day down). It is the restart day only when the
+        # message names that day twice: once as the end, once for the restart.
+        same_day = last is not None and last["date"] == restart["date"] if restart is not None else False
+        if restart is not None and restart["date"] > first["date"] and (
+                last is None or last["date"] > restart["date"] or (same_day and restart.get("mentions", 1) > 1)):
             end = _day_before_restart(restart["date"])
             notes.append(f"'{restart['phrase']}' is when work resumes, so the last day down is {end}")
             last = {**restart, "date": end}
+        if last is not None and last["date"] < first["date"]:
+            # An outage cannot end before it starts: the two days were picked in the wrong roles.
+            first, last = last, first
+            dates = [first]
+            notes.append(f"outage days were picked in reverse; using {first['date']} to {last['date']}")
         if last is not None:
             dates.append(last)
         if len(dates) == 2 and dates[1]["date"] < dates[0]["date"]:
@@ -616,12 +694,24 @@ def _checked_incident(graph, kind: str, picked: dict, chosen, answer: dict, hits
         return None, "a delay needs a shipment, or a part and a plant"
     if new is None:
         return None, "a delay needs the new arrival date"
-    if original is None:
+    # The original due date: the one the model picked, unless it is missing or the same day as the
+    # new date (then the message only gave one date). A known shipment's stored due date fills it.
+    # Calendar rule: a delay arrives later than planned. The same day picked for both, in a message that
+    # gives exactly two days ("arriving March 31st instead of the 29th"): the earlier day is when it was
+    # due and the later day is when it now arrives.
+    given = getattr(chosen, "message_dates", [])
+    if original is not None and original["date"] == new["date"] and len(given) == 2:
+        early, late = sorted(given, key=lambda d: d["date"])
+        original, new = early, late
+        hits.append(f"calendar check: one day was picked for both dates; a delay arrives later, so {early['date']} was due and {late['date']} is the new arrival")
+    if original is None or original["date"] == new["date"]:
         if shipment is not None and shipment.entity_id in graph.shipments:
             eta = graph.shipments[shipment.entity_id]["eta_date"]
             original = {"phrase": f"stored ETA of {shipment.entity_id}", "date": eta}
-        else:
+        elif original is None:
             return None, "a delay needs the original due date"
+        else:
+            return None, "the original and new dates are the same day; pick the date it was due and the date it now arrives"
     return _delay(graph, picked, [original, new], hits), ""
 
 
@@ -988,9 +1078,15 @@ def _quality(graph, picked, dates, hits) -> Incident:
     supplier_id = supplier[0].entity_id if supplier[0] is not None else None
     start = dates[0]["date"] if dates else None
     end = dates[1]["date"] if len(dates) > 1 else None
+    # The calendar check: a build window never starts after it ends ("built from the 25th back to the 1st").
+    swapped_window = bool(start and end and start > end)
+    if swapped_window:
+        start, end = end, start
     evidence = [f"quality language: {', '.join(hits)}"]
     if dates:
         evidence.append(_date_line(dates))
+        if swapped_window:
+            evidence.append(f"calendar check: the build window ran backwards; using {start} to {end}")
     evidence.extend(_chosen_lines(picked, ("plant", "part", "lot", "supplier")))
     if len(dates) > 2:
         evidence.append(f"used the first two dates {start} and {end}")
@@ -1076,7 +1172,8 @@ def _delay(graph, picked, dates, hits) -> Incident:
     part_id = part[0].entity_id if part[0] is not None else None
     plant_id = plant[0].entity_id if plant[0] is not None else None
     # A date on a weekend becomes the next working day: nothing builds on weekends anyway.
-    blocked_from, blocked_until = _roll(dates[0]["date"]), _roll(dates[1]["date"])
+    # The calendar check: weekends roll forward, and "blocked from" is never after "blocked until".
+    blocked_from, blocked_until, swapped = ordered_window(dates[0]["date"], dates[1]["date"])
     rolled = [
         f"'{item['phrase']}' ({item['date']}) is a weekend; using the next working day {_roll(item['date'])}"
         for item in dates[:2]
@@ -1085,6 +1182,8 @@ def _delay(graph, picked, dates, hits) -> Incident:
     shipment_id = None
     evidence = [f"delay language: {', '.join(hits)}", _date_line(dates)]
     evidence.extend(rolled)
+    if swapped:
+        evidence.append(f"calendar check: the blocked window ran backwards; using {blocked_from} to {blocked_until}")
     evidence.extend(_chosen_lines(picked, ("shipment", "supplier", "part", "plant")))
     if len(dates) > 2:
         evidence.append(f"used the first two dates {blocked_from} and {blocked_until}")

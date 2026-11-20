@@ -56,7 +56,7 @@ class SupplyChainPlanner(Agent):
         title="Supply Chain Planner",
         responsibility="Moves every production order a supplier delay or plant outage blocks to the "
                        "earliest feasible slot, at the same plant first, transferring only when it must.",
-        takes="supplier_delay and plant_outage incidents",
+        takes="supplier delays and plant outages",
         tools=frozenset({"mes.reschedule", "mes.transfer"}),
         handbook_rules="1, 2, 3",
     )
@@ -71,7 +71,7 @@ class QualityAgent(Agent):
         title="Quality",
         responsibility="Holds the defective lot, stops sale of unsold vehicles built with it, and "
                        "contacts the owners of sold ones.",
-        takes="quality_hold incidents",
+        takes="quality holds",
         tools=frozenset({"quality.hold_lot", "dealer.stop_sale", "crm.notify_customer"}),
         handbook_rules="6",
     )

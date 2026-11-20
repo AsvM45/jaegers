@@ -9,3 +9,7 @@ Jaeger_Main/Hitachi/tower/channels/contacts.json
 Jaeger_Main/Hitachi/runs/live/
 Jaeger_Main/Hitachi/runs/*/channels_sent.json
 Jaeger_Main/dashboard-royale.zip
+# Whisper model files for local voice input (python -m tower.voice setup downloads them).
+Jaeger_Main/Hitachi/models/
+# Data cleared by Reset events / Reset tests, kept so Undo can restore it.
+Jaeger_Main/Hitachi/runs/.reset/

@@ -5,6 +5,7 @@ import { Icon } from "../lib/icons.jsx";
 import { useData } from "../lib/data.jsx";
 import { go, useUi } from "../lib/ui.jsx";
 import { KindTag, Status } from "./common.jsx";
+import { tr } from "../lib/i18n.js";
 
 const MAX_EVENTS = 6, MAX_CASES = 8;
 
@@ -49,7 +50,7 @@ export const Search = forwardRef(function Search(_, ref) {
   const rows = [...events, ...cases];
 
   const pick = (row) => {
-    if (row.kind === "event") { set({ q: "", sel: row.id }); go("#/events"); }
+    if (row.kind === "event") { set({ q: "", sel: row.id, openEvent: row.id }); go("#/events"); }
     else { set({ q: "" }); go(row.href); }
     setOpen(false);
     ref.current?.blur();
@@ -75,7 +76,7 @@ export const Search = forwardRef(function Search(_, ref) {
     <div className="search-wrap">
       <label className="search">
         <Icon name="search" />
-        <input ref={ref} placeholder="Search events or tests" autoComplete="off" value={ui.q}
+        <input ref={ref} placeholder={tr("Search events or tests")} autoComplete="off" value={ui.q}
           onChange={(e) => { set({ q: e.target.value }); setActive(0); setOpen(true); }}
           onFocus={() => setOpen(true)} onBlur={() => setOpen(false)} onKeyDown={onKey} />
         <kbd>/</kbd>
@@ -83,9 +84,9 @@ export const Search = forwardRef(function Search(_, ref) {
       {open && q && (
         <div className="sresults" role="listbox">
           {!rows.length && <div className="sr-empty">No events or test cases match “{ui.q.trim()}”.</div>}
-          {events.length > 0 && <div className="sr-head">Events</div>}
+          {events.length > 0 && <div className="sr-head">{tr("Events")}</div>}
           {events.map((r, i) => row(r, i))}
-          {cases.length > 0 && <div className="sr-head">Test cases</div>}
+          {cases.length > 0 && <div className="sr-head">{tr("Test cases")}</div>}
           {cases.map((r, i) => row(r, events.length + i))}
           {more > 0 && <div className="sr-foot">{more} more. Keep typing to narrow it down.</div>}
         </div>

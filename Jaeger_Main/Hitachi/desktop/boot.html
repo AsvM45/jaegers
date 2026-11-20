@@ -4,26 +4,32 @@
   <meta charset="utf-8">
   <title>Wacky Wheels Control Tower</title>
   <style>
-    html, body { margin: 0; height: 100%; background: #070c27; color: #fff;
-      font-family: "Segoe UI", system-ui, sans-serif; }
-    body { display: grid; place-items: center; }
-    .card { text-align: center; max-width: 460px; padding: 24px; }
-    .mark { width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 16px;
-      display: grid; place-items: center; background: #0075ff; font-weight: 700; font-size: 26px; }
-    h1 { font-size: 15px; letter-spacing: 0.16em; font-weight: 700; margin: 0; }
-    p { color: #93a1c4; margin: 10px 0 0; font-size: 14px; line-height: 1.5; }
-    .spin { width: 22px; height: 22px; margin: 22px auto 0; border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.15); border-top-color: #2b8cff;
-      animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    /* Shown while the desktop app starts its Python server. main.js fills #status (and, on a failure,
+       hides #spin), so keep those two ids. */
+    html, body { margin: 0; height: 100%; color: #fff; font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
+    body {
+      display: grid; place-items: center;
+      background: radial-gradient(900px 500px at 50% 35%, rgba(0, 117, 255, .16), transparent 65%), #070c27;
+    }
+    .card { display: grid; justify-items: center; gap: 14px; text-align: center; max-width: 440px; padding: 24px; animation: in .45s ease both; }
+    .mark { width: 60px; height: 60px; border-radius: 18px; display: grid; place-items: center; font-weight: 800; font-size: 26px;
+      background: linear-gradient(135deg, #0075ff, #4318ff); box-shadow: 0 16px 50px rgba(0, 117, 255, .35); }
+    h1 { margin: 6px 0 0; font-size: 14px; letter-spacing: .18em; font-weight: 700; }
+    h1 span { display: block; margin-top: 4px; color: #93a1c4; font-size: 10.5px; letter-spacing: .14em; font-weight: 600; }
+    #status { margin: 4px 0 0; color: #c3cce3; font-size: 13.5px; line-height: 1.55; min-height: 21px; white-space: pre-line; }
+    #spin { width: 160px; height: 3px; border-radius: 99px; overflow: hidden; background: rgba(255, 255, 255, .08); }
+    #spin::after { content: ""; display: block; width: 40%; height: 100%; border-radius: 99px; background: #2b8cff; animation: slide 1.2s ease-in-out infinite; }
+    @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+    @keyframes in { from { opacity: 0; transform: translateY(6px); } }
+    @media (prefers-reduced-motion: reduce) { .card, #spin::after { animation: none; } }
   </style>
 </head>
 <body>
-  <div class="card">
+  <div class="card" role="status" aria-live="polite">
     <div class="mark">W</div>
-    <h1>WACKY WHEELS</h1>
+    <h1>WACKY WHEELS<span>CONTROL TOWER</span></h1>
+    <div id="spin"></div>
     <p id="status">Starting the control tower…</p>
-    <div class="spin" id="spin"></div>
   </div>
 </body>
 </html>

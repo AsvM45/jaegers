@@ -21,6 +21,7 @@ Listens on http://127.0.0.1:8080
     GET /api/domains           the domain map (tower/domains.py): which part of the tower owns which fact
     GET /api/ontology.mmd      the ontology as a Mermaid diagram (tower/ontology.mmd)
     GET /api/agents            the coordinator and the three specialist agents (role, tools, rules)
+    GET /api/promise           customer promise impact: moved builds against each customer's promised date
     GET /api/test_reports      expected vs actual outcome for every test case, per reader
     GET /api/revision          a token that changes when the run or the saved results change
     GET /api/events/chat       the event-add transcript
@@ -29,6 +30,12 @@ Listens on http://127.0.0.1:8080
     GET /api/events/run/stream the same run as a server-sent event stream
     POST /api/events/run       walk the feed and report each event as it finishes
     POST /api/events/run/stop  stop that walk
+    GET /api/reset             whether each kind (events, tests) has data and a reset that Undo can restore
+    POST /api/reset            {"kind":"events"|"tests","confirm":"RESET"}: back the data up to runs/.reset/, then clear it
+    POST /api/reset/undo       {"kind":...}: put the newest reset backup back
+    GET /api/summary.pdf       the test summary as a PDF (tower/ui/summary_pdf.py), downloaded from the Tests page
+    GET /api/voice[?lang=en]   whether local voice input (whisper.cpp) is ready, or how to set it up
+    POST /api/voice/transcribe?lang=en   a WAV recording -> {"text": ...}, transcribed on this machine
     GET /api/run               the test grade in progress (or the last one), one snapshot
     GET /api/run/stream        the same grade as a server-sent event stream
     POST /api/run              start a grade: {"reader":"rules"|"llm"|"both","suites":["given",...]}
@@ -62,12 +69,12 @@ ONTOLOGY_JSON = os.path.join(HITACHI, "runs", "ontology", "ontology.json")
 ORB_ROOT = os.path.join(HITACHI, "orb-graph", "public")
 ONTOLOGY_MMD = os.path.join(HITACHI, "tower", "ontology.mmd")
 STATIC_TYPES = {
-    ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
+    ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8",
     ".css": "text/css; charset=utf-8", ".json": "application/json", ".svg": "image/svg+xml",
     ".png": "image/png", ".ico": "image/x-icon", ".woff2": "font/woff2", ".md": "text/markdown; charset=utf-8",
 }
 # Test-suite run folders the knowledge graph may read traces from (suite id -> runs/ subfolder).
-SUITE_RUNS = {"given": "given"}
+SUITE_RUNS = {"given": "given", "blind": "blind", "blind100": "blind100"}
 EVENTS = os.path.join(HITACHI, "Data", "hack_the_highway_package", "data", "events.json")
 # TOWER_RUN_DIR=runs/live shows the live channel feed instead of the batch run.
 RUN_DIR = os.path.join(HITACHI, os.environ.get("TOWER_RUN_DIR", os.path.join("runs", "run1")))
@@ -96,6 +103,12 @@ class NotFound(Exception):
 
 class TowerServer(ThreadingHTTPServer):
     """Bind without a reverse-DNS lookup, which can stall on some networks."""
+
+    # Python's default backlog is 5 pending connections. A page that opens several graphs at once asks for
+    # dozens of files together; past 5 the OS drops the connection and the browser retries 1, 3, 7 s later,
+    # so a graph could take 20 s or never load. 128 keeps every request moving.
+    request_queue_size = 128
+    daemon_threads = True
 
     def server_bind(self):
         # Set what TCPServer.server_bind would have, so a restart can rebind a port in TIME_WAIT.
@@ -177,7 +190,11 @@ def knowledge_payload(query):
             if suite not in SUITE_RUNS or not os.path.isdir(parent) or reader not in os.listdir(parent):
                 raise NotFound(f"no test run {run}")
             traces = os.path.join(parent, reader, "traces.json")
-        return knowledge.event(traces, event_id)
+        if run:
+            return knowledge.event(traces, event_id)
+        from tower.ui import event_desk
+
+        return knowledge.event(traces, event_id, event_desk.saved_traces())
     return knowledge.network()
 
 
@@ -265,6 +282,11 @@ class Handler(BaseHTTPRequestHandler):
 
                 base = read_jsonl(LOG) if os.path.isfile(LOG) else []
                 return self._json(base + event_desk.saved_log())
+            if path == "/api/promise":
+                from tower.ui import event_desk, promise
+
+                base = read_jsonl(LOG) if os.path.isfile(LOG) else []
+                return self._json(promise.payload(base + event_desk.saved_log()))
             if path == "/api/outbox":
                 return self._json(read_jsonl(OUTBOX) if os.path.isfile(OUTBOX) else [])
             if path == "/api/channels":
@@ -281,6 +303,26 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(domain_payload())
             if path == "/api/ontology.mmd":
                 return self._file(ONTOLOGY_MMD, "text/plain; charset=utf-8")
+            if path == "/api/reset":
+                from tower.ui import reset
+
+                return self._json(reset.status())
+            if path == "/api/summary.pdf":
+                from tower.ui import summary_pdf
+
+                body = summary_pdf.build()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/pdf")
+                self.send_header("Content-Disposition", f'attachment; filename="{summary_pdf.filename()}"')
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(body)
+                return None
+            if path == "/api/voice":
+                from tower import voice
+
+                return self._json(voice.status((query.get("lang") or ["en"])[0]))
             if path == "/api/agents":
                 from tower.agents.roster import roster
 
@@ -331,9 +373,12 @@ class Handler(BaseHTTPRequestHandler):
         if not self._local():
             return self._json({"error": "forbidden"}, 403)
         path = urllib.parse.urlsplit(self.path).path.rstrip("/") or "/"
-        allowed = ("/api/run", "/api/run/stop", "/api/events/run", "/api/events/run/stop", "/api/events/chat")
+        allowed = ("/api/run", "/api/run/stop", "/api/events/run", "/api/events/run/stop", "/api/events/chat",
+                   "/api/voice/transcribe", "/api/reset", "/api/reset/undo")
         if path not in allowed:
             return self._json({"error": "not found"}, 404)
+        if path == "/api/voice/transcribe":
+            return self._transcribe()
         from tower.ui import event_desk, runner
 
         if path == "/api/run/stop":
@@ -353,6 +398,17 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"error": "invalid json"}, 400)
         if not isinstance(body, dict):
             return self._json({"error": "invalid json"}, 400)
+        if path in ("/api/reset", "/api/reset/undo"):
+            from tower.ui import reset
+
+            try:
+                if path == "/api/reset":
+                    return self._json(reset.reset(str(body.get("kind") or ""), str(body.get("confirm") or "")))
+                return self._json(reset.undo(str(body.get("kind") or "")))
+            except ValueError as exc:
+                return self._json({"error": str(exc)}, 400)
+            except OSError as exc:
+                return self._json({"error": "could not move the files", "detail": str(exc)}, 500)
         if path == "/api/events/chat":
             return self._add_event(body)
         if path == "/api/events/run":
@@ -369,6 +425,24 @@ class Handler(BaseHTTPRequestHandler):
         if result.get("error"):
             return self._json(result, 409)
         return self._json(result)
+
+    def _transcribe(self):
+        """POST /api/voice/transcribe?lang=en with a WAV body: {"text": ...} from local Whisper."""
+        from tower import voice
+
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            return self._json({"error": "bad request"}, 400)
+        if not 0 < length <= voice.MAX_WAV:
+            return self._json({"error": "the recording is empty or too long"}, 400)
+        lang = (urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query).get("lang") or ["en"])[0]
+        try:
+            return self._json({"text": voice.transcribe(self.rfile.read(length), lang)})
+        except ValueError as exc:
+            return self._json({"error": str(exc)}, 400)
+        except RuntimeError as exc:
+            return self._json({"error": str(exc)}, 503)
 
     def do_DELETE(self):
         """DELETE /api/test_reports/<suite>/<reader> removes that report's folder under runs/.
@@ -457,13 +531,16 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def _file(self, path, content_type):
-        """Serve a static file. no-store, so Refresh always shows the latest run."""
+        """Serve a static file. no-store, so Refresh always shows the latest run, except the graph's
+        3D library (orb-graph/public/vendor), which never changes: the browser keeps it, so each graph
+        does not download it again."""
         with open(path, "rb") as handle:
             body = handle.read()
+        vendor = os.sep + "vendor" + os.sep in path
         self.send_response(200)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", "public, max-age=86400, immutable" if vendor else "no-store")
         self.end_headers()
         self.wfile.write(body)
 

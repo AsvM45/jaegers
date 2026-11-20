@@ -1,14 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "../lib/icons.jsx";
 import { fmt, KIND_LABEL } from "../lib/constants.js";
+import { useSettings } from "../lib/settings.jsx";
+import { tr } from "../lib/i18n.js";
 
+// A clock time from this computer, shown in the time zone and format chosen in Settings.
+export function Time({ value }) {
+  const { formatTime } = useSettings();
+  return <time dateTime={String(value || "").replace(" ", "T")}>{formatTime(value)}</time>;
+}
+
+// Words are English keys, translated when shown.
 const STATUS = {
   pass: ["pass", "ok", "Passed"], fail: ["fail", "x", "Failed"], ok: ["pass", "ok", "OK"],
   acted: ["pass", "ok", "Acted"], esc: ["esc", "alert", "Escalated"], none: ["none", "minus", "No action"],
 };
 export function Status({ kind }) {
   const [cls, ic, word] = STATUS[kind];
-  return <span className={`status ${cls}`}><Icon name={ic} />{word}</span>;
+  return <span className={`status ${cls}`}><Icon name={ic} />{tr(word)}</span>;
 }
 
 export function KindTag({ kind }) {

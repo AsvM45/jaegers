@@ -132,6 +132,22 @@ def next_working_day(d: date) -> date:
     return n
 
 
+def ordered_window(start: str, end: str) -> tuple[str, str, bool]:
+    """A window's first and last day, checked against the calendar: a weekend date moves to the next
+    working day, and a start that falls after the end is swapped. Returns (start, end, swapped).
+
+    Used for a supplier delay's blocked from / blocked until, so "from" is never after "until".
+    """
+    first, last = date.fromisoformat(start), date.fromisoformat(end)
+    if not is_working_day(first):
+        first = next_working_day(first)
+    if not is_working_day(last):
+        last = next_working_day(last)
+    if first > last:
+        return iso(last), iso(first), True
+    return iso(first), iso(last), False
+
+
 def iso(d: date) -> str:
     """Shorthand for YYYY-MM-DD, the format every table and tool uses."""
     return d.isoformat()
@@ -199,17 +215,40 @@ def _named_date(pattern, m, base: date = TODAY) -> tuple[str | None, date | None
         return weekday, None
 
 
-def _day_only_date(day: int, weekday: str | None, ref: date | None, base: date = TODAY) -> date | None:
+# What joins the start of a range to its end: "the 25th to March 1st", "the 25th and 2027-03-01", "the 9th-11th".
+_RANGE_LINK = re.compile(r"\s*(?:[-\u2013\u2014]|to|until|till|through|thru|and)\s*", re.I)
+
+# Words just before a bare day that mean it is an earlier date than the one already named.
+_POINTS_BACK = re.compile(
+    r"\b(?:instead\s+of|rather\s+than|not|(?:was|were|had\s+been|originally|previously|initially)"
+    r"(?:\s+(?:due|scheduled|planned|expected|set|promised))?|(?:originally|previously)\s+due|due)"
+    r"(?:\s+(?:on|for|by))?(?:\s+the)?\s*$",
+    re.I,
+)
+
+
+def _day_only_date(day: int, weekday: str | None, ref: date | None, base: date = TODAY,
+                   backward: bool = False) -> date | None:
     """The date a bare day refers to. With an earlier date in the message (ref), the first match on
-    or after it, in ref's month or the next ("2/25 through Monday the 1st" is March 1). Without one,
-    the anchor's month (today's in the calendar table by default). A weekday given with the day must match."""
-    months = [(ref.year, ref.month), ((ref.year + ref.month // 12), ref.month % 12 + 1)] if ref else [(base.year, base.month)]
+    or after it, in ref's month or the next ("2/25 through Monday the 1st" is March 1). When the words
+    point back to an earlier date (backward: "arriving March 31st instead of the 29th", "was due the
+    29th"), the last match on or before ref, in ref's month or the one before (March 29). Without a
+    ref, the anchor's month (today's in the calendar table by default). A weekday given with the day must match."""
+    if ref and backward:
+        prev = (ref.year - 1, 12) if ref.month == 1 else (ref.year, ref.month - 1)
+        months = [(ref.year, ref.month), prev]
+    elif ref:
+        months = [(ref.year, ref.month), ((ref.year + ref.month // 12), ref.month % 12 + 1)]
+    else:
+        months = [(base.year, base.month)]
     for year, month in months:
         try:
             d = date(year, month, day)
         except ValueError:
             continue
-        if ref and d < ref:
+        if ref and not backward and d < ref:
+            continue
+        if ref and backward and d > ref:
             continue
         if weekday and not _same_weekday(d, weekday):
             continue
@@ -329,7 +368,17 @@ def extract_dates(text: str, anchor: date | None = None) -> list[dict]:
         if not _free(m.start(), m.end()):
             continue
         earlier = [item[3] for item in found if item[0] < m.start()]
-        when = _day_only_date(int(m.group(2)), m.group(1), earlier[-1] if earlier else None, base)
+        # "instead of the 29th", "was due the 29th", "originally the 29th": an earlier date, not a later one.
+        back = _POINTS_BACK.search(text[max(0, m.start() - 40): m.start()]) is not None
+        ref = earlier[-1] if earlier else None
+        # The start of a range that ends on a full date ("from the 25th to 2027-03-01", "between the 25th
+        # and March 1st"): the nearest such day on or before that end (February 25), whatever came earlier.
+        link = _RANGE_LINK.match(text, m.end())
+        if link:
+            ends = [item[3] for item in found if item[0] == link.end()]
+            if ends:
+                ref, back = ends[0], True
+        when = _day_only_date(int(m.group(2)), m.group(1), ref, base, backward=back)
         if when:
             found.append((m.start(), m.end(), m.group(0), when))
             found.sort(key=lambda item: item[0])

@@ -4,6 +4,8 @@ import { Icon } from "../lib/icons.jsx";
 import { useData } from "../lib/data.jsx";
 import { useUi } from "../lib/ui.jsx";
 import { CardHead } from "./common.jsx";
+import { ResetButton } from "./ResetButton.jsx";
+import { tr } from "../lib/i18n.js";
 
 const EMPTY = {
   seq: 0, running: false, reader: null, model: "", ollama: false, why: "",
@@ -49,12 +51,12 @@ function folderFor(label) {
 function blurb(job, mode) {
   if (job?.running) {
     const seen = job.passed + job.failed;
-    const who = job.reader === "rules" ? "rule reader" : `${job.model} + rule check`;
-    return `Running with the ${who}. ${seen} of ${job.total} cases finished.`;
+    const who = job.reader === "rules" ? tr("rule reader") : tr("{model} + rule check", { model: job.model });
+    return tr("Running with the {who}. {seen} of {total} cases finished.", { who: who, seen: seen, total: job.total });
   }
   if (job?.suites?.length) {
-    if (job.ok) return `Finished. ${job.passed} passed${job.failed ? `, ${job.failed} failed` : ""}.`;
-    return job.error ? `Stopped. ${job.error}.` : `Finished with ${job.failed} failed.`;
+    if (job.ok) return tr("Finished. {passed} passed{failed}", { passed: job.passed, failed: job.failed ? }), ${job.failed} failed` : ""}.`;
+    return job.error ? tr("Stopped. {error}.", { error: job.error }) : tr("Finished with {failed} failed.", { failed: job.failed });
   }
   if (mode === "both") return "Grades the 15 given events with the model, then checks every reading against the rules. Each case shows up when it finishes.";
   return "Grades the 15 given events with the rule reader. Each case shows up as soon as it finishes. This does not re-run the event feed.";
@@ -118,16 +120,16 @@ export function RunTests() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) toast(data.error || "Could not start the run");
     } catch {
-      toast("Could not start the run");
+      toast(tr("Could not start the run"));
     }
   };
 
   const stop = async () => {
     try {
       const res = await fetch("/api/run/stop", { method: "POST" });
-      if (!res.ok) toast("Could not stop the run");
+      if (!res.ok) toast(tr("Could not stop the run"));
     } catch {
-      toast("Could not stop the run");
+      toast(tr("Could not stop the run"));
     }
   };
 
@@ -142,18 +144,19 @@ export function RunTests() {
 
   return (
     <div className="card run-card">
-      <CardHead title="Run tests" sub={blurb(job, mode)}>
+      <CardHead title={tr("Run tests")} sub={blurb(job, mode)}>
         <div className="controls">
-          <div className="toggle" role="group" aria-label="What to run">
-            <button type="button" className={mode === "rules" ? "on" : ""} disabled={running} onClick={() => setMode("rules")}>Rules</button>
+          <div className="toggle" role="group" aria-label={tr("What to run")}>
+            <button type="button" className={mode === "rules" ? "on" : ""} disabled={running} onClick={() => setMode("rules")}>{tr("Rules")}</button>
             <button type="button" className={mode === "both" ? "on" : ""} disabled={running || !job?.ollama}
               title={job && !job.ollama ? job.why : "Grade the 15 given events with the model and the rule check"}
-              onClick={() => setMode("both")}>Model + rules</button>
+              onClick={() => setMode("both")}>{tr("Model + rules")}</button>
           </div>
           <button type="button" className="btn primary" disabled={running} onClick={start}>
-            <Icon name="play" />{running ? "Running" : "Run tests"}
+            <Icon name="play" />{running ? tr("Running") : tr("Run tests")}
           </button>
-          {running && <button type="button" className="btn" onClick={stop}><Icon name="x" />Stop</button>}
+          {running && <button type="button" className="btn" onClick={stop}><Icon name="x" />{tr("Stop")}</button>}
+          <ResetButton kind="tests" />
         </div>
       </CardHead>
 
@@ -163,7 +166,7 @@ export function RunTests() {
             <div className="run-count"><b>{seen}</b><span> / {job.total}</span></div>
             <div className="run-meter" aria-hidden="true"><i style={{ width: `${pct}%`, background: bar }} /></div>
             <div className={`run-flag ${job.failed ? "bad" : running ? "go" : "ok"}`}>
-              {running ? "Live" : job.failed ? `${job.failed} failed` : "Passed"}
+              {running ? "Live" : job.failed ? tr("{failed} failed", { failed: job.failed }) : "Passed"}
             </div>
           </div>
           <div className="run-suites">
@@ -184,7 +187,7 @@ export function RunTests() {
               const href = `#/tests/${c.suite.id}/${folderFor(c.reader)}/${c.id}`;
               return (
                 <div key={c.key} className={`run-case ${c.verdict === "PASS" ? "pass" : "fail"}${i === last ? " latest" : ""}`}>
-                  <span className="mark">{c.verdict === "PASS" ? "PASS" : "FAIL"}</span>
+                  <span className="mark">{c.verdict === "PASS" ? tr("PASS") : tr("FAIL")}</span>
                   {open ? <a href={href}>{c.id}</a> : <b>{c.id}</b>}
                   <span className="who">{c.reader}</span>
                   <span className="cat">{c.category}</span>
@@ -192,7 +195,7 @@ export function RunTests() {
                 </div>
               );
             })}
-            {!rows.length && <div className="run-wait">Starting the grader…</div>}
+            {!rows.length && <div className="run-wait">{tr("Starting the grader…")}</div>}
           </div>
           {running && !!job.tail?.length && <pre className="run-tail">{job.tail[job.tail.length - 1]}</pre>}
         </>

@@ -51,13 +51,17 @@ function makeFakeData() {
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const $ = (id) => document.getElementById(id);
+// A record type in words: "ProductionOrder" -> "Production Order".
+const typeWords = (t) => String(t).replace(/([a-z])([A-Z])/g, '$1 $2');
 const tmp = new THREE.Vector3(), delta = new THREE.Vector3(), desired = new THREE.Vector3(),
   planeN = new THREE.Vector3(0, 0, 1), planeP = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
 let mode = '3d';   // '3d' or '2d'
 
 // ---- Renderer, scene, soft bloom ----
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+// No canvas antialiasing: the bloom pass renders to its own buffers, so it only cost memory. 1.5x pixels
+// look as sharp as 2x on a laptop screen for about half the drawing work.
+const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.setSize(innerWidth, innerHeight);
 document.body.prepend(renderer.domElement);
 
@@ -245,6 +249,13 @@ function sizeLabel(s) {
 // charge: how hard orbs push apart; distance: link rest length; gravity: pull toward the middle.
 const LAYOUT = { charge: 1, distance: 1, gravity: 1, label: 1 };
 
+// ---- Loading: the page stays hidden behind a loader until the layout is done. Inside the dashboard
+// the dashboard draws the loader (in the viewer's language) and this tells it when to drop it. ----
+function ready(type) {
+  document.body.classList.remove('loading');
+  if (window.parent !== window) window.parent.postMessage({ source: 'orb', type }, location.origin);
+}
+
 // ---- State (declared before build, which uses it) ----
 let nodes = [], links = [], byId = new Map(), hidden = new Set();
 let selected = null, hovered = null, alpha = 1, followUntil = 0, goal = null, touched = false;
@@ -260,9 +271,12 @@ try {
   } else data = USE_FAKE_DATA ? makeFakeData() : await (await fetch('/api/graph')).json();
   if (data.colors) Object.assign(PALETTE, data.colors);
   if (data.title) document.querySelector('#title h1').textContent = data.title;
+  if (data.kicker) $('kicker').textContent = data.kicker;
   if (data.layout) Object.assign(LAYOUT, data.layout);
   build(data);
+  ready('ready');
 } catch (e) {
+  ready('error');
   $('err').style.display = 'grid';
   $('err').textContent = 'Could not start the graph: ' + e.message + ' (see the browser console, F12, for details)';
   throw e;
@@ -276,7 +290,9 @@ function build({ nodes: ns, links: ls }) {
   links = ls.map((l) => ({ s: byId.get(l.source), t: byId.get(l.target) })).filter((l) => l.s && l.t);
   links.forEach((l) => { l.s.deg++; l.t.deg++; l.s.nbrs.add(l.t); l.t.nbrs.add(l.s); });
 
-  if (!nodes.length) $('hint').textContent = 'No records to show for this view.';
+  // No records yet (an event view before any event is traced): show only empty space.
+  document.body.classList.toggle('empty', !nodes.length);
+  if (!nodes.length) camera.position.set(0, 210, 300);   // look down on the empty floor so it reads as 3D space
   for (const n of nodes) {
     n.color = colorFor(n.type);
     n.r = 3.4 + Math.sqrt(n.deg) * 1.6;
@@ -304,17 +320,30 @@ function build({ nodes: ns, links: ls }) {
   for (let i = 0; i < 250; i++) simulate();   // pre-settle the layout
   alpha = 0.5;
   buildLegend();
-  $('stats').textContent = `${nodes.length} nodes, ${links.length} links`;
+  const count = (n, one, many) => `<span><b>${n.toLocaleString()}</b>${n === 1 ? one : many}</span>`;
+  $('stats').innerHTML = nodes.length ? count(nodes.length, 'record', 'records') + count(links.length, 'link', 'links')
+    : '<span>Waiting for events</span>';
 }
 
 // ---- Force layout. In 2D mode a flattening force pulls every node onto z = 0 ----
 function simulate() {
-  for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
-    const a = nodes[i], b = nodes[j];
-    tmp.subVectors(a.pos, b.pos);
-    const d2 = Math.max(tmp.lengthSq(), 25), d = Math.sqrt(d2);
-    tmp.multiplyScalar((2600 * LAYOUT.charge / d2 / d) * alpha);
-    a.vel.add(tmp); b.vel.sub(tmp);
+  // Every pair pushes apart. Plain arithmetic, no vector method calls: the same force as before,
+  // several times faster, which is most of the time the graph takes to appear.
+  const N = nodes.length, k = 2600 * LAYOUT.charge * alpha;
+  for (let i = 0; i < N; i++) {
+    const a = nodes[i], ap = a.pos, ax = ap.x, ay = ap.y, az = ap.z;
+    let fx = 0, fy = 0, fz = 0;
+    for (let j = i + 1; j < N; j++) {
+      const b = nodes[j], bp = b.pos, bv = b.vel;
+      const dx = ax - bp.x, dy = ay - bp.y, dz = az - bp.z;
+      let d2 = dx * dx + dy * dy + dz * dz;
+      if (d2 < 25) d2 = 25;
+      const f = k / (d2 * Math.sqrt(d2));
+      const px = dx * f, py = dy * f, pz = dz * f;
+      fx += px; fy += py; fz += pz;
+      bv.x -= px; bv.y -= py; bv.z -= pz;
+    }
+    const av = a.vel; av.x += fx; av.y += fy; av.z += fz;
   }
   for (const l of links) {
     tmp.subVectors(l.t.pos, l.s.pos);
@@ -357,7 +386,7 @@ function buildLegend() {
     const b = document.createElement('button');
     b.setAttribute('aria-pressed', 'true');
     b.style.setProperty('--c', '#' + colorFor(type).getHexString());
-    b.innerHTML = `<span class="dot"></span><span>${type}</span><span class="n">${counts[type]}</span>`;
+    b.innerHTML = `<span class="dot"></span><span>${typeWords(type)}</span><span class="n">${counts[type]}</span>`;
     b.onclick = () => {
       const off = !hidden.has(type);
       off ? hidden.add(type) : hidden.delete(type);
@@ -385,7 +414,7 @@ function select(n) {
   p.querySelector('h2').textContent = n.name;
   const det = p.querySelector('.detail');
   if (n.detail) det.textContent = n.detail; else det.remove();
-  p.querySelector('.type span:last-child').textContent = `${n.type}, ${n.deg} connection${n.deg === 1 ? '' : 's'}`;
+  p.querySelector('.type span:last-child').textContent = `${typeWords(n.type)}, ${n.deg} connection${n.deg === 1 ? '' : 's'}`;
   const chips = p.querySelector('.chips');
   // Hubs can have dozens of links; show the first CHIP_CAP and count the rest.
   const nbrs = [...n.nbrs].sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name));
@@ -441,9 +470,21 @@ function zoomBy(f) {
   const d = goal ? goal.dist : camera.position.distanceTo(controls.target);
   goal = { target: goal ? goal.target : null, dist: clampDist(d * f) }; followUntil = 0;
 }
-function fitGoal() {   // frame every visible node, measured as it actually projects on screen
+function fitGoal() {   // frame every visible node
   const vis = nodes.filter((n) => !hidden.has(n.type));
   if (!vis.length) return null;
+  if (mode === '3d') {
+    // In 3D the view turns, so fit a sphere around every orb: it stays framed from any angle.
+    const lo3 = new THREE.Vector3(Infinity, Infinity, Infinity), hi3 = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
+    vis.forEach((n) => { lo3.min(n.pos); hi3.max(n.pos); });
+    const c3 = lo3.add(hi3).multiplyScalar(0.5);
+    let R = 0;
+    for (const n of vis) R = Math.max(R, n.pos.distanceTo(c3) + n.r * 1.4 + 6);   // + the orb and its label
+    const half = Math.min(THREE.MathUtils.degToRad(camera.fov) / 2, Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * camera.aspect));
+    const need = (R * 1.06) / Math.sin(half);
+    controls.maxDistance = Math.max(700, need * 1.3);   // big graphs must be able to zoom out far enough to fit
+    return { target: c3, dist: clampDist(need) };
+  }
   camera.updateMatrixWorld();
   const fwd = camera.getWorldDirection(new THREE.Vector3());
   const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
@@ -458,20 +499,37 @@ function fitGoal() {   // frame every visible node, measured as it actually proj
     const depth = tmp.dot(fwd), pad = n.r * 1.4;
     d = Math.max(d, (Math.abs(tmp.dot(right)) + pad) / th - depth, (Math.abs(tmp.dot(upv)) + pad + 4) / tv - depth);
   }
+  controls.maxDistance = Math.max(700, d * 1.3);
   return { target: c, dist: clampDist(d) };
 }
 $('zoom-in').onclick = () => zoomBy(0.7);
 $('zoom-out').onclick = () => zoomBy(1 / 0.7);
-$('zoom-fit').onclick = () => { const g = fitGoal(); if (g) { goal = g; followUntil = 0; } };
+$('zoom-fit').onclick = () => { const g = fitGoal(); if (g) { goal = g; followUntil = 0; pauseSpin(); } };
+
+// ---- Inside the dashboard: keep the zoom buttons on screen ----
+// When the graph is taller than the window, the dashboard says how much of its bottom is scrolled out of
+// view, and the buttons sit that much higher: always at the bottom-right of what you can see.
+addEventListener('message', (e) => {
+  if (e.origin !== location.origin || e.data?.source !== 'dashboard') return;
+  if (e.data.type === 'active') { active = !!e.data.on; return; }
+  if (e.data.type !== 'inset') return;
+  const max = Math.max(0, innerHeight - 160);   // never above the top of the graph
+  document.documentElement.style.setProperty('--inset', `${Math.min(max, Math.max(0, +e.data.bottom || 0))}px`);
+});
 
 // ---- Frame loop ----
 const c1 = new THREE.Color(), c2 = new THREE.Color();
+// Drawing pauses while the graph can't be seen: the dashboard says when it is scrolled away or another
+// view is showing, and the browser says when the window is in the background.
+let active = true;
 function frame() {
   requestAnimationFrame(frame);
+  if (!active || document.hidden) return;
   const f = dragging || hovered || selected, now = performance.now();
   if (alpha > 0.002) simulate();
   if (mode === '2d') for (const n of nodes) if (!n.fixed) { tmp.subVectors(n.pos, planeP); n.pos.addScaledVector(planeN, -tmp.dot(planeN) * 0.12); }   // glide onto the sheet
-  grid.material.opacity += ((mode === '2d' ? 0.22 : 0) - grid.material.opacity) * 0.1;
+  // The grid floor shows in 2D, and in an empty graph, so an empty view still reads as 3D space.
+  grid.material.opacity += ((mode === '2d' ? 0.22 : nodes.length ? 0 : 0.7) - grid.material.opacity) * 0.1;
   grid.visible = grid.material.opacity > 0.01;
 
   for (const n of nodes) {

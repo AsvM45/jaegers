@@ -1,8 +1,9 @@
 """Test reports for the dashboard: expected outcome, actual outcome and verdict for every case.
 
-One suite, with one folder per reader under runs/:
+Two suites, with one folder per reader under runs/:
 
     given      tests/given_cases.json  +  runs/given/<reader>/   (python tests/run_given.py)
+    blind      tests/blind_cases.json  +  runs/blind/<reader>/   (python tests/run_blind.py)
 
 Expected output: each case's answer key ("expect" in the cases file) traced through the company
 graph by tests/run_cases.py (CSV-based, independent of tower/graph.py) to every production order,
@@ -33,8 +34,12 @@ TESTS = os.path.join(HITACHI, "tests")
 RUNS = os.path.join(HITACHI, "runs")
 
 SUITES = [
-    {"id": "given", "title": "Given tests", "subtitle": "The 15 events in events.json, graded against docx TC1–TC6",
+    {"id": "given", "title": "Given tests", "subtitle": "The 15 given events, graded against the docx test cases TC1–TC6",
      "cases": "given_cases.json", "runs": "given"},
+    {"id": "blind", "title": "Blind tests", "subtitle": "40 unseen messages, each built from a real scenario in the company records",
+     "cases": "blind_cases.json", "runs": "blind"},
+    {"id": "blind100", "title": "Blind tests (100)", "subtitle": "100 unseen messages, each built from a real scenario in the company records. Never tuned on",
+     "cases": "blind100_cases.json", "runs": "blind100"},
 ]
 
 _cache: dict = {"key": None, "data": None}
@@ -103,10 +108,8 @@ def _load_cases(name: str) -> list[dict]:
 
 
 def _label(folder_name: str) -> str:
-    """'rules' stays; 'llm_qwen3_0.6b' becomes 'qwen3:0.6b'."""
-    if folder_name.startswith("llm_"):
-        return folder_name[4:].replace("_", ":", 1)
-    return folder_name
+    """The reader in words, never a model name: 'rules' is 'Rule reader', 'llm_<model>' is 'AI model'."""
+    return "AI model" if folder_name.startswith("llm_") else "Rule reader"
 
 
 def expected_outcome(rc, truth, case: dict) -> dict:
@@ -378,7 +381,7 @@ def write_summary(path: str = os.path.join(RUNS, "TEST_SUMMARY.md"), data: dict 
                          f"{sc['output_ok']}/{n} | {reader['passed']}/{n} | [{folder}/REPORT.md]({folder}/REPORT.md) |")
     lines += ["", "Suites: " + "; ".join(f"**{s['title']}**: {s['subtitle']}" for s in SUITES) + ".", ""]
     for m in data["model_eval"]:
-        lines += [f"## {m['model']} on its own (no rule check)", "",
+        lines += ["## The AI model on its own (no rule check)", "",
                   f"Run {m['run']} with `tests/run_model.py`: the model reads each message, code only looks up the "
                   "records and dates it named (one retry with feedback when they do not check out), and the reading "
                   "is traced through the graph and compared with the expected graph.", "",

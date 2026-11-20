@@ -3,25 +3,28 @@ import { Icon } from "../lib/icons.jsx";
 import { useData } from "../lib/data.jsx";
 import { useUi } from "../lib/ui.jsx";
 import { Search } from "./Search.jsx";
+import { tr } from "../lib/i18n.js";
 
 const NAV = [
-  ["overview", "home", "Overview"], ["events", "feed", "Event feed"], ["tests", "check", "Tests"],
+  ["overview", "home", "Overview"], ["events", "feed", "Event center"], ["add", "plus", "Add events"],
+  ["tests", "check", "Tests"],
   ["ontology", "graph", "Knowledge graph"], ["logs", "doc", "Logs"],
 ];
 
 export function Sidebar({ page }) {
   const link = ([id, ic, label]) => (
-    <a key={id} href={`#/${id}`} className={page === id ? "on" : ""}><span className="ico"><Icon name={ic} /></span>{label}</a>
+    <a key={id} href={`#/${id}`} className={page === id ? "on" : ""}><span className="ico"><Icon name={ic} /></span>{tr(label)}</a>
   );
   return (
     <aside className="side">
       <div className="brand">
         <div className="brand-mark">W</div>
-        <div className="brand-name">WACKY WHEELS<span>CONTROL TOWER</span></div>
+        <div className="brand-name">{tr("WACKY WHEELS")}<span>{tr("CONTROL TOWER")}</span></div>
       </div>
       <nav className="nav">{NAV.map(link)}</nav>
-      <div className="nav-label">HELP</div>
+      <div className="nav-label">{tr("HELP")}</div>
       <nav className="nav">{link(["guide", "book", "Guide"])}</nav>
+      <nav className="nav side-foot">{link(["settings", "gear", "Settings"])}</nav>
     </aside>
   );
 }
@@ -32,8 +35,8 @@ export function LoadBanner() {
   if (!d.failed) return null;
   return (
     <div className="load-banner" role="status">
-      <span>Couldn't load the latest data. Some pages may be empty.</span>
-      <button className="btn" onClick={d.reload} disabled={d.busy}>{d.busy ? "Retrying…" : "Retry"}</button>
+      <span>{tr("Couldn't load the latest data. Some pages may be empty.")}</span>
+      <button className="btn" onClick={d.reload} disabled={d.busy}>{d.busy ? tr("Retrying…") : tr("Retry")}</button>
     </div>
   );
 }
@@ -61,7 +64,7 @@ export function Topbar({ title, trail, subtitle }) {
     <header className={`topbar${scrolled ? " scrolled" : ""}`}>
       <div className="tb-left">
         {trail && (
-          <nav className="trail" aria-label="Breadcrumb">
+          <nav className="trail" aria-label={tr("Breadcrumb")}>
             {trail.map(([label, href], i) => (
               <Fragment key={i}>
                 {i > 0 && <span className="sep">›</span>}

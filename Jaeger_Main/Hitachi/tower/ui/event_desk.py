@@ -32,6 +32,9 @@ _seq = 0
 _deltas: deque[tuple[int, dict]] = deque(maxlen=4000)
 _running = False
 _cancel = False
+# Each run has an id. Stop retires the current id, so a worker still reading an event (a model
+# call can take 10-20 s) throws its result away instead of writing it into the feed.
+_run_id = 0
 _current: str | None = None
 _done = 0
 _total = 0
@@ -260,11 +263,13 @@ def _emit(event: dict) -> None:
 
 def start() -> dict:
     """Walk the feed. error=already running is a 409."""
-    global _running, _cancel, _current, _done, _total, _error, _seen
+    global _running, _cancel, _current, _done, _total, _error, _seen, _run_id
     events = _official() + saved_events()
     with _lock:
         if _running:
             return {"error": "An event run is already going"}
+        _run_id += 1
+        run_id = _run_id
         _running = True
         _cancel = False
         _current = None
@@ -275,14 +280,31 @@ def start() -> dict:
         _emit({"type": "reset"})
         total = _total
     _clear_feed()
-    threading.Thread(target=_worker, args=(events,), name="tower-event-run", daemon=True).start()
+    threading.Thread(target=_reader().warm, name="tower-model-warm", daemon=True).start()
+    threading.Thread(target=_worker, args=(events, run_id), name="tower-event-run", daemon=True).start()
     return {"started": True, "total": total}
 
 
+def forget() -> None:
+    """Reset events: drop the run list and retire any run still reading, so nothing old reappears."""
+    global _running, _cancel, _current, _done, _total, _error, _seen, _run_id
+    with _lock:
+        _run_id += 1
+        _running, _cancel, _current, _done, _total, _error, _seen = False, False, None, 0, 0, None, []
+        _emit({"type": "reset"})
+
+
 def stop() -> dict:
-    global _cancel
+    """End the run now. The event being read is dropped when it finishes; nothing more is written."""
+    global _cancel, _running, _current, _error, _run_id
     with _lock:
         _cancel = True
+        if _running:
+            _run_id += 1
+            _running = False
+            _current = None
+            _error = "Stopped"
+            _emit({"type": "done", "ok": False, "error": _error, "done": _done, "total": _total})
         return _snapshot()
 
 
@@ -306,22 +328,18 @@ def follow():
             yield "update", ev
 
 
-def _worker(events: list[dict]) -> None:
+def _worker(events: list[dict], run_id: int) -> None:
     global _running, _current, _done, _error
     ok = True
     error = None
     try:
         for event in events:
             with _lock:
-                if _cancel:
-                    ok = False
-                    error = "Stopped"
-                    break
+                if run_id != _run_id:
+                    return  # stopped: stop() already reported the end of the run
                 _current = event["event_id"]
                 _emit({"type": "reading", "id": event["event_id"]})
             trace, records = _handle(event)
-            if event.get("event_id", "").startswith("E-"):
-                _save_to_feed(trace, records)   # added events are already in the desk files
             row = {
                 "id": event["event_id"],
                 "classification": trace.get("classification") or "noise",
@@ -329,6 +347,10 @@ def _worker(events: list[dict]) -> None:
                 "summary": (trace.get("summary") or "").split("\n", 1)[0][:180],
             }
             with _lock:
+                if run_id != _run_id:
+                    return  # stopped while this event was being read: drop it
+                if event.get("event_id", "").startswith("E-"):
+                    _save_to_feed(trace, records)   # added events are already in the desk files
                 _seen.append(row)
                 _done += 1
                 _current = None
@@ -337,6 +359,8 @@ def _worker(events: list[dict]) -> None:
         ok = False
         error = f"{type(exc).__name__}: {exc}"
     with _lock:
+        if run_id != _run_id:
+            return
         _running = False
         _current = None
         _error = None if ok else error

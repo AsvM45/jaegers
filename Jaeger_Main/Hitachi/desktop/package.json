@@ -6,7 +6,7 @@
   "description": "Desktop window for the Wacky Wheels control tower. Starts the local Python server and shows the dashboard.",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "node start.js"
   },
   "devDependencies": {
     "electron": "33.4.11"

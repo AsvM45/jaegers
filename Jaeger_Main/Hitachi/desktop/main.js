@@ -1,7 +1,7 @@
 // Desktop shell. Starts the Python dashboard on 127.0.0.1 and shows it in a window.
 // Quit stops the server. A second launch focuses this window instead of starting another server.
 
-const { app, BrowserWindow, Menu, dialog, shell } = require("electron");
+const { app, BrowserWindow, Menu, dialog, ipcMain, session, shell, systemPreferences } = require("electron");
 const { spawn, execFileSync } = require("child_process");
 const http = require("http");
 const net = require("net");
@@ -26,7 +26,9 @@ if (!gotLock) {
 function findPython() {
   const tries = [];
   if (process.env.TOWER_PYTHON) tries.push([process.env.TOWER_PYTHON]);
-  tries.push(["python"], ["py", "-3"]);
+  // macOS and most Linux installs have only python3; Windows has python or the py launcher.
+  if (process.platform === "win32") tries.push(["python"], ["py", "-3"], ["python3"]);
+  else tries.push(["python3"], ["python"]);
   for (const args of tries) {
     try {
       const out = execFileSync(
@@ -43,15 +45,27 @@ function findPython() {
   return null;
 }
 
-function freePort() {
+// The same port every launch when it is free: the page's saved Settings (language, theme) are kept
+// per address, so a new random port each time would forget them. TOWER_DESKTOP_PORT overrides it.
+const PREFERRED_PORT = Number(process.env.TOWER_DESKTOP_PORT) || 47820;
+
+function tryPort(port) {
   return new Promise((resolve, reject) => {
     const probe = net.createServer();
     probe.once("error", reject);
-    probe.listen(0, HOST, () => {
-      const { port } = probe.address();
-      probe.close(() => resolve(port));
+    probe.listen(port, HOST, () => {
+      const { port: got } = probe.address();
+      probe.close(() => resolve(got));
     });
   });
+}
+
+async function freePort() {
+  try {
+    return await tryPort(PREFERRED_PORT);
+  } catch {
+    return tryPort(0); // taken (another copy, or another app): any free port
+  }
 }
 
 function waitForReady(url, child, timeoutMs) {
@@ -254,8 +268,37 @@ app.on("second-instance", () => {
   mainWindow.focus();
 });
 
+// Microphone for voice input: the dashboard (and only the dashboard) may record audio. On macOS
+// the app also needs the system's permission, which askForMediaAccess asks for the first time.
+const MIC_SETTINGS = "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone";
+
+async function macMicrophone() {
+  if (process.platform !== "darwin") return true;
+  const status = systemPreferences.getMediaAccessStatus("microphone");
+  if (status === "granted") return true;
+  if (status === "not-determined") return systemPreferences.askForMediaAccess("microphone");
+  return false; // denied or restricted: only System Settings can change it
+}
+
+function allowMicrophone() {
+  const fromDashboard = (url) => !!origin && allowUrl(url || "") && !String(url).startsWith("file:");
+  session.defaultSession.setPermissionRequestHandler((_contents, permission, callback, details) => {
+    const audioOnly = permission === "media" && (details.mediaTypes || []).every((t) => t === "audio");
+    if (!audioOnly || !fromDashboard(details.requestingUrl)) return callback(false);
+    macMicrophone().then(callback, () => callback(false));
+  });
+  session.defaultSession.setPermissionCheckHandler((_contents, permission, requestingOrigin) =>
+    permission === "media" && fromDashboard(requestingOrigin));
+  ipcMain.handle("open-mic-settings", () => {
+    if (process.platform === "darwin") return shell.openExternal(MIC_SETTINGS);
+    if (process.platform === "win32") return shell.openExternal("ms-settings:privacy-microphone");
+    return null;
+  });
+}
+
 app.whenReady().then(() => {
   if (!gotLock) return;
+  allowMicrophone();
   buildMenu();
   createWindow();
   startServer().catch((err) => {

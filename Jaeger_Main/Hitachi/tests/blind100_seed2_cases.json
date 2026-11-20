@@ -1,0 +1,1718 @@
+{
+ "_note": "BLIND. Written by qwen3:8b from scenarios code picked in the tables (seed 2). Do not read these messages or tune the reader or prompts on them. Numbered N-001 to N-100 so they never clash with the 40-case set (B-001 to B-040).",
+ "cases": [
+  {
+   "id": "N-001",
+   "category": "supplier_delay",
+   "source": "blind",
+   "text": "Shipment SH-0358 is arriving March 16th instead of next Monday. Need that part in by then.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-14",
+      "part_id": "WHEEL-17",
+      "plant_id": "P_NC",
+      "blocked_from": "2027-03-15",
+      "blocked_until": "2027-03-16"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-002",
+   "category": "compound",
+   "source": "blind",
+   "text": "The cafeteria's switching to a new menu next week — you'll get a taste of the future, no more tacos. Also, Wacky Wheels Jackson is down starting the 10th and will restart next Monday. Production’s on hold until then.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_MS",
+      "outage_start": "2027-03-10",
+      "outage_end": "2027-03-12"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "compound noise+plant_outage"
+  },
+  {
+   "id": "N-003",
+   "category": "unconfirmed",
+   "source": "blind",
+   "text": "Heard some chatter about a possible plant shutdown, but nothing's confirmed yet. Stay tuned, but don't start panicking.",
+   "expect": {
+    "incidents": [],
+    "escalate": true
+   },
+   "edge": "rumor"
+  },
+  {
+   "id": "N-004",
+   "category": "unconfirmed",
+   "source": "blind",
+   "text": "Heard a rumor someone's floating around about a seat supplier having money issues. Don't know if it's real, but better safe than sorry.",
+   "expect": {
+    "incidents": [],
+    "escalate": true
+   },
+   "edge": "rumor"
+  },
+  {
+   "id": "N-005",
+   "category": "supplier_delay",
+   "source": "blind",
+   "text": "SH-0280 is delayed and won't arrive until 2027-03-31. Let us know if that affects anything.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-16",
+      "part_id": "HARN-B",
+      "plant_id": "P_AL",
+      "blocked_from": "2027-03-29",
+      "blocked_until": "2027-03-31"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-006",
+   "category": "noise",
+   "source": "blind",
+   "text": "We're doing a team volunteer day tomorrow at the community center — everyone's on board, just let me know if you can make it.",
+   "expect": {
+    "incidents": [],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-007",
+   "category": "supplier_delay",
+   "source": "blind",
+   "text": "Quatna's CHIP-ADAS is delayed, arriving Wednesday Mar 31 instead of Monday Mar 29. Need to adjust the schedule for the Huntsville, AL plant.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-12",
+      "part_id": "CHIP-ADAS",
+      "plant_id": "P_AL",
+      "blocked_from": "2027-03-29",
+      "blocked_until": "2027-03-31"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-008",
+   "category": "supplier_delay",
+   "source": "blind",
+   "text": "SH-0255 is arriving 3/25. Delayed from original date.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-11",
+      "part_id": "CAM-360",
+      "plant_id": "P_AL",
+      "blocked_from": "2027-03-22",
+      "blocked_until": "2027-03-25"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-009",
+   "category": "supplier_delay",
+   "source": "blind",
+   "text": "SH-0310 is arriving the 16th instead of the 15th. Need that part in by tomorrow.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-08",
+      "part_id": "AIRBAG-MOD",
+      "plant_id": "P_NC",
+      "blocked_from": "2027-03-15",
+      "blocked_until": "2027-03-16"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-010",
+   "category": "plant_outage",
+   "source": "blind",
+   "text": "The Lexington, KY plant is down from next Thursday to Tuesday Mar 23 due to a coolant system failure in the paint line.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_KY",
+      "outage_start": "2027-03-18",
+      "outage_end": "2027-03-23"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-011",
+   "category": "supplier_delay",
+   "source": "blind",
+   "text": "Orbit's DISPLAY-12 is running late, arriving Tuesday Mar 23 instead of March 22nd. Let us know if that impacts anything at the Lexington, KY plant.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-11",
+      "part_id": "DISPLAY-12",
+      "plant_id": "P_KY",
+      "blocked_from": "2027-03-22",
+      "blocked_until": "2027-03-23"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-012",
+   "category": "plant_outage",
+   "source": "blind",
+   "text": "Wacky Wheels San Antonio is down 3/25 due to a power outage. Electrical team is on it, but we’re not back up yet.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_TX",
+      "outage_start": "2027-03-25",
+      "outage_end": "2027-03-25"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-013",
+   "category": "quality_hold",
+   "source": "blind",
+   "text": "Lot LOT-0147 has cracked housings. Hold all vehicles built with this lot until further notice.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0147"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-014",
+   "category": "supplier_delay",
+   "source": "blind",
+   "text": "SUP-07's HARN-A is arriving 2027-04-01 instead of Monday Mar 29. Need to adjust schedules for Huntsville, AL.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-07",
+      "part_id": "HARN-A",
+      "plant_id": "P_AL",
+      "blocked_from": "2027-03-29",
+      "blocked_until": "2027-04-01"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-015",
+   "category": "noise",
+   "source": "blind",
+   "text": "The cafeteria’s switching to a new menu next week — you’ll get a taste of the future, or something like that.",
+   "expect": {
+    "incidents": [],
+    "escalate": false
+   },
+   "edge": "names a plant"
+  },
+  {
+   "id": "N-016",
+   "category": "supplier_delay",
+   "source": "blind",
+   "text": "SUP-09's batt-60 is arriving 3/19 instead of the 15th. Need to adjust the schedule for Princeton, IN.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-09",
+      "part_id": "BATT-60",
+      "plant_id": "P_IN",
+      "blocked_from": "2027-03-15",
+      "blocked_until": "2027-03-19"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-017",
+   "category": "compound",
+   "source": "blind",
+   "text": "First, The parking lot’s getting repaved at the San Antonio plant—be careful when pulling in, the lines are all messed up. Second, SUP-07's standard wiring harness is arriving the 2nd instead of Monday Mar 29. Need to adjust the schedule for Huntsville, AL.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-07",
+      "part_id": "HARN-A",
+      "plant_id": "P_AL",
+      "blocked_from": "2027-03-29",
+      "blocked_until": "2027-04-02"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "compound noise+supplier_delay"
+  },
+  {
+   "id": "N-018",
+   "category": "noise",
+   "source": "blind",
+   "text": "The cafeteria's switching to a new menu next week — you'll get a taste of the future, maybe.",
+   "expect": {
+    "incidents": [],
+    "escalate": false
+   },
+   "edge": "names a plant"
+  },
+  {
+   "id": "N-019",
+   "category": "supplier_delay",
+   "source": "blind",
+   "text": "SUP-15's third-row seating is arriving the 23rd instead of 3/22. Need that in Lexington, KY by midday.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-15",
+      "part_id": "SEAT-VAN",
+      "plant_id": "P_KY",
+      "blocked_from": "2027-03-22",
+      "blocked_until": "2027-03-23"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-020",
+   "category": "quality_hold",
+   "source": "blind",
+   "text": "LOT-0038 has loose connectors. Vehicles built with this lot must be held.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0038"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-021",
+   "category": "compound",
+   "source": "blind",
+   "text": "First, LOT-0070 has cracked housings. Hold all vehicles built with this lot until further notice. Second, Lot LOT-0346 has loose connectors. Hold all vehicles built with this lot until further notice.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0070"
+      ]
+     },
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0346"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "compound quality_hold+quality_hold"
+  },
+  {
+   "id": "N-022",
+   "category": "quality_hold",
+   "source": "blind",
+   "text": "Quanta's chip-adas have cracked housings in Princeton, IN builds from March 4th to 3/5. Hold all vehicles built with those parts.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0188"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-023",
+   "category": "compound",
+   "source": "blind",
+   "text": "Two things: (1) SUP-06's 12-inch display is arriving March 31st instead of 2027-03-29. Need that in Huntsville, AL by then. (2) Hear something about a trucking strike possibly messing up deliveries soon. Nothing confirmed yet, so don't get too worried.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-06",
+      "part_id": "DISPLAY-12",
+      "plant_id": "P_AL",
+      "blocked_from": "2027-03-29",
+      "blocked_until": "2027-03-31"
+     }
+    ],
+    "escalate": true
+   },
+   "edge": "compound supplier_delay+unconfirmed"
+  },
+  {
+   "id": "N-024",
+   "category": "quality_hold",
+   "source": "blind",
+   "text": "LOT-0195 has a software checksum error. Vehicles built with this lot must be held. Quality bulletin issued.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0195"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-025",
+   "category": "compound",
+   "source": "blind",
+   "text": "Two things: (1) Dealer wants the new brochure PDF. It's the one with the neon paint options, send it over ASAP. (2) SUP-14's 20-inch rims have the wrong thread pitch. The Huntsville, AL plant built vehicles with these parts from Monday Feb 22 to 2/24. Hold all affected units.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0305"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "compound noise+quality_hold"
+  },
+  {
+   "id": "N-026",
+   "category": "plant_outage",
+   "source": "blind",
+   "text": "Princeton, IN plant is down from March 9th to Tuesday Mar 9 due to a conveyor belt failure.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_IN",
+      "outage_start": "2027-03-09",
+      "outage_end": "2027-03-09"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-027",
+   "category": "quality_hold",
+   "source": "blind",
+   "text": "Sterling's brake kits have a software checksum error. All vehicles built at Jackson, MS from Thursday Feb 25 to March 1st must be held.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0122"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-028",
+   "category": "compound",
+   "source": "blind",
+   "text": "Morning digest. 1) Wacky Wheels Jackson is down from 3/18 to 2027-03-22 due to a major equipment failure in the paint line. 2) Light snow in Winnipeg today, but nothing to worry about here — the plants are still running and the roads are clear.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_MS",
+      "outage_start": "2027-03-18",
+      "outage_end": "2027-03-22"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "compound plant_outage+noise"
+  },
+  {
+   "id": "N-029",
+   "category": "supplier_delay",
+   "source": "blind",
+   "text": "Kestrel's display-12 is running late—was supposed to be here the 29th, now arriving the 2nd. Need that in Huntsville, AL ASAP.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-06",
+      "part_id": "DISPLAY-12",
+      "plant_id": "P_AL",
+      "blocked_from": "2027-03-29",
+      "blocked_until": "2027-04-02"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-030",
+   "category": "quality_hold",
+   "source": "blind",
+   "text": "Atlas Wire and Cable's harness B has a software checksum error. All vehicles built at Princeton, IN from the 25th to Monday Mar 1 must be held.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0206"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-031",
+   "category": "noise",
+   "source": "blind",
+   "text": "Light rain in Ohio, but nothing to worry about here — our lot’s dry and the sun’s back out.",
+   "expect": {
+    "incidents": [],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-032",
+   "category": "quality_hold",
+   "source": "blind",
+   "text": "Bightline sent bad big all-season rubber with wrong thread pitch. The Greensboro, NC plant built vehicles with it from 2027-02-22 to 2/24. Hold all affected units.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0349"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-033",
+   "category": "quality_hold",
+   "source": "blind",
+   "text": "Lot LOT-0113 has bad solder joints. All vehicles built with this lot must be held.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0113"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-034",
+   "category": "compound",
+   "source": "blind",
+   "text": "Two things: (1) Don't forget to submit your expense reports by the end of the week — the finance team’s been asking about them. (2) SH-0326 is delayed and won't arrive until 2027-03-17. Let me know if you need anything else.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-16",
+      "part_id": "HARN-A",
+      "plant_id": "P_NC",
+      "blocked_from": "2027-03-15",
+      "blocked_until": "2027-03-17"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "compound noise+supplier_delay"
+  },
+  {
+   "id": "N-035",
+   "category": "quality_hold",
+   "source": "blind",
+   "text": "Senitnel's AIRBAG-MOD has a software checksum error. All vehicles built at Wacky Wheels San Antonio from 3/4 to Friday Mar 5 must be held.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0004"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-036",
+   "category": "supplier_delay",
+   "source": "blind",
+   "text": "SH-0326 is arriving 3/16 instead of the 15th. Need that part in by tomorrow.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-16",
+      "part_id": "HARN-A",
+      "plant_id": "P_NC",
+      "blocked_from": "2027-03-15",
+      "blocked_until": "2027-03-16"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-037",
+   "category": "plant_outage",
+   "source": "blind",
+   "text": "Wacky Wheels San Antonio is down next Friday through Monday Mar 22 due to a conveyor belt failure. We’re working on repairs but can’t get the line back up until then.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_TX",
+      "outage_start": "2027-03-19",
+      "outage_end": "2027-03-22"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-038",
+   "category": "supplier_delay",
+   "source": "blind",
+   "text": "Rdgeline's compact wiring harness is late — was supposed to be here on the 29th, now arriving Thursday Apr 1. Need that part in Lexington, KY ASAP.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-16",
+      "part_id": "HARN-C",
+      "plant_id": "P_KY",
+      "blocked_from": "2027-03-29",
+      "blocked_until": "2027-04-01"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-039",
+   "category": "noise",
+   "source": "blind",
+   "text": "Don't forget to submit your expense reports by the end of the week — I'm getting tired of chasing them.",
+   "expect": {
+    "incidents": [],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-040",
+   "category": "compound",
+   "source": "blind",
+   "text": "Qunta's infotainment chips have the wrong thread pitch. The Princeton, IN plant built vehicles with them from the 25th to March 1st. Hold all affected units until further notice. Also, Storm hit the Midwest last night, but we're good here. No power outages, no flooding, just a few soaked SUVs in the parking lot. Let me know if you need anything.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0190"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "compound quality_hold+noise"
+  },
+  {
+   "id": "N-041",
+   "category": "plant_outage",
+   "source": "blind",
+   "text": "Wacky Wheels Huntsville is down from 3/12 until next Tuesday due to a press line issue.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_AL",
+      "outage_start": "2027-03-12",
+      "outage_end": "2027-03-16"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-042",
+   "category": "compound",
+   "source": "blind",
+   "text": "First, Don't forget to submit your expense reports by the end of the month — we’re getting close to the deadline. Second, Orbit Optics sent CAM-360 with loose connectors. All vehicles built at Wacky Wheels San Antonio between February 25th and the 1st must be held.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0010"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "compound noise+quality_hold"
+  },
+  {
+   "id": "N-043",
+   "category": "quality_hold",
+   "source": "blind",
+   "text": "Ridgeline's standard wiring harness has the wrong thread pitch. All vehicles built in Greensboro, NC from Monday Feb 22 to February 24th must be held.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0325"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-044",
+   "category": "noise",
+   "source": "blind",
+   "text": "The parking lot's getting repaved at Princeton, so no parking on the east side after 3 PM today. Let the drivers know to adjust their routes.",
+   "expect": {
+    "incidents": [],
+    "escalate": false
+   },
+   "edge": "names a plant"
+  },
+  {
+   "id": "N-045",
+   "category": "noise",
+   "source": "blind",
+   "text": "Light rain in Michigan, but we're dry here. No issues on the line. Keep it rolling.",
+   "expect": {
+    "incidents": [],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-046",
+   "category": "quality_hold",
+   "source": "blind",
+   "text": "Hold vehicles built with LOT-0269 due to porosity in the castings.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0269"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-047",
+   "category": "compound",
+   "source": "blind",
+   "text": "Morning digest. 1) Heard some chatter about a possible chip shortage coming, but nothing official yet. Stay tuned. 2) Kestrel Electronics' center screens are running late — originally due Monday Mar 29, now arriving Friday Apr 2. Need to adjust the schedule for Huntsville, AL.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-06",
+      "part_id": "DISPLAY-12",
+      "plant_id": "P_AL",
+      "blocked_from": "2027-03-29",
+      "blocked_until": "2027-04-02"
+     }
+    ],
+    "escalate": true
+   },
+   "edge": "compound unconfirmed+supplier_delay"
+  },
+  {
+   "id": "N-048",
+   "category": "plant_outage",
+   "source": "blind",
+   "text": "The Greensboro, NC plant is down from the 26th to 2027-03-26 due to a major equipment failure in the paint line.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_NC",
+      "outage_start": "2027-03-26",
+      "outage_end": "2027-03-26"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-049",
+   "category": "compound",
+   "source": "blind",
+   "text": "Morning digest. 1) Dealer wants the new brochure PDF. Can you send it over? 2) Qunata's adas chips have the wrong thread pitch. All vehicles built at the Princeton, IN plant between February 22nd and 2/24 must be held.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0185"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "compound noise+quality_hold"
+  },
+  {
+   "id": "N-050",
+   "category": "plant_outage",
+   "source": "blind",
+   "text": "Wacky Wheels Princeton is down from the 11th to 3/11 due to a press line malfunction.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_IN",
+      "outage_start": "2027-03-11",
+      "outage_end": "2027-03-11"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-051",
+   "category": "compound",
+   "source": "blind",
+   "text": "First, The parking lot's getting repaved at Greensboro, so no parking near the main entrance today. Let the drivers know to use the alternate gate. Second, Orbit Optics sent 360 cameras with loose connectors to the San Antonio, TX plant. Vehicles built between 3/4 and Friday Mar 5 must be held.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0012"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "compound noise+quality_hold"
+  },
+  {
+   "id": "N-052",
+   "category": "plant_outage",
+   "source": "blind",
+   "text": "The Lexington, KY plant is down from Monday Mar 29 to 3/29 due to a conveyor belt failure. We’re working on repairs but won’t be back online until after the holiday.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_KY",
+      "outage_start": "2027-03-29",
+      "outage_end": "2027-03-29"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-053",
+   "category": "unconfirmed",
+   "source": "blind",
+   "text": "Heard a rumor about a possible trucking strike messing up deliveries soon. Nothing confirmed yet, but better watch for delays.",
+   "expect": {
+    "incidents": [],
+    "escalate": true
+   },
+   "edge": "rumor"
+  },
+  {
+   "id": "N-054",
+   "category": "plant_outage",
+   "source": "blind",
+   "text": "Princeton, IN plant is down Tuesday Mar 23 through March 24th due to a conveyor belt failure. We’re working to get it back online as soon as possible.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_IN",
+      "outage_start": "2027-03-23",
+      "outage_end": "2027-03-24"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-055",
+   "category": "quality_hold",
+   "source": "blind",
+   "text": "Irownood sent 16-inch rims with wrong thread pitch to the Jackson, MS plant. Vehicles built between 2/22 and 2027-02-24 must be held.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0161"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-056",
+   "category": "unconfirmed",
+   "source": "blind",
+   "text": "Heard some chatter about a possible chip shortage coming, but nothing's confirmed yet. Stay tuned.",
+   "expect": {
+    "incidents": [],
+    "escalate": true
+   },
+   "edge": "rumor"
+  },
+  {
+   "id": "N-057",
+   "category": "plant_outage",
+   "source": "blind",
+   "text": "Wacky Wheels Princeton is down Friday Mar 19 through 3/22 due to a coolant system failure in one of the main assembly lines. We’re working with the maintenance team to get it back up as soon as possible.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_IN",
+      "outage_start": "2027-03-19",
+      "outage_end": "2027-03-22"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-058",
+   "category": "unconfirmed",
+   "source": "blind",
+   "text": "Heard a rumor someone mentioned about a chip shortage possibly coming, but nothing's confirmed yet. Keep an eye on the supply chain updates.",
+   "expect": {
+    "incidents": [],
+    "escalate": true
+   },
+   "edge": "rumor"
+  },
+  {
+   "id": "N-059",
+   "category": "compound",
+   "source": "blind",
+   "text": "Morning digest. 1) Light rain here in Ohio, but nothing to worry about — the plants are dry and the parts are safe. Just a heads-up in case you're planning a road trip this weekend. 2) Heard someone mention a chip shortage might be on the way, but nothing's confirmed yet. Stay tuned.",
+   "expect": {
+    "incidents": [],
+    "escalate": true
+   },
+   "edge": "compound noise+unconfirmed"
+  },
+  {
+   "id": "N-060",
+   "category": "supplier_delay",
+   "source": "blind",
+   "text": "SH-0150 is arriving next Tuesday instead of next Monday. Need to adjust the schedule accordingly.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-04",
+      "part_id": "SEAT-LEA",
+      "plant_id": "P_MS",
+      "blocked_from": "2027-03-15",
+      "blocked_until": "2027-03-16"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-061",
+   "category": "unconfirmed",
+   "source": "blind",
+   "text": "Heard someone say the seat supplier might be in some financial trouble, but nothing's confirmed yet. Better keep an eye on that line.",
+   "expect": {
+    "incidents": [],
+    "escalate": true
+   },
+   "edge": "rumor"
+  },
+  {
+   "id": "N-062",
+   "category": "compound",
+   "source": "blind",
+   "text": "Morning digest. 1) Princeton, IN plant is down from March 11th to next Monday due to a equipment failure in the assembly line. 2) Irnowood's 16-inch rims are running late—due 3/22, now arriving 2027-03-24. Need to adjust the schedule for the San Antonio, TX plant.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_IN",
+      "outage_start": "2027-03-11",
+      "outage_end": "2027-03-15"
+     },
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-14",
+      "part_id": "WHEEL-16",
+      "plant_id": "P_TX",
+      "blocked_from": "2027-03-22",
+      "blocked_until": "2027-03-24"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "compound plant_outage+supplier_delay"
+  },
+  {
+   "id": "N-063",
+   "category": "compound",
+   "source": "blind",
+   "text": "Two things: (1) Heard there might be a chip shortage coming, but nothing's confirmed yet. Keep an eye on the supply chain updates. (2) Wacky Wheels San Antonio is down from March 12th to March 16th due to a breakdown in the paint line. We’re working to get it back online as soon as possible.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_TX",
+      "outage_start": "2027-03-12",
+      "outage_end": "2027-03-16"
+     }
+    ],
+    "escalate": true
+   },
+   "edge": "compound unconfirmed+plant_outage"
+  },
+  {
+   "id": "N-064",
+   "category": "compound",
+   "source": "blind",
+   "text": "Two things: (1) Lot LOT-0335 has wrong thread pitch. Hold all vehicles built with these parts. (2) Quanta Silicon's chip-ivi has a seal leak defect. All vehicles built at Wacky Wheels Lexington from Monday Feb 22 to February 24th must be held.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0335"
+      ]
+     },
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0061"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "compound quality_hold+quality_hold"
+  },
+  {
+   "id": "N-065",
+   "category": "plant_outage",
+   "source": "blind",
+   "text": "Wacky Wheels Greensboro is down from the 24th to 2027-03-25 due to a machine breakdown that’s taking longer than expected to fix.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_NC",
+      "outage_start": "2027-03-24",
+      "outage_end": "2027-03-25"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-066",
+   "category": "plant_outage",
+   "source": "blind",
+   "text": "Wacky Wheels Princeton is down next Friday through Monday Mar 22 due to a machine breakdown in the paint shop.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_IN",
+      "outage_start": "2027-03-19",
+      "outage_end": "2027-03-22"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-067",
+   "category": "plant_outage",
+   "source": "blind",
+   "text": "Wacky Wheels Princeton is down starting Tuesday Mar 9 due to a machine breakdown and will restart production on 2027-03-12 once the issue is resolved.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_IN",
+      "outage_start": "2027-03-09",
+      "outage_end": "2027-03-11"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-068",
+   "category": "compound",
+   "source": "blind",
+   "text": "Morning digest. 1) Hold the vehicles built with LOT-0173 due to porosity in the castings. 2) We’re doing the volunteer day tomorrow at the community center — show up by 9, bring a pair of gloves and a positive attitude.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0173"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "compound quality_hold+noise"
+  },
+  {
+   "id": "N-069",
+   "category": "noise",
+   "source": "blind",
+   "text": "We’re doing a team volunteer day tomorrow at the community center—everyone’s on board, just let me know if you can make it.",
+   "expect": {
+    "incidents": [],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-070",
+   "category": "unconfirmed",
+   "source": "blind",
+   "text": "Heard some chatter about a possible plant shutdown, but nothing's official yet. Stay tuned, but don't start panicking.",
+   "expect": {
+    "incidents": [],
+    "escalate": true
+   },
+   "edge": "rumor"
+  },
+  {
+   "id": "N-071",
+   "category": "quality_hold",
+   "source": "blind",
+   "text": "LOT-0001 parts have seal leaks. Hold all vehicles built with those parts until further notice.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0001"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-072",
+   "category": "quality_hold",
+   "source": "blind",
+   "text": "Sentniel's AIRBAG-MOD has bad solder joints. Vehicles built at Wacky Wheels San Antonio from 2/22 to 2/24 must be held.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0001"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-073",
+   "category": "unconfirmed",
+   "source": "blind",
+   "text": "Heard a rumor someone mentioned about a chip shortage possibly coming, but nothing's confirmed yet. Keep an eye on the supply chain updates.",
+   "expect": {
+    "incidents": [],
+    "escalate": true
+   },
+   "edge": "rumor"
+  },
+  {
+   "id": "N-074",
+   "category": "compound",
+   "source": "blind",
+   "text": "Orbit's surround-view cameras have porosity in the castings. Builds from March 4th to Friday Mar 5 at Huntsville, AL must be held. Also, Storm hit the Midwest last night, but we’re still rolling here. No issues on our end, just a little rain and some soaked sidewalks.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0256"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "compound quality_hold+noise"
+  },
+  {
+   "id": "N-075",
+   "category": "supplier_delay",
+   "source": "blind",
+   "text": "SUP-04's leather seat set is running late — was due the 15th, now arriving next Friday. Need to adjust the schedule for San Antonio, TX.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-04",
+      "part_id": "SEAT-LEA",
+      "plant_id": "P_TX",
+      "blocked_from": "2027-03-15",
+      "blocked_until": "2027-03-19"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-076",
+   "category": "compound",
+   "source": "blind",
+   "text": "Morning digest. 1) Storm hit the Midwest last night, but we're dry and clear here. No impact on our schedule, just a nice reminder to keep the coffee hot. 2) Hold all vehicles built with LOT-0131 due to wrong thread pitch defect.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0131"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "compound noise+quality_hold"
+  },
+  {
+   "id": "N-077",
+   "category": "plant_outage",
+   "source": "blind",
+   "text": "Wacky Wheels Greensboro is down next Wednesday through the 17th due to a packaging line breakdown. We’re working to get it back online as soon as possible.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_NC",
+      "outage_start": "2027-03-17",
+      "outage_end": "2027-03-17"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-078",
+   "category": "unconfirmed",
+   "source": "blind",
+   "text": "Heard a rumor that a supplier might miss some deliveries next month, but nothing's confirmed yet. Stay tuned for updates.",
+   "expect": {
+    "incidents": [],
+    "escalate": true
+   },
+   "edge": "rumor"
+  },
+  {
+   "id": "N-079",
+   "category": "unconfirmed",
+   "source": "blind",
+   "text": "Heard some chatter about a possible plant shutdown, but nothing's official yet. Stay tuned, but don't panic.",
+   "expect": {
+    "incidents": [],
+    "escalate": true
+   },
+   "edge": "rumor"
+  },
+  {
+   "id": "N-080",
+   "category": "noise",
+   "source": "blind",
+   "text": "The parking lot's getting repaved at Huntsville, so no parking on the east side until further notice. Let the drivers know to use the west lot until it's done.",
+   "expect": {
+    "incidents": [],
+    "escalate": false
+   },
+   "edge": "names a plant"
+  },
+  {
+   "id": "N-081",
+   "category": "quality_hold",
+   "source": "blind",
+   "text": "Brihtline 17-inch tires have loose connectors. Vehicles built at Wacky Wheels Princeton from Thursday Mar 4 to March 5th must be held.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0228"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-082",
+   "category": "unconfirmed",
+   "source": "blind",
+   "text": "There's some chatter about a supplier potentially missing a few deliveries next month, but nothing's been confirmed yet. Stay tuned for updates.",
+   "expect": {
+    "incidents": [],
+    "escalate": true
+   },
+   "edge": "rumor"
+  },
+  {
+   "id": "N-083",
+   "category": "quality_hold",
+   "source": "blind",
+   "text": "Lot LOT-0356 has loose connectors. Hold all vehicles built with this lot until further notice.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0356"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-084",
+   "category": "compound",
+   "source": "blind",
+   "text": "Two things: (1) Ironwood Wheels is late with the 20-inch alloy wheels — original date was March 15th, now arriving next Wednesday. Need that part for the San Antonio, TX plant. (2) Graite's 16-inch all-season tires have a software checksum error. Vehicles built at Wacky Wheels Greensboro between March 4th and 2027-03-05 must be held.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-14",
+      "part_id": "WHEEL-20",
+      "plant_id": "P_TX",
+      "blocked_from": "2027-03-15",
+      "blocked_until": "2027-03-17"
+     },
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0344"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "compound supplier_delay+quality_hold"
+  },
+  {
+   "id": "N-085",
+   "category": "unconfirmed",
+   "source": "blind",
+   "text": "Hear through the grapevine that a trucking strike might disrupt deliveries soon. Don't let it throw a wrench in our plans — stay ready, but keep your eyes on the road.",
+   "expect": {
+    "incidents": [],
+    "escalate": true
+   },
+   "edge": "rumor"
+  },
+  {
+   "id": "N-086",
+   "category": "plant_outage",
+   "source": "blind",
+   "text": "The Greensboro, NC plant is down from 2027-03-24 to 2027-03-29 due to a conveyor belt failure. We’re working to get it back online as soon as possible.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_NC",
+      "outage_start": "2027-03-24",
+      "outage_end": "2027-03-29"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-087",
+   "category": "noise",
+   "source": "blind",
+   "text": "The parking lot's getting repaved at Huntsville, so don't park there—especially if you're in a hurry.",
+   "expect": {
+    "incidents": [],
+    "escalate": false
+   },
+   "edge": "names a plant"
+  },
+  {
+   "id": "N-088",
+   "category": "supplier_delay",
+   "source": "blind",
+   "text": "SH-0122 is arriving next Tuesday, late from the original March 15th. Need to adjust the schedule accordingly.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-08",
+      "part_id": "BRAKE-KIT",
+      "plant_id": "P_MS",
+      "blocked_from": "2027-03-15",
+      "blocked_until": "2027-03-16"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-089",
+   "category": "compound",
+   "source": "blind",
+   "text": "Morning digest. 1) Let me know when the Greensboro plant is open for tours — I’ve got a few folks coming through next week. 2) Wacky Wheels Lexington is down from March 18th to 2027-03-19 due to a major equipment failure in the paint line.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_KY",
+      "outage_start": "2027-03-18",
+      "outage_end": "2027-03-19"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "compound noise+plant_outage"
+  },
+  {
+   "id": "N-090",
+   "category": "plant_outage",
+   "source": "blind",
+   "text": "The Jackson, MS plant is down from the 19th to the 22nd due to a coolant system failure in one of the main assembly lines.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_MS",
+      "outage_start": "2027-03-19",
+      "outage_end": "2027-03-22"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-091",
+   "category": "compound",
+   "source": "blind",
+   "text": "Morning digest. 1) Heard someone say the seat supplier might be in trouble financially. Don't know if it's true, but worth keeping an eye on. 2) Lot LOT-0331 has wrong thread pitch. Hold all vehicles built with this part.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0331"
+      ]
+     }
+    ],
+    "escalate": true
+   },
+   "edge": "compound unconfirmed+quality_hold"
+  },
+  {
+   "id": "N-092",
+   "category": "plant_outage",
+   "source": "blind",
+   "text": "Princeton, IN plant is down from 3/10 to March 12th due to a conveyor belt failure.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_IN",
+      "outage_start": "2027-03-10",
+      "outage_end": "2027-03-12"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-093",
+   "category": "quality_hold",
+   "source": "blind",
+   "text": "Cbalt's WHEEL-17 has cracked housings. Jackson, MS built vehicles with this part from 2027-03-02 to Wednesday Mar 3. Hold all affected units.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0167"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-094",
+   "category": "compound",
+   "source": "blind",
+   "text": "Two things: (1) heard some talk that the seat supplier might be in some financial trouble, but nothing's confirmed yet. stay tuned. (2) The Jackson, MS plant is down from the 10th to the 15th due to a power outage that knocked out the main production line.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_MS",
+      "outage_start": "2027-03-10",
+      "outage_end": "2027-03-15"
+     }
+    ],
+    "escalate": true
+   },
+   "edge": "compound unconfirmed+plant_outage"
+  },
+  {
+   "id": "N-095",
+   "category": "compound",
+   "source": "blind",
+   "text": "Two things: (1) Can the ops team check if a plant tour for the Princeton, IN facility is possible next week? We’ve got a group of 15 from the local chamber wanting to see the line. (2) Qaunta's CHIP-IVI is running late, arriving March 25th instead of 3/22. Let us know if that impacts the Princeton, IN plant schedule.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-12",
+      "part_id": "CHIP-IVI",
+      "plant_id": "P_IN",
+      "blocked_from": "2027-03-22",
+      "blocked_until": "2027-03-25"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "compound noise+supplier_delay"
+  },
+  {
+   "id": "N-096",
+   "category": "plant_outage",
+   "source": "blind",
+   "text": "Wacky Wheels Lexington is down from 3/23 to 2027-03-23 due to a major equipment failure in the paint line.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "plant_outage",
+      "plant_id": "P_KY",
+      "outage_start": "2027-03-23",
+      "outage_end": "2027-03-23"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-097",
+   "category": "quality_hold",
+   "source": "blind",
+   "text": "Ironwood's wheel-16 has porosity in the castings. All vehicles built at Wacky Wheels San Antonio between 3/4 and the 5th must be held.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "quality_hold",
+      "lots": [
+       "LOT-0044"
+      ]
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-098",
+   "category": "supplier_delay",
+   "source": "blind",
+   "text": "Ionwood's WHEEL-16 is late, arriving the 19th instead of Monday Mar 15. Need that part for the San Antonio, TX plant.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-14",
+      "part_id": "WHEEL-16",
+      "plant_id": "P_TX",
+      "blocked_from": "2027-03-15",
+      "blocked_until": "2027-03-19"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": "messy"
+  },
+  {
+   "id": "N-099",
+   "category": "supplier_delay",
+   "source": "blind",
+   "text": "Cobalt's 20-inch alloy wheels are delayed and won't be in Greensboro, NC by 3/15. They're arriving 3/19 instead.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-03",
+      "part_id": "WHEEL-20",
+      "plant_id": "P_NC",
+      "blocked_from": "2027-03-15",
+      "blocked_until": "2027-03-19"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  },
+  {
+   "id": "N-100",
+   "category": "supplier_delay",
+   "source": "blind",
+   "text": "SH-0114 is arriving next Wednesday. It was supposed to be here earlier, but looks like we’re getting it then.",
+   "expect": {
+    "incidents": [
+     {
+      "kind": "supplier_delay",
+      "supplier_id": "SUP-17",
+      "part_id": "AIRBAG-MOD",
+      "plant_id": "P_MS",
+      "blocked_from": "2027-03-15",
+      "blocked_until": "2027-03-17"
+     }
+    ],
+    "escalate": false
+   },
+   "edge": ""
+  }
+ ]
+}

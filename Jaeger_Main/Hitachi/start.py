@@ -125,7 +125,10 @@ def main() -> None:
         steps = [
             ("Control tower on the 15 events", ["-m", "tower.run", "--reader", tower_reader, "--notify", "dry-run",
                                                 "--overwrite"]),
-            ("Given tests (docx TC1–TC6)", ["tests/run_given.py", "--reader", test_reader]),
+            # The model's run above is graded from its saved log (replayed on a fresh world), so the
+            # 15 events are not read by the model a second time.
+            ("Given tests (docx TC1–TC6)", ["tests/run_given.py", "--reader", test_reader,
+                                            *(["--from-run", "runs/run1"] if use_llm else [])]),
             ("Failure tests (failed calls, no information, model down)", ["tests/test_failures.py"]),
             ("Ontology export", ["-m", "tower.ontology"]),
         ]

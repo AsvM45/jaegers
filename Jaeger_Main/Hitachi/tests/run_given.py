@@ -102,15 +102,39 @@ def evidence_checks(case, trace, rows):
     return checks
 
 
+# The report is read by people: kinds, fields and tools in words, not field names or tool ids.
+_TOOL_WORDS = {"mes.reschedule": "reschedule", "mes.transfer": "transfer", "dealer.notify": "dealer notice",
+               "dealer.stop_sale": "stop sale", "crm.assign_loaner": "loaner", "crm.notify_customer": "owner notice",
+               "quality.hold_lot": "lot hold", "escalate": "escalate"}
+
+
+def _who(reader) -> str:
+    """A reader in words, never a model name."""
+    return "Rule reader" if reader in (None, "rules") else "AI model"
+
+
+def _words(name) -> str:
+    """'plant_outage+supplier_delay' -> 'plant outage + supplier delay', 'plant_id' -> 'plant'."""
+    text = str(name or "")
+    return text.replace("+", " + ").replace("_id", "").replace("_", " ")
+
+
+def _fields(inc: dict) -> str:
+    """An incident's records and dates in words: 'plant P_TX, outage start 2027-03-19'."""
+    skip = ("summary", "evidence", "reader", "kind", "model_reason", "question")
+    parts = [f"{_words(k)} {', '.join(v) if isinstance(v, list) else v}" for k, v in inc.items() if v and k not in skip]
+    return ", ".join(parts) or "no details"
+
+
 def write_report(all_results, cases, traces_by_reader, rows_by_reader):
     names = list(all_results)
     lines = [
-        "# Given test cases — the 15 events in `data/events.json`",
+        "# Given test cases — the 15 given events",
         "",
         "Each event is graded twice:",
         "",
         "1. **Effects**: the action log is compared with hand-written expected answers "
-        "(`tests/given_cases.json`) by the independent CSV grader in `tests/run_cases.py`. "
+        "by an independent grader that works from the company tables. "
         "It checks the right orders moved and no others, slots after the disruption, transfers only when "
         "the home plant is full, one notice per dealer with exactly its orders, loaners by tier, priority "
         "and pool, the lots held, stop-sale VINs and owners notified.",
@@ -118,7 +142,7 @@ def write_report(all_results, cases, traces_by_reader, rows_by_reader):
         "",
         "## Summary by docx test case",
         "",
-        "| Test case | Events | " + " | ".join(f"{n}: effects" for n in names) + " | Evidence | Required evidence |",
+        "| Test case | Events | " + " | ".join(f"{_who(n)}: effects" for n in names) + " | Evidence | Required evidence |",
         "|---|---|" + "---|" * len(names) + "---|---|",
     ]
     for tc, (title, needed) in TC.items():
@@ -135,26 +159,25 @@ def write_report(all_results, cases, traces_by_reader, rows_by_reader):
         p = sum(r["verdict"] == "PASS" for r in all_results[n])
         calls = sum(len(v) for v in rows_by_reader[n].values())
         failed = sum(not r["ok"] for v in rows_by_reader[n].values() for r in v)
-        lines.append(f"- **{n}**: {p}/{len(cases)} events pass on effects · {calls} tool calls · {failed} failed")
+        lines.append(f"- **{_who(n)}**: {p}/{len(cases)} events pass on effects · {calls} tool calls · {failed} failed")
     lines.append("")
 
     for n in names:
-        lines += [f"## Details — {n} reader", ""]
+        lines += [f"## Details — {_who(n)}", ""]
         for case, r in zip(cases, all_results[n]):
             trace = traces_by_reader[n][case["id"]]
             rows = rows_by_reader[n][case["id"]]
             lines.append(f"### {case['id']} — {case['tc']} {TC[case['tc']][0]} — {r['verdict']}")
             lines.append(f"> {case['text']}")
             lines.append("")
-            lines.append(f"- **Read as:** `{r['classification']}` (reader: {', '.join(map(str, r['readers']))})")
+            lines.append(f"- **Read as:** {_words(r['classification'])} (reader: {', '.join(sorted({_who(x) for x in r['readers']}))})")
             for inc in trace.get("incidents", []):
-                fields = {k: v for k, v in inc.items() if v and k not in ("summary", "evidence", "reader", "kind")}
-                lines.append(f"  - {inc['kind']}: `{json.dumps(fields)}`")
+                lines.append(f"  - {_words(inc['kind'])}: {_fields(inc)}")
             want = case["expect"]["incidents"]
-            lines.append(f"- **Expected:** {json.dumps(want) if want else 'no incident'}; "
-                         f"escalate={str(case['expect']['escalate']).lower()}")
-            counts = Counter(row["tool"] for row in rows)
-            lines.append(f"- **Calls:** {dict(counts) if counts else 'none'}")
+            expected = "; ".join(f"{_words(w['kind'])}: {_fields(w)}" for w in want) if want else "no incident"
+            lines.append(f"- **Expected:** {expected}; {'escalate to a human' if case['expect']['escalate'] else 'no escalation'}")
+            counts = Counter(_TOOL_WORDS.get(row["tool"], _words(row["tool"])) for row in rows)
+            lines.append(f"- **Calls:** {', '.join(f'{t} {n}' for t, n in counts.items()) if counts else 'none'}")
             for x in r["fails"]:
                 lines.append(f"- ❌ {x}")
             for x in r["warnings"]:
@@ -202,6 +225,8 @@ def _load_saved(folder_name: str):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--reader", choices=("rules", "llm", "both"), default="both")
+    ap.add_argument("--from-run", help="grade the model's saved tower run in this folder (e.g. runs/run1) "
+                                       "instead of reading the 15 events again")
     args = ap.parse_args()
     rc.OUT = OUT  # rc.run writes each reader's log, traces and results under runs/given/
     cases = load_cases()
@@ -213,7 +238,10 @@ def main():
     fresh = set()
     for reader in readers:
         name = "rules" if reader == "rules" else MODEL
-        all_results[name] = rc.run(reader, cases, truth, graph)
+        if reader == "llm" and args.from_run:
+            all_results[name] = rc.grade_saved(os.path.join(HITACHI, args.from_run), cases, truth, MODEL)
+        else:
+            all_results[name] = rc.run(reader, cases, truth, graph)
         folder_name = "rules" if reader == "rules" else "llm_" + MODEL.replace(":", "_")
         fresh.add(folder_name)
         folder = os.path.join(OUT, folder_name)

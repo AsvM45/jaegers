@@ -27,7 +27,7 @@ Python 3.10 or newer. No pip packages.
 
 ```bash
 ollama pull qwen3:1.7b && ollama serve          # optional: the reader and lookup model
-python -m tower.run --notify dry-run            # runs/run1/  (Overview, Event feed)
+python -m tower.run --notify dry-run            # runs/run1/  (Overview, Event center)
 python tests/run_given.py                       # runs/given/  (the 15 given events)
 python tests/test_failures.py                   # failed calls, missing info, model down (19 checks, no network)
 python -m tower.ontology                        # runs/ontology/
@@ -36,6 +36,16 @@ python -m tower.ui.server                       # http://127.0.0.1:8080
 
 `--reader` on `tests/run_given.py` is `rules`, `llm`, or `both`. Another model: `TOWER_LLM_MODEL=qwen3:8b`.
 
+**Voice input (optional).** The Add events page can take a spoken message. It records in the page and transcribes on this laptop with Whisper; no audio leaves the machine.
+
+```bash
+brew install whisper-cpp          # macOS; elsewhere, build whisper.cpp and put whisper-cli on PATH
+python -m tower.voice setup       # downloads the English model (148 MB) into models/whisper/
+python -m tower.voice setup --multilingual   # only for voice languages other than English
+```
+
+The browser asks for the microphone the first time you press Voice. Settings shows whether it is allowed and whether the speech engine is ready.
+
 A live channel feed (Gmail, Outlook, Slack, Teams, and outbound notices) is documented in [tower/channels/README.md](tower/channels/README.md).
 
 ## Dashboard
@@ -43,13 +53,22 @@ A live channel feed (Gmail, Outlook, Slack, Teams, and outbound notices) is docu
 | Page | What it shows |
 |---|---|
 | Overview | Events, tool calls, escalations, test pass rate, the agent team |
-| Event feed | How each message was read, the graph path, and every tool call. Event run walks the feed live. Event add chats a new message into the feed. |
+| Event center | Opens on Results: charts and a table of what the tower did with each event (not graded). The Feed tab shows how each message was read, the graph path, and every tool call. Event run walks the feed live. Event add chats a new message into the feed. |
 | Tests | The 15 given events: expected versus actual. Run tests grades them and shows each one as it finishes. |
 | Knowledge graph | Company records and the paths an event traced |
 | Logs | `start.py` output, the action log, and test history |
 | Guide | How to run the tower and what each page reads |
+| Settings | Theme (dark, light, system), text size, motion, formats, time zone, voice language, microphone check |
 
 The chip beside search shows the reader and when the page last loaded the run. It reloads on its own when those files change.
+
+**Languages.** Settings → Language translates the dashboard into English, 日本語, Español, Français, Deutsch, Português, 中文, 한국어 or हिन्दी. Event messages and the tower's reasoning stay as written. When you add UI text, wrap it in `tr("…")` and keep the translations in step:
+
+```bash
+cd tower/ui/web
+npm run i18n          # what is not wrapped, missing or unused (also runs before every build)
+npm run i18n:fill     # translate the missing strings with local Ollama (qwen3:8b); review the result
+```
 
 Rebuild the React UI after changing `tower/ui/web`:
 
@@ -57,7 +76,7 @@ Rebuild the React UI after changing `tower/ui/web`:
 cd tower/ui/web && npm install && npm run build
 ```
 
-`npm run dev` hot-reloads on port 5173 and proxies `/api` to the Python server (`python start.py --serve-only`). `cd desktop && npm start` opens the same dashboard in Electron.
+`npm run dev` hot-reloads on port 5173 and proxies `/api` to the Python server (`python start.py --serve-only`). `cd desktop && npm install && npm start` opens the same dashboard in Electron (it starts its own server with `python3`).
 
 ## How a message is handled
 

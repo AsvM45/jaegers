@@ -1,0 +1,1534 @@
+[
+  {
+    "id": "B-001",
+    "category": "unconfirmed",
+    "edge": "rumor",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 0,
+      "calls": 1
+    },
+    "classification": "unconfirmed",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "unconfirmed",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The report is not safe to act on because it is unconfirmed (nothing confirmed) and does not name a specific shipment, outage, or lot to change. No operational records were changed. The tower escalated the report and wrote nothing else.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-002",
+    "category": "supplier_delay",
+    "edge": "",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 35,
+      "calls": 35,
+      "moved": 4,
+      "rescheduled": 4,
+      "transferred": 0,
+      "expected_moves": 4,
+      "dealers": 23,
+      "loaners": 8,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "supplier_delay",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "supplier_delay",
+        "supplier_id": "SUP-13",
+        "part_id": "TIRE-16",
+        "plant_id": "P_NC",
+        "shipment_id": "SH-0343",
+        "blocked_from": "2027-03-22",
+        "blocked_until": "2027-03-26",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a supplier delay of 16-inch all-season tire (TIRE-16) from Granite Tire (SUP-13) into Wacky Wheels Greensboro (P_NC) from 2027-03-22 until 2027-03-26 on shipment SH-0343. Affected records: 4 production orders and 37 customer orders. The tower completed 4 reschedules, 23 dealer notices, and 8 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-003",
+    "category": "plant_outage",
+    "edge": "",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 62,
+      "calls": 62,
+      "moved": 9,
+      "rescheduled": 8,
+      "transferred": 1,
+      "expected_moves": 9,
+      "dealers": 30,
+      "loaners": 23,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "plant_outage",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_TX",
+        "outage_start": "2027-03-25",
+        "outage_end": "2027-03-29",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a plant outage at Wacky Wheels San Antonio (P_TX) from 2027-03-25 through 2027-03-29. Affected records: 9 production orders and 88 customer orders. The tower completed 8 reschedules, 1 transfer, 30 dealer notices, and 23 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-004",
+    "category": "supplier_delay",
+    "edge": "",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 52,
+      "calls": 52,
+      "moved": 6,
+      "rescheduled": 6,
+      "transferred": 0,
+      "expected_moves": 6,
+      "dealers": 32,
+      "loaners": 14,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "supplier_delay",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "supplier_delay",
+        "supplier_id": "SUP-17",
+        "part_id": "AIRBAG-MOD",
+        "plant_id": "P_MS",
+        "shipment_id": "SH-0116",
+        "blocked_from": "2027-03-29",
+        "blocked_until": "2027-03-31",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a supplier delay of airbag module (AIRBAG-MOD) from Sentinel Brake and Airbag (SUP-17) into Wacky Wheels Jackson (P_MS) from 2027-03-29 until 2027-03-31 on shipment SH-0116. Affected records: 6 production orders and 54 customer orders. The tower completed 6 reschedules, 32 dealer notices, and 14 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-005",
+    "category": "compound",
+    "edge": "compound unconfirmed+quality_hold",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 120,
+      "calls": 121,
+      "moved": 0,
+      "rescheduled": 0,
+      "transferred": 0,
+      "expected_moves": 0,
+      "dealers": 0,
+      "loaners": 0,
+      "lots": [
+        "LOT-0003"
+      ],
+      "stop_sale_vins": 102,
+      "owners": 87
+    },
+    "classification": "unconfirmed+quality_hold",
+    "readers": [
+      "rules",
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "unconfirmed",
+        "reader": "rules"
+      },
+      {
+        "kind": "quality_hold",
+        "supplier_id": "SUP-17",
+        "part_id": "AIRBAG-MOD",
+        "plant_id": "P_TX",
+        "build_start": "2027-03-02",
+        "build_end": "2027-03-03",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports an unconfirmed report that is not safe to act on and a quality hold on airbag module (AIRBAG-MOD) at Wacky Wheels San Antonio (P_TX) for builds 2027-03-02 through 2027-03-03. Affected records: 190 quality records. The tower completed 1 lot hold, 32 stop-sales, and 87 customer notices.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-006",
+    "category": "compound",
+    "edge": "compound supplier_delay+quality_hold",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 239,
+      "calls": 239,
+      "moved": 8,
+      "rescheduled": 8,
+      "transferred": 0,
+      "expected_moves": 8,
+      "dealers": 33,
+      "loaners": 14,
+      "lots": [
+        "LOT-0170"
+      ],
+      "stop_sale_vins": 122,
+      "owners": 144
+    },
+    "classification": "supplier_delay+quality_hold",
+    "readers": [
+      "rules",
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "supplier_delay",
+        "supplier_id": "SUP-16",
+        "part_id": "HARN-A",
+        "plant_id": "P_MS",
+        "shipment_id": "SH-0138",
+        "blocked_from": "2027-03-15",
+        "blocked_until": "2027-03-19",
+        "reader": "rules"
+      },
+      {
+        "kind": "quality_hold",
+        "supplier_id": "SUP-08",
+        "part_id": "AIRBAG-MOD",
+        "plant_id": "P_IN",
+        "build_start": "2027-02-25",
+        "build_end": "2027-03-01",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a supplier delay of standard wiring harness (HARN-A) from Ridgeline Wire (SUP-16) into Wacky Wheels Jackson (P_MS) from 2027-03-15 until 2027-03-19 on shipment SH-0138 and a quality hold on airbag module (AIRBAG-MOD) at Wacky Wheels Princeton (P_IN) for builds 2027-02-25 through 2027-03-01. Affected records: 8 production orders, 267 quality records, and 69 customer orders. The tower completed 8 reschedules, 1 lot hold, 39 stop-sales, 144 customer notices, 33 dealer notices, and 14 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-007",
+    "category": "supplier_delay",
+    "edge": "",
+    "verdict": "FAIL",
+    "fails": [
+      "incident kinds ['none'] expected ['supplier_delay']",
+      "escalated although the event is actionable / noise",
+      "1 affected PO(s) not moved: ['PO-0333']",
+      "dealer set: extra [], missing ['D06', 'D23', 'D25', 'D31', 'D44']",
+      "loaners: extra [], missing ['CO-01904', 'CO-01909']"
+    ],
+    "warnings": [
+      "only 0 kind(s) of write action (handbook rule 9 wants 3)"
+    ],
+    "stats": {
+      "writes": 0,
+      "calls": 1,
+      "moved": 0,
+      "rescheduled": 0,
+      "transferred": 0,
+      "expected_moves": 1,
+      "dealers": 0,
+      "loaners": 0,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "unconfirmed",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "unconfirmed",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reads like an incident (delayed, was due) but is not specific enough to act on: the plant, part, lot, shipment, or dates needed to act are missing. It is escalated for a human to confirm. No operational records were changed. The tower escalated the report and wrote nothing else.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-008",
+    "category": "plant_outage",
+    "edge": "messy",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 72,
+      "calls": 72,
+      "moved": 12,
+      "rescheduled": 12,
+      "transferred": 0,
+      "expected_moves": 12,
+      "dealers": 37,
+      "loaners": 23,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "plant_outage",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_TX",
+        "outage_start": "2027-03-15",
+        "outage_end": "2027-03-18",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a plant outage at Wacky Wheels San Antonio (P_TX) from 2027-03-15 through 2027-03-18. Affected records: 12 production orders and 111 customer orders. The tower completed 12 reschedules, 37 dealer notices, and 23 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-009",
+    "category": "quality_hold",
+    "edge": "messy",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 56,
+      "calls": 56,
+      "moved": 0,
+      "rescheduled": 0,
+      "transferred": 0,
+      "expected_moves": 0,
+      "dealers": 0,
+      "loaners": 0,
+      "lots": [
+        "LOT-0176"
+      ],
+      "stop_sale_vins": 23,
+      "owners": 40
+    },
+    "classification": "quality_hold",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "quality_hold",
+        "supplier_id": "SUP-09",
+        "part_id": "BATT-60",
+        "plant_id": "P_IN",
+        "build_start": "2027-03-04",
+        "build_end": "2027-03-05",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a quality hold on 60 kWh battery pack (BATT-60) at Wacky Wheels Princeton (P_IN) for builds 2027-03-04 through 2027-03-05. Affected records: 64 quality records. The tower completed 1 lot hold, 15 stop-sales, and 40 customer notices.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-010",
+    "category": "noise",
+    "edge": "names a plant",
+    "verdict": "FAIL",
+    "fails": [
+      "escalated although the event is actionable / noise"
+    ],
+    "warnings": [],
+    "stats": {
+      "writes": 0,
+      "calls": 1
+    },
+    "classification": "unconfirmed",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "unconfirmed",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The report is not safe to act on because it is unconfirmed (maybe) and does not name a specific shipment, outage, or lot to change. No operational records were changed. The tower escalated the report and wrote nothing else.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-011",
+    "category": "compound",
+    "edge": "compound quality_hold+supplier_delay",
+    "verdict": "FAIL",
+    "fails": [
+      "incident kinds ['supplier_delay'] expected ['quality_hold', 'supplier_delay']",
+      "lots held [] expected ['LOT-0159']",
+      "stop-sale VINs: got 0 expected 51 (extra [], missing ['AUR0002298', 'AUR0002300', 'AUR0002302'])",
+      "owners notified: got 0 expected 66 (extra [], missing ['C0029', 'C0133', 'C0155'])"
+    ],
+    "warnings": [],
+    "stats": {
+      "writes": 33,
+      "calls": 33,
+      "moved": 4,
+      "rescheduled": 4,
+      "transferred": 0,
+      "expected_moves": 4,
+      "dealers": 22,
+      "loaners": 7,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "noise+supplier_delay",
+    "readers": [
+      "rules",
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "noise",
+        "reader": "rules"
+      },
+      {
+        "kind": "supplier_delay",
+        "supplier_id": "SUP-04",
+        "part_id": "SEAT-FAB",
+        "plant_id": "P_TX",
+        "shipment_id": "SH-0027",
+        "blocked_from": "2027-03-22",
+        "blocked_until": "2027-03-24",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a note that is not an operational disruption and a supplier delay of cloth seat set (SEAT-FAB) from Meridian Seating (SUP-04) into Wacky Wheels San Antonio (P_TX) from 2027-03-22 until 2027-03-24 on shipment SH-0027. Affected records: 4 production orders and 41 customer orders. The tower completed 4 reschedules, 22 dealer notices, and 7 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-012",
+    "category": "quality_hold",
+    "edge": "",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 79,
+      "calls": 79,
+      "moved": 0,
+      "rescheduled": 0,
+      "transferred": 0,
+      "expected_moves": 0,
+      "dealers": 0,
+      "loaners": 0,
+      "lots": [
+        "LOT-0222"
+      ],
+      "stop_sale_vins": 37,
+      "owners": 53
+    },
+    "classification": "quality_hold",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "quality_hold",
+        "supplier_id": "SUP-15",
+        "part_id": "SEAT-VAN",
+        "plant_id": "P_IN",
+        "lot_id": "LOT-0222",
+        "build_start": "2027-02-25",
+        "build_end": "2027-03-01",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a quality hold on lot LOT-0222 at Wacky Wheels Princeton (P_IN) for builds 2027-02-25 through 2027-03-01. Affected records: 91 quality records. The tower completed 1 lot hold, 25 stop-sales, and 53 customer notices.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-013",
+    "category": "compound",
+    "edge": "compound noise+quality_hold",
+    "verdict": "FAIL",
+    "fails": [
+      "incident kinds ['none'] expected ['quality_hold']",
+      "escalated although the event is actionable / noise",
+      "lots held [] expected ['LOT-0206']",
+      "stop-sale VINs: got 0 expected 41 (extra [], missing ['AUR0002933', 'AUR0002934', 'AUR0002938'])",
+      "owners notified: got 0 expected 45 (extra [], missing ['C0322', 'C0544', 'C0561'])"
+    ],
+    "warnings": [
+      "only 0 kind(s) of write action (handbook rule 9 wants 3)"
+    ],
+    "stats": {
+      "writes": 0,
+      "calls": 1,
+      "moved": 0,
+      "rescheduled": 0,
+      "transferred": 0,
+      "expected_moves": 0,
+      "dealers": 0,
+      "loaners": 0,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "unconfirmed",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "unconfirmed",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reads like an incident (instead of) but is not specific enough to act on: the plant, part, lot, shipment, or dates needed to act are missing. It is escalated for a human to confirm. No operational records were changed. The tower escalated the report and wrote nothing else.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-014",
+    "category": "unconfirmed",
+    "edge": "rumor",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 0,
+      "calls": 1
+    },
+    "classification": "unconfirmed",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "unconfirmed",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The report is not safe to act on because it is unconfirmed (rumor) and does not name a specific shipment, outage, or lot to change. No operational records were changed. The tower escalated the report and wrote nothing else.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-015",
+    "category": "noise",
+    "edge": "names a plant",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 0,
+      "calls": 0
+    },
+    "classification": "noise",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "noise",
+        "reader": "rules"
+      }
+    ],
+    "summary": "\"The parking lot's getting repaved at the Jackson plant - be sure to move any equipment outta the way before the crew shows up tomorrow\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-016",
+    "category": "unconfirmed",
+    "edge": "rumor",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 0,
+      "calls": 1
+    },
+    "classification": "unconfirmed",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "unconfirmed",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The report is not safe to act on because it is unconfirmed (possible, heard) and does not name a specific shipment, outage, or lot to change. No operational records were changed. The tower escalated the report and wrote nothing else.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-017",
+    "category": "plant_outage",
+    "edge": "",
+    "verdict": "FAIL",
+    "fails": [
+      "plant_outage fields: outage_end=2027-03-25 (expected 2027-03-24)",
+      "3 unaffected PO(s) moved: ['PO-0070', 'PO-0071', 'PO-0072']",
+      "dealer set: extra ['D32', 'D38'], missing []",
+      "dealer D03 order list: extra ['CO-00375'], missing []",
+      "dealer D09 order list: extra ['CO-00377'], missing []",
+      "dealer D10 order list: extra ['CO-00369'], missing []",
+      "dealer D20 order list: extra ['CO-00380'], missing []",
+      "dealer D21 order list: extra ['CO-00362', 'CO-00378'], missing []",
+      "dealer D23 order list: extra ['CO-00365', 'CO-00383'], missing []",
+      "dealer D25 order list: extra ['CO-00357', 'CO-00371', 'CO-00372'], missing []",
+      "dealer D26 order list: extra ['CO-00359', 'CO-00360', 'CO-00366'], missing []",
+      "dealer D27 order list: extra ['CO-00364', 'CO-00379', 'CO-00382'], missing []",
+      "dealer D44 order list: extra ['CO-00358', 'CO-00376'], missing []",
+      "dealer D45 order list: extra ['CO-00367'], missing []",
+      "dealer D46 order list: extra ['CO-00363'], missing []",
+      "dealer D47 order list: extra ['CO-00370'], missing []",
+      "loaners: extra ['CO-00357', 'CO-00364', 'CO-00369', 'CO-00375', 'CO-00383'], missing ['CO-00334', 'CO-00353']"
+    ],
+    "warnings": [
+      "PO-0058 rescheduled to 2027-03-26 though P_TX still has a free slot on 2027-03-25",
+      "PO-0059 rescheduled to 2027-03-26 though P_TX still has a free slot on 2027-03-25",
+      "PO-0060 rescheduled to 2027-03-29 though P_TX still has a free slot on 2027-03-25",
+      "PO-0061 rescheduled to 2027-03-29 though P_TX still has a free slot on 2027-03-25",
+      "PO-0062 rescheduled to 2027-03-30 though P_TX still has a free slot on 2027-03-25",
+      "PO-0063 rescheduled to 2027-03-30 though P_TX still has a free slot on 2027-03-25",
+      "PO-0064 rescheduled to 2027-03-31 though P_TX still has a free slot on 2027-03-25",
+      "PO-0065 rescheduled to 2027-03-31 though P_TX still has a free slot on 2027-03-25",
+      "PO-0066 rescheduled to 2027-04-01 though P_TX still has a free slot on 2027-03-25",
+      "PO-0067 rescheduled to 2027-04-01 though P_TX still has a free slot on 2027-03-25",
+      "PO-0068 rescheduled to 2027-04-02 though P_TX still has a free slot on 2027-03-25",
+      "PO-0069 rescheduled to 2027-04-02 though P_TX still has a free slot on 2027-03-25"
+    ],
+    "stats": {
+      "writes": 84,
+      "calls": 84,
+      "moved": 15,
+      "rescheduled": 12,
+      "transferred": 0,
+      "expected_moves": 12,
+      "dealers": 41,
+      "loaners": 28,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "plant_outage",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_TX",
+        "outage_start": "2027-03-19",
+        "outage_end": "2027-03-25",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a plant outage at Wacky Wheels San Antonio (P_TX) from 2027-03-19 through 2027-03-25. Affected records: 15 production orders and 137 customer orders. The tower completed 12 reschedules, 3 transfers, 41 dealer notices, and 28 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-018",
+    "category": "compound",
+    "edge": "compound quality_hold+unconfirmed",
+    "verdict": "FAIL",
+    "fails": [
+      "incident kinds ['none'] expected ['quality_hold']",
+      "lots held [] expected ['LOT-0201']",
+      "stop-sale VINs: got 0 expected 38 (extra [], missing ['AUR0002702', 'AUR0002706', 'AUR0002710'])",
+      "owners notified: got 0 expected 58 (extra [], missing ['C0045', 'C0261', 'C0798'])"
+    ],
+    "warnings": [
+      "only 0 kind(s) of write action (handbook rule 9 wants 3)"
+    ],
+    "stats": {
+      "writes": 0,
+      "calls": 1,
+      "moved": 0,
+      "rescheduled": 0,
+      "transferred": 0,
+      "expected_moves": 0,
+      "dealers": 0,
+      "loaners": 0,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "noise+unconfirmed",
+    "readers": [
+      "rules",
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "noise",
+        "reader": "rules"
+      },
+      {
+        "kind": "unconfirmed",
+        "reader": "rules"
+      }
+    ],
+    "summary": "\"LOT-0201 has loose connectors, hold all vehicles built with that lot. Quality is aware\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. The report is not safe to act on because it is unconfirmed (heard) and does not name a specific shipment, outage, or lot to change. No operational records were changed. The tower escalated the report and wrote nothing else.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-019",
+    "category": "quality_hold",
+    "edge": "messy",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 125,
+      "calls": 125,
+      "moved": 0,
+      "rescheduled": 0,
+      "transferred": 0,
+      "expected_moves": 0,
+      "dealers": 0,
+      "loaners": 0,
+      "lots": [
+        "LOT-0317"
+      ],
+      "stop_sale_vins": 93,
+      "owners": 92
+    },
+    "classification": "quality_hold",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "quality_hold",
+        "supplier_id": "SUP-12",
+        "part_id": "CHIP-IVI",
+        "plant_id": "P_NC",
+        "build_start": "2027-02-22",
+        "build_end": "2027-02-24",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a quality hold on infotainment chip (CHIP-IVI) at Wacky Wheels Greensboro (P_NC) for builds 2027-02-22 through 2027-02-24. Affected records: 186 quality records. The tower completed 1 lot hold, 32 stop-sales, and 92 customer notices.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-020",
+    "category": "compound",
+    "edge": "compound unconfirmed+plant_outage",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 75,
+      "calls": 76,
+      "moved": 12,
+      "rescheduled": 12,
+      "transferred": 0,
+      "expected_moves": 12,
+      "dealers": 38,
+      "loaners": 25,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "unconfirmed+plant_outage",
+    "readers": [
+      "rules",
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "unconfirmed",
+        "reader": "rules"
+      },
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_KY",
+        "outage_start": "2027-03-10",
+        "outage_end": "2027-03-15",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports an unconfirmed report that is not safe to act on and a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-10 through 2027-03-15. Affected records: 12 production orders and 114 customer orders. The tower completed 12 reschedules, 38 dealer notices, and 25 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-021",
+    "category": "compound",
+    "edge": "compound supplier_delay+quality_hold",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 70,
+      "calls": 70,
+      "moved": 2,
+      "rescheduled": 2,
+      "transferred": 0,
+      "expected_moves": 2,
+      "dealers": 10,
+      "loaners": 3,
+      "lots": [
+        "LOT-0011"
+      ],
+      "stop_sale_vins": 33,
+      "owners": 34
+    },
+    "classification": "supplier_delay+quality_hold",
+    "readers": [
+      "rules",
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "supplier_delay",
+        "supplier_id": "SUP-07",
+        "part_id": "HARN-B",
+        "plant_id": "P_IN",
+        "shipment_id": "SH-0208",
+        "blocked_from": "2027-03-29",
+        "blocked_until": "2027-03-31",
+        "reader": "rules"
+      },
+      {
+        "kind": "quality_hold",
+        "supplier_id": "SUP-11",
+        "part_id": "CAM-360",
+        "plant_id": "P_TX",
+        "lot_id": "LOT-0011",
+        "build_start": "2027-03-02",
+        "build_end": "2027-03-03",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a supplier delay of heavy-duty wiring harness (HARN-B) from Atlas Wire and Cable (SUP-07) into Wacky Wheels Princeton (P_IN) from 2027-03-29 until 2027-03-31 on shipment SH-0208 and a quality hold on lot LOT-0011 at Wacky Wheels San Antonio (P_TX) for builds 2027-03-02 through 2027-03-03. Affected records: 2 production orders, 68 quality records, and 16 customer orders. The tower completed 2 reschedules, 1 lot hold, 20 stop-sales, 34 customer notices, 10 dealer notices, and 3 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-022",
+    "category": "quality_hold",
+    "edge": "",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 131,
+      "calls": 131,
+      "moved": 0,
+      "rescheduled": 0,
+      "transferred": 0,
+      "expected_moves": 0,
+      "dealers": 0,
+      "loaners": 0,
+      "lots": [
+        "LOT-0037"
+      ],
+      "stop_sale_vins": 86,
+      "owners": 94
+    },
+    "classification": "quality_hold",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "quality_hold",
+        "supplier_id": "SUP-02",
+        "part_id": "TIRE-20",
+        "plant_id": "P_TX",
+        "lot_id": "LOT-0037",
+        "build_start": "2027-02-22",
+        "build_end": "2027-02-24",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a quality hold on lot LOT-0037 at Wacky Wheels San Antonio (P_TX) for builds 2027-02-22 through 2027-02-24. Affected records: 181 quality records. The tower completed 1 lot hold, 36 stop-sales, and 94 customer notices.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-023",
+    "category": "noise",
+    "edge": "",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 0,
+      "calls": 0
+    },
+    "classification": "noise",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "noise",
+        "reader": "rules"
+      }
+    ],
+    "summary": "\"Don't forget to submit your expense reports by the end of the month - the finance team\u2019s been asking about them\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-024",
+    "category": "quality_hold",
+    "edge": "",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 55,
+      "calls": 55,
+      "moved": 0,
+      "rescheduled": 0,
+      "transferred": 0,
+      "expected_moves": 0,
+      "dealers": 0,
+      "loaners": 0,
+      "lots": [
+        "LOT-0079"
+      ],
+      "stop_sale_vins": 26,
+      "owners": 36
+    },
+    "classification": "quality_hold",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "quality_hold",
+        "supplier_id": "SUP-16",
+        "part_id": "HARN-B",
+        "plant_id": "P_KY",
+        "build_start": "2027-03-02",
+        "build_end": "2027-03-03",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a quality hold on heavy-duty wiring harness (HARN-B) at Wacky Wheels Lexington (P_KY) for builds 2027-03-02 through 2027-03-03. Affected records: 63 quality records. The tower completed 1 lot hold, 18 stop-sales, and 36 customer notices.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-025",
+    "category": "plant_outage",
+    "edge": "messy",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 61,
+      "calls": 61,
+      "moved": 9,
+      "rescheduled": 9,
+      "transferred": 0,
+      "expected_moves": 9,
+      "dealers": 33,
+      "loaners": 19,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "plant_outage",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_TX",
+        "outage_start": "2027-03-09",
+        "outage_end": "2027-03-11",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a plant outage at Wacky Wheels San Antonio (P_TX) from 2027-03-09 through 2027-03-11. Affected records: 9 production orders and 79 customer orders. The tower completed 9 reschedules, 33 dealer notices, and 19 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-026",
+    "category": "plant_outage",
+    "edge": "",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 76,
+      "calls": 76,
+      "moved": 12,
+      "rescheduled": 12,
+      "transferred": 0,
+      "expected_moves": 12,
+      "dealers": 40,
+      "loaners": 24,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "plant_outage",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_NC",
+        "outage_start": "2027-03-18",
+        "outage_end": "2027-03-23",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a plant outage at Wacky Wheels Greensboro (P_NC) from 2027-03-18 through 2027-03-23. Affected records: 12 production orders and 116 customer orders. The tower completed 12 reschedules, 40 dealer notices, and 24 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-027",
+    "category": "supplier_delay",
+    "edge": "messy",
+    "verdict": "FAIL",
+    "fails": [
+      "incident kinds ['none'] expected ['supplier_delay']",
+      "escalated although the event is actionable / noise",
+      "2 affected PO(s) not moved: ['PO-0406', 'PO-0407']",
+      "dealer set: extra [], missing ['D06', 'D07', 'D08', 'D10', 'D18']",
+      "loaners: extra [], missing ['CO-02294', 'CO-02298', 'CO-02301', 'CO-02302', 'CO-02306']"
+    ],
+    "warnings": [
+      "only 0 kind(s) of write action (handbook rule 9 wants 3)"
+    ],
+    "stats": {
+      "writes": 0,
+      "calls": 1,
+      "moved": 0,
+      "rescheduled": 0,
+      "transferred": 0,
+      "expected_moves": 2,
+      "dealers": 0,
+      "loaners": 0,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "unconfirmed",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "unconfirmed",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reads like an incident (late, original date) but is not specific enough to act on: the plant, part, lot, shipment, or dates needed to act are missing. It is escalated for a human to confirm. No operational records were changed. The tower escalated the report and wrote nothing else.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-028",
+    "category": "quality_hold",
+    "edge": "",
+    "verdict": "FAIL",
+    "fails": [
+      "incident kinds ['none'] expected ['quality_hold']",
+      "lots held [] expected ['LOT-0352']",
+      "stop-sale VINs: got 0 expected 19 (extra [], missing ['AUR0005233', 'AUR0005236', 'AUR0005238'])",
+      "owners notified: got 0 expected 31 (extra [], missing ['C0024', 'C0215', 'C0265'])"
+    ],
+    "warnings": [
+      "only 0 kind(s) of write action (handbook rule 9 wants 3)"
+    ],
+    "stats": {
+      "writes": 0,
+      "calls": 0,
+      "moved": 0,
+      "rescheduled": 0,
+      "transferred": 0,
+      "expected_moves": 0,
+      "dealers": 0,
+      "loaners": 0,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "noise",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "noise",
+        "reader": "rules"
+      }
+    ],
+    "summary": "\"Brightline Rubber's 20-inch tires are leaking seal, affecting builds in Greensboro, NC from Thursday Mar 4 to March 5th. Hold all vehicles built with those parts\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-029",
+    "category": "supplier_delay",
+    "edge": "messy",
+    "verdict": "FAIL",
+    "fails": [
+      "incident kinds ['none'] expected ['supplier_delay']",
+      "escalated although the event is actionable / noise",
+      "3 affected PO(s) not moved: ['PO-0317', 'PO-0320', 'PO-0323']",
+      "dealer set: extra [], missing ['D03', 'D06', 'D08', 'D14', 'D20']",
+      "loaners: extra [], missing ['CO-01763', 'CO-01794', 'CO-01795', 'CO-01816', 'CO-01817']"
+    ],
+    "warnings": [
+      "only 0 kind(s) of write action (handbook rule 9 wants 3)"
+    ],
+    "stats": {
+      "writes": 0,
+      "calls": 1,
+      "moved": 0,
+      "rescheduled": 0,
+      "transferred": 0,
+      "expected_moves": 3,
+      "dealers": 0,
+      "loaners": 0,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "unconfirmed",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "unconfirmed",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reads like an incident (late, original date) but is not specific enough to act on: the plant, part, lot, shipment, or dates needed to act are missing. It is escalated for a human to confirm. No operational records were changed. The tower escalated the report and wrote nothing else.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-030",
+    "category": "supplier_delay",
+    "edge": "messy",
+    "verdict": "FAIL",
+    "fails": [
+      "incident kinds ['none'] expected ['supplier_delay']",
+      "escalated although the event is actionable / noise",
+      "12 affected PO(s) not moved: ['PO-0331', 'PO-0332', 'PO-0333', 'PO-0334', 'PO-0335']",
+      "dealer set: extra [], missing ['D01', 'D02', 'D03', 'D04', 'D06']",
+      "loaners: extra [], missing ['CO-01893', 'CO-01894', 'CO-01896', 'CO-01904', 'CO-01909']"
+    ],
+    "warnings": [
+      "only 0 kind(s) of write action (handbook rule 9 wants 3)"
+    ],
+    "stats": {
+      "writes": 0,
+      "calls": 1,
+      "moved": 0,
+      "rescheduled": 0,
+      "transferred": 0,
+      "expected_moves": 12,
+      "dealers": 0,
+      "loaners": 0,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "unconfirmed",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "unconfirmed",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reads like an incident (late, original date) but is not specific enough to act on: the plant, part, lot, shipment, or dates needed to act are missing. It is escalated for a human to confirm. No operational records were changed. The tower escalated the report and wrote nothing else.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-031",
+    "category": "unconfirmed",
+    "edge": "rumor",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 0,
+      "calls": 1
+    },
+    "classification": "unconfirmed",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "unconfirmed",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The report is not safe to act on because it is unconfirmed (nothing official, possible, heard) and does not name a specific shipment, outage, or lot to change. No operational records were changed. The tower escalated the report and wrote nothing else.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-032",
+    "category": "unconfirmed",
+    "edge": "rumor",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 0,
+      "calls": 1
+    },
+    "classification": "unconfirmed",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "unconfirmed",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The report is not safe to act on because it is unconfirmed (possible) and does not name a specific shipment, outage, or lot to change. No operational records were changed. The tower escalated the report and wrote nothing else.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-033",
+    "category": "compound",
+    "edge": "compound plant_outage+quality_hold",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 160,
+      "calls": 160,
+      "moved": 12,
+      "rescheduled": 4,
+      "transferred": 8,
+      "expected_moves": 12,
+      "dealers": 34,
+      "loaners": 22,
+      "lots": [
+        "LOT-0107"
+      ],
+      "stop_sale_vins": 59,
+      "owners": 61
+    },
+    "classification": "plant_outage+quality_hold",
+    "readers": [
+      "rules",
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_KY",
+        "outage_start": "2027-03-26",
+        "outage_end": "2027-03-31",
+        "reader": "rules"
+      },
+      {
+        "kind": "quality_hold",
+        "supplier_id": "SUP-14",
+        "part_id": "WHEEL-17",
+        "plant_id": "P_KY",
+        "build_start": "2027-03-02",
+        "build_end": "2027-03-03",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-26 through 2027-03-31 and a quality hold on 17-inch alloy wheel (WHEEL-17) at Wacky Wheels Lexington (P_KY) for builds 2027-03-02 through 2027-03-03. Affected records: 12 production orders, 121 quality records, and 105 customer orders. The tower completed 4 reschedules, 8 transfers, 1 lot hold, 30 stop-sales, 61 customer notices, 34 dealer notices, and 22 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-034",
+    "category": "noise",
+    "edge": "names a plant",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 0,
+      "calls": 0
+    },
+    "classification": "noise",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "noise",
+        "reader": "rules"
+      }
+    ],
+    "summary": "\"Need to schedule a plant tour at the San Antonio facility this week-let me know what days work for the team\" is not an operational disruption because it does not report a supplier delay, a plant outage, or a quality hold. No operational records are affected. Nothing was written.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-035",
+    "category": "compound",
+    "edge": "compound unconfirmed+quality_hold",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 128,
+      "calls": 129,
+      "moved": 0,
+      "rescheduled": 0,
+      "transferred": 0,
+      "expected_moves": 0,
+      "dealers": 0,
+      "loaners": 0,
+      "lots": [
+        "LOT-0058"
+      ],
+      "stop_sale_vins": 71,
+      "owners": 95
+    },
+    "classification": "unconfirmed+quality_hold",
+    "readers": [
+      "rules",
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "unconfirmed",
+        "reader": "rules"
+      },
+      {
+        "kind": "quality_hold",
+        "supplier_id": "SUP-11",
+        "part_id": "CAM-360",
+        "plant_id": "P_KY",
+        "build_start": "2027-02-25",
+        "build_end": "2027-03-01",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports an unconfirmed report that is not safe to act on and a quality hold on surround-view camera kit (CAM-360) at Wacky Wheels Lexington (P_KY) for builds 2027-02-25 through 2027-03-01. Affected records: 167 quality records. The tower completed 1 lot hold, 32 stop-sales, and 95 customer notices.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-036",
+    "category": "plant_outage",
+    "edge": "",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 72,
+      "calls": 72,
+      "moved": 12,
+      "rescheduled": 12,
+      "transferred": 0,
+      "expected_moves": 12,
+      "dealers": 38,
+      "loaners": 22,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "plant_outage",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_MS",
+        "outage_start": "2027-03-22",
+        "outage_end": "2027-03-25",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a plant outage at Wacky Wheels Jackson (P_MS) from 2027-03-22 through 2027-03-25. Affected records: 12 production orders and 105 customer orders. The tower completed 12 reschedules, 38 dealer notices, and 22 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-037",
+    "category": "quality_hold",
+    "edge": "messy",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 73,
+      "calls": 73,
+      "moved": 0,
+      "rescheduled": 0,
+      "transferred": 0,
+      "expected_moves": 0,
+      "dealers": 0,
+      "loaners": 0,
+      "lots": [
+        "LOT-0270"
+      ],
+      "stop_sale_vins": 39,
+      "owners": 51
+    },
+    "classification": "quality_hold",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "quality_hold",
+        "supplier_id": "SUP-10",
+        "part_id": "DOOR-SLIDE",
+        "plant_id": "P_AL",
+        "build_start": "2027-02-25",
+        "build_end": "2027-03-01",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a quality hold on sliding door module (DOOR-SLIDE) at Wacky Wheels Huntsville (P_AL) for builds 2027-02-25 through 2027-03-01. Affected records: 91 quality records. The tower completed 1 lot hold, 21 stop-sales, and 51 customer notices.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-038",
+    "category": "supplier_delay",
+    "edge": "",
+    "verdict": "FAIL",
+    "fails": [
+      "incident kinds ['none'] expected ['supplier_delay']",
+      "escalated although the event is actionable / noise",
+      "9 affected PO(s) not moved: ['PO-0316', 'PO-0317', 'PO-0318', 'PO-0319', 'PO-0320']",
+      "dealer set: extra [], missing ['D01', 'D02', 'D03', 'D06', 'D07']",
+      "loaners: extra [], missing ['CO-01761', 'CO-01763', 'CO-01772', 'CO-01774', 'CO-01780']"
+    ],
+    "warnings": [
+      "only 0 kind(s) of write action (handbook rule 9 wants 3)"
+    ],
+    "stats": {
+      "writes": 0,
+      "calls": 1,
+      "moved": 0,
+      "rescheduled": 0,
+      "transferred": 0,
+      "expected_moves": 9,
+      "dealers": 0,
+      "loaners": 0,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "unconfirmed",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "unconfirmed",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reads like an incident (late, original date) but is not specific enough to act on: the plant, part, lot, shipment, or dates needed to act are missing. It is escalated for a human to confirm. No operational records were changed. The tower escalated the report and wrote nothing else.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-039",
+    "category": "compound",
+    "edge": "compound quality_hold+plant_outage",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 249,
+      "calls": 249,
+      "moved": 9,
+      "rescheduled": 6,
+      "transferred": 3,
+      "expected_moves": 9,
+      "dealers": 36,
+      "loaners": 17,
+      "lots": [
+        "LOT-0310"
+      ],
+      "stop_sale_vins": 122,
+      "owners": 151
+    },
+    "classification": "quality_hold+plant_outage",
+    "readers": [
+      "rules",
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "quality_hold",
+        "supplier_id": "SUP-08",
+        "part_id": "AIRBAG-MOD",
+        "plant_id": "P_NC",
+        "lot_id": "LOT-0310",
+        "build_start": "2027-02-25",
+        "build_end": "2027-03-01",
+        "reader": "rules"
+      },
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_MS",
+        "outage_start": "2027-03-26",
+        "outage_end": "2027-03-30",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a quality hold on lot LOT-0310 at Wacky Wheels Greensboro (P_NC) for builds 2027-02-25 through 2027-03-01 and a plant outage at Wacky Wheels Jackson (P_MS) from 2027-03-26 through 2027-03-30. Affected records: 9 production orders, 274 quality records, and 79 customer orders. The tower completed 6 reschedules, 3 transfers, 1 lot hold, 35 stop-sales, 151 customer notices, 36 dealer notices, and 17 loaner assignments.",
+    "seconds": 0.0
+  },
+  {
+    "id": "B-040",
+    "category": "plant_outage",
+    "edge": "",
+    "verdict": "PASS",
+    "fails": [],
+    "warnings": [],
+    "stats": {
+      "writes": 28,
+      "calls": 28,
+      "moved": 3,
+      "rescheduled": 3,
+      "transferred": 0,
+      "expected_moves": 3,
+      "dealers": 18,
+      "loaners": 7,
+      "lots": [],
+      "stop_sale_vins": 0,
+      "owners": 0
+    },
+    "classification": "plant_outage",
+    "readers": [
+      "rules"
+    ],
+    "parsed": [
+      {
+        "kind": "plant_outage",
+        "plant_id": "P_KY",
+        "outage_start": "2027-03-19",
+        "outage_end": "2027-03-19",
+        "reader": "rules"
+      }
+    ],
+    "summary": "The message reports a plant outage at Wacky Wheels Lexington (P_KY) from 2027-03-19 through 2027-03-19. Affected records: 3 production orders and 27 customer orders. The tower completed 3 reschedules, 18 dealer notices, and 7 loaner assignments.",
+    "seconds": 0.0
+  }
+]

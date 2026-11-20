@@ -6,10 +6,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/i18n.mjs check",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "i18n": "node scripts/i18n.mjs check",
+    "i18n:fill": "node scripts/i18n.mjs fill",
+    "i18n:prune": "node scripts/i18n.mjs prune"
   },
   "dependencies": {
+    "pdfjs-dist": "4.10.38",
     "react": "19.1.1",
     "react-dom": "19.1.1"
   },

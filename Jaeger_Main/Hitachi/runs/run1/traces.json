@@ -22,7 +22,7 @@
         "build_end": null,
         "evidence": [
           "qwen3:1.7b read 'plant_outage': plant_outage: A software outage on the line caused the plant to be dark from next Friday through Monday Mar 22, and the line will restart the following working day.",
-          "qwen3:1.7b picked plant=P_TX, first_day=2027-03-19, last_day_down=2027-03-22, restart_day=2027-03-22",
+          "qwen3:1.7b picked plant=P_TX, first_day=2027-03-19, last_day_down=2027-03-22, restart_day=2027-03-19",
           "every pick checks out against the tables and the message",
           "outage language: plant_outage (model)",
           "dates: 'next Friday' = 2027-03-19, 'Monday Mar 22' = 2027-03-22",
@@ -14162,7 +14162,7 @@
         "build_end": null,
         "evidence": [
           "qwen3:1.7b read 'plant_outage': plant_outage: A power failure caused the plant to be dark from Friday, March 26, through Tuesday, March 30, and the line will restart the following working day.",
-          "qwen3:1.7b picked plant=P_MS, first_day=2027-03-26, last_day_down=2027-03-30, restart_day=2027-03-30",
+          "qwen3:1.7b picked plant=P_MS, first_day=2027-03-26, last_day_down=2027-03-30, restart_day=2027-03-26",
           "every pick checks out against the tables and the message",
           "outage language: plant_outage (model)",
           "dates: 'Friday Mar 26' = 2027-03-26, 'Tuesday Mar 30' = 2027-03-30",
