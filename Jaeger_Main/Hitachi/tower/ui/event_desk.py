@@ -328,33 +328,65 @@ def follow():
             yield "update", ev
 
 
+# Events read at the same time during a run. Two keeps both CPUs of a small host busy (the model
+# answers two requests at once with OLLAMA_NUM_PARALLEL=2); events still land in the feed in order.
+RUN_PARALLEL = max(1, int(os.environ.get("TOWER_RUN_PARALLEL", "2")))
+
+
 def _worker(events: list[dict], run_id: int) -> None:
     global _running, _current, _done, _error
+    from concurrent.futures import ThreadPoolExecutor
+
     ok = True
     error = None
+    reading: list[str] = []          # events being read right now
+    finished: dict[int, tuple] = {}  # index -> (trace, records), waiting for the ones before it
+    next_out = 0
+
+    def stopped() -> bool:
+        return run_id != _run_id
+
+    def read(index: int, event: dict):
+        global _current
+        with _lock:
+            if stopped():
+                return index, None
+            reading.append(event["event_id"])
+            _current = ", ".join(reading)
+            _emit({"type": "reading", "id": event["event_id"]})
+        trace, records = _handle(event)
+        with _lock:
+            if event["event_id"] in reading:
+                reading.remove(event["event_id"])   # read: no longer "being read", even if it waits its turn
+            _current = ", ".join(reading) or None
+        return index, (trace, records)
+
     try:
-        for event in events:
-            with _lock:
-                if run_id != _run_id:
-                    return  # stopped: stop() already reported the end of the run
-                _current = event["event_id"]
-                _emit({"type": "reading", "id": event["event_id"]})
-            trace, records = _handle(event)
-            row = {
-                "id": event["event_id"],
-                "classification": trace.get("classification") or "noise",
-                "outcome": _outcome(records),
-                "summary": (trace.get("summary") or "").split("\n", 1)[0][:180],
-            }
-            with _lock:
-                if run_id != _run_id:
-                    return  # stopped while this event was being read: drop it
-                if event.get("event_id", "").startswith("E-"):
-                    _save_to_feed(trace, records)   # added events are already in the desk files
-                _seen.append(row)
-                _done += 1
-                _current = None
-                _emit({"type": "event", "event": row, "done": _done, "total": _total})
+        with ThreadPoolExecutor(max_workers=RUN_PARALLEL, thread_name_prefix="tower-event") as pool:
+            futures = [pool.submit(read, i, event) for i, event in enumerate(events)]
+            for future in futures:
+                index, result = future.result()
+                with _lock:
+                    if stopped() or result is None:
+                        return  # stopped: stop() already reported the end of the run
+                    finished[index] = result
+                    # Publish in the feed's order: an event that finished early waits for the ones before it.
+                    while next_out in finished:
+                        event = events[next_out]
+                        trace, records = finished.pop(next_out)
+                        row = {
+                            "id": event["event_id"],
+                            "classification": trace.get("classification") or "noise",
+                            "outcome": _outcome(records),
+                            "summary": (trace.get("summary") or "").split("\n", 1)[0][:180],
+                        }
+                        if event.get("event_id", "").startswith("E-"):
+                            _save_to_feed(trace, records)   # added events are already in the desk files
+                        _seen.append(row)
+                        _done += 1
+                        _current = ", ".join(reading) or None
+                        _emit({"type": "event", "event": row, "done": _done, "total": _total})
+                        next_out += 1
     except Exception as exc:  # noqa: BLE001 - a failed event must not leave the run stuck
         ok = False
         error = f"{type(exc).__name__}: {exc}"

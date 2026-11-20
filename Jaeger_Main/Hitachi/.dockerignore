@@ -1,0 +1,16 @@
+# Built inside the image, or not needed to run.
+**/node_modules
+desktop/
+models/
+.venv/
+**/__pycache__
+**/*.pyc
+tower/ui/dist/
+runs/.reset/
+runs/live/
+runs/screenshots/
+runs/blind100_seed2/
+tower/channels/channels.json
+tower/channels/contacts.json
+**/.env
+**/* [0-9].*

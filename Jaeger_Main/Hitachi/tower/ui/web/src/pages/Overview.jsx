@@ -2,7 +2,10 @@ import { Icon } from "../lib/icons.jsx";
 import { AGENT_ICON, GROUPS, TOOL_WORD, WRITE_TOOLS, fmt, kindWords, kindsOf, pctOf, plain, when } from "../lib/constants.js";
 import { useData } from "../lib/data.jsx";
 import { go, useTipProps, useUi } from "../lib/ui.jsx";
-import { CardHead, KindTag, StatCard, Status, Toggle } from "../components/common.jsx";
+import { CardHead, CountUp, KindTag, StatCard, Status, Toggle } from "../components/common.jsx";
+import { ImpactMap } from "../components/ImpactMap.jsx";
+import { LiveTicker } from "../components/LiveRun.jsx";
+import { useEventRun } from "../lib/run.jsx";
 import { CallsChart, KindBars } from "../components/charts.jsx";
 import { Page } from "./Page.jsx";
 import { tr, trx } from "../lib/i18n.js";
@@ -112,6 +115,56 @@ function PromiseCard({ p }) {
   );
 }
 
+// The first thing a visitor sees: what this is, how well it works (from the saved test runs), and a
+// button that plays the 15 given events through the real tower, live.
+function Hero({ run }) {
+  const d = useData();
+  const { toast } = useUi();
+  const job = run.job;
+  const reader = (sid, label) => d.suiteById(sid)?.readers.find((r) => r.label === label);
+  const blind = reader("blind100", tr("AI model")), rules = reader("blind100", tr("Rule reader")), given = reader("given", tr("AI model"));
+  const pct = (r) => (r && r.total ? Math.round((r.passed / r.total) * 100) : null);
+  const now = job?.current ? String(job.current) : "";
+  const runDemo = async () => { const err = await run.start(); if (err) toast(err); };
+  return (
+    <section className="card hero2">
+      <div className="hero2-bg" aria-hidden="true" />
+      <div className="hero2-main">
+        <div className="hero2-kicker">
+          <span className={`live-dot${job?.running ? " on" : ""}`} />
+          {job?.running ? tr("Live · {done} of {total} events · reading {now}", { done: fmt(job.done), total: fmt(job.total), now: now || "…" })
+            : tr("Operations control tower · Hitachi Hack the Highway")}
+        </div>
+        <h1>{tr("Wacky Wheels Control Tower")}</h1>
+        <p>{tr("An AI model reads every supplier, plant and dealer message. Code checks each reading against the company records, then agents reschedule production, notify dealers and assign loaners. Anything unclear goes to a person.")}</p>
+        <div className="hero2-actions">
+          <button type="button" className="btn primary hero2-run" onClick={runDemo} disabled={job?.running}>
+            {job?.running ? <><span className="spin-dot" aria-hidden="true" />{tr("Running the demo")}</> : <><Icon name="play" />{tr("Run the demo")}</>}
+          </button>
+          <a className="btn" href="#/events">{tr("Open the Event Center")}</a>
+          <span className="note">{tr("Plays the 15 given events through the tower, live.")}</span>
+        </div>
+        {job?.running && <div className="run-meter hero2-meter" aria-hidden="true"><span style={{ width: `${job.total ? (job.done / job.total) * 100 : 0}%` }} /></div>}
+      </div>
+      <div className="hero2-metrics">
+        <div className="metric">
+          <div className="metric-v">{pct(blind) != null ? <><CountUp value={pct(blind)} />%</> : "—"}</div>
+          <div className="metric-k">{tr("accuracy on {n} unseen messages", { n: fmt(blind?.total || 100) })}</div>
+          {pct(rules) != null && <div className="metric-s">{tr("vs {n}% rule-based", { n: pct(rules) })}</div>}
+        </div>
+        <div className="metric">
+          <div className="metric-v">{given ? <><CountUp value={given.passed} />/{given.total}</> : "—"}</div>
+          <div className="metric-k">{tr("required test events passed")}</div>
+        </div>
+        <div className="metric">
+          <div className="metric-v">{blind?.avg_seconds ? `${blind.avg_seconds} s` : "—"}</div>
+          <div className="metric-k">{tr("per event, on a local 1.7B model")}</div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Overview() {
   const d = useData();
   const { ui, set } = useUi();
@@ -123,6 +176,11 @@ export default function Overview() {
   const acted = count("acted");
   const incidents = traces.flatMap((t) => t.incidents || []);
   const filtered = useFilteredTraces();
+  const run = useEventRun();
+  // The map follows the event just handled: the newest in a run, otherwise the newest real incident.
+  const lastRun = run.job?.events?.[run.job.events.length - 1]?.id;
+  const lastReal = [...traces].reverse().find((t) => (t.incidents || []).some((i) => i.plant_id))?.event_id;
+  const focusId = (lastRun && d.traceById[lastRun] ? lastRun : null) || lastReal;
   const open = (id) => { set({ sel: id, openEvent: id }); go("#/events"); };
   const chartData = traces.map((t) => {
     const rows = d.byEvent[t.event_id] || [];
@@ -139,25 +197,28 @@ export default function Overview() {
 
   return (
     <Page title={tr("Overview")} subtitle={subtitle}>
-      {/* Overview shows event data only; test results live on the Tests tab. */}
-      <div className="grid g3">
+      <Hero run={run} />
+
+      <div className="grid g3" style={{ marginTop: 20 }}>
         <StatCard label={tr("Events handled")} value={traces.length} delta={tr("{acted} acted on", { acted: acted })} trend="up" icon="feed" />
         <StatCard label={tr("Tool calls")} value={calls} delta={failed ? tr("{failed} failed", { failed: failed }) : tr("None failed")} trend={failed ? "down" : "up"} icon="bolt" />
         <StatCard label={tr("Escalated to a human")} value={escal} delta={tr("Rumors & unclear reports")} trend="flat" icon="alert" />
       </div>
 
-      <div className="grid g-hero two" style={{ marginTop: 20 }}>
-        <div className="card hero">
-          <div>
-            <div className="k">{tr("Operations control tower · Monday 8 March 2027")}</div>
-            <h2>{tr("Wacky Wheels Co.")}</h2>
-            <p>{tr("Every message is read, traced through the knowledge graph, and fixed with the enterprise tools, following the policy handbook. Unclear reports go to a human.")}</p>
-            <div className="model-pill"><span className="dot" />{d.model ? tr("Read by the AI model, checked by rules") : tr("Read by the rule reader")}</div>
-          </div>
-          <a className="go" href="#/events">{tr("Open the event center →")}</a>
+      <div className="grid g-map" style={{ marginTop: 20 }}>
+        <div className="card">
+          <CardHead title={tr("Impact map")} sub={tr("Plants, suppliers and dealers. Each plant shows its status; the event just handled lights up the places it touched.")} />
+          <ImpactMap focusId={focusId} />
         </div>
+        <LiveTicker job={run.job} />
+      </div>
 
+      <div className="grid g-hero two" style={{ marginTop: 20 }}>
         <PromiseCard p={d.promise} />
+        <div className="card">
+          <CardHead title={tr("What the messages were")} sub={tr("Incidents by type (a compound message counts each part)")} />
+          <KindBars incidents={incidents} />
+        </div>
       </div>
 
       {d.agents.length > 0 && (
@@ -167,17 +228,13 @@ export default function Overview() {
         </div>
       )}
 
-      <div className="grid g-chart" style={{ marginTop: 20 }}>
+      <div className="grid" style={{ marginTop: 20 }}>
         <div className="card">
           <CardHead title={tr("Tool calls per event")} sub={tr("{calls} calls across {traces} events, grouped by job", { calls: fmt(calls), traces: traces.length })}>
             <Toggle value={ui.chartView} options={[["chart", tr("Chart")], ["table", tr("Table")]]} onChange={(v) => set({ chartView: v })} />
           </CardHead>
           <div className="legend" style={{ marginBottom: 10 }}>{GROUPS.map((g) => <span key={g.id}><i style={{ background: g.color }} />{g.label}</span>)}</div>
           {ui.chartView === "table" ? <CallsTable data={chartData} /> : <CallsChart data={chartData} onPick={open} />}
-        </div>
-        <div className="card">
-          <CardHead title={tr("What the messages were")} sub={tr("Incidents by type (a compound message counts each part)")} />
-          <KindBars incidents={incidents} />
         </div>
       </div>
 

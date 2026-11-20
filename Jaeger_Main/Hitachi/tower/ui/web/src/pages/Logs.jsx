@@ -1,6 +1,7 @@
 import { Select } from "../components/Select.jsx";
 import { CAT_NAME, TOOL_WORD, argText, fmt, plain } from "../lib/constants.js";
 import { useData } from "../lib/data.jsx";
+import { Pager, TABLE_SIZES, usePage } from "../components/Pager.jsx";
 import { useUi } from "../lib/ui.jsx";
 import { CardHead, Status, Time, Toggle } from "../components/common.jsx";
 import { Page } from "./Page.jsx";
@@ -12,20 +13,21 @@ function CallLog() {
   const indexed = d.log.map((r, i) => ({ r, n: i + 1 }));
   const rows = indexed.filter(({ r }) => (!ui.callEvent || r.event_id === ui.callEvent) && (!ui.callFailed || !r.ok));
   const events = [...new Set(d.log.map((r) => r.event_id))];
+  const pg = usePage(rows, null, { id: "calls", initial: 25, sizes: TABLE_SIZES });
   return (
     <div className="card">
       <CardHead title={tr("Tool-call log")}
         sub={tr("Every call the tower made to the enterprise tools, in order: {log} calls, {ok} failed.", { log: fmt(d.log.length), ok: d.log.filter((r) => !r.ok).length })}>
         <div className="controls">
-          <Select size="sm" label={tr("Event")} width={170} value={ui.callEvent} onChange={(v) => set({ callEvent: v })}
+          <Select size="sm" label={tr("Event")} width={170} value={ui.callEvent} onChange={(v) => set({ callEvent: v, callsPage: 0 })}
             options={[["", tr("All events")], ...events.map((e) => [e, e])]} />
-          <Toggle value={ui.callFailed ? "1" : "0"} options={[["0", tr("All")], ["1", tr("Failed only")]]} onChange={(v) => set({ callFailed: v === "1" })} />
+          <Toggle value={ui.callFailed ? "1" : "0"} options={[["0", tr("All")], ["1", tr("Failed only")]]} onChange={(v) => set({ callFailed: v === "1", callsPage: 0 })} />
         </div>
       </CardHead>
       <div className="scroll-x"><table>
         <thead><tr><th className="num">#</th><th>{tr("Event")}</th><th>{tr("Tool")}</th><th>{tr("Arguments")}</th><th>{tr("Result")}</th></tr></thead>
         <tbody>
-          {rows.slice(0, 1000).map(({ r, n }) => (
+          {pg.shown.map(({ r, n }) => (
             <tr key={n}>
               <td className="num note">{n}</td><td><b>{r.event_id}</b></td>
               <td>{TOOL_WORD[r.tool] || plain(r.tool)}</td>
@@ -36,7 +38,7 @@ function CallLog() {
           {!rows.length && <tr><td colSpan={5} className="empty">{ui.callFailed ? tr("No failed calls.") : tr("No calls match.")}</td></tr>}
         </tbody>
       </table></div>
-      {rows.length > 1000 && <p className="note">Showing the first 1,000 of {fmt(rows.length)}.</p>}
+      <Pager pg={pg} />
     </div>
   );
 }
@@ -47,6 +49,7 @@ function Notifications() {
   const { ui, set } = useUi();
   const all = d.outbox.filter(Boolean);
   const rows = all.filter((n) => !ui.noteEvent || n.event_id === ui.noteEvent);
+  const pg = usePage(rows, null, { id: "notes", initial: 25, sizes: TABLE_SIZES });
   const events = [...new Set(all.map((n) => n.event_id))];
   const byRoute = {};
   for (const n of all) byRoute[n.route || "—"] = (byRoute[n.route || "—"] || 0) + 1;
@@ -56,14 +59,14 @@ function Notifications() {
         sub={tr("Every message the tower sent to dealers and owners: {n} messages. {routes}", { n: fmt(all.length),
           routes: Object.entries(byRoute).map(([r, n]) => `${r} ${fmt(n)}`).join(" · ") })}>
         <div className="controls">
-          <Select size="sm" label={tr("Event")} width={170} value={ui.noteEvent || ""} onChange={(v) => set({ noteEvent: v })}
+          <Select size="sm" label={tr("Event")} width={170} value={ui.noteEvent || ""} onChange={(v) => set({ noteEvent: v, notesPage: 0 })}
             options={[["", tr("All events")], ...events.map((e) => [e, e])]} />
         </div>
       </CardHead>
       <div className="scroll-x"><table>
         <thead><tr><th>{tr("Event")}</th><th>{tr("Channel")}</th><th>{tr("To")}</th><th>{tr("Subject")}</th><th>{tr("Status")}</th></tr></thead>
         <tbody>
-          {rows.slice(0, 1000).map((n, k) => (
+          {pg.shown.map((n, k) => (
             <tr key={k}>
               <td><b>{n.event_id}</b></td><td><b>{n.route}</b><div className="note">{n.sink}</div></td>
               <td>{n.recipient_id || (n.to || []).join(", ") || "—"}</td>
@@ -74,7 +77,7 @@ function Notifications() {
           {!rows.length && <tr><td colSpan={5} className="empty">{tr("No notifications yet.")}</td></tr>}
         </tbody>
       </table></div>
-      {rows.length > 1000 && <p className="note">{tr("Showing the first 1,000 of {n}.", { n: fmt(rows.length) })}</p>}
+      <Pager pg={pg} />
     </div>
   );
 }
@@ -85,20 +88,21 @@ function Handoffs() {
   const { ui, set } = useUi();
   const all = d.traces.flatMap((t) => (t.handoffs || []).map((h) => ({ ...h, event_id: t.event_id })));
   const rows = all.filter((h) => !ui.handEvent || h.event_id === ui.handEvent);
+  const pg = usePage(rows, null, { id: "hand", initial: 25, sizes: TABLE_SIZES });
   const refused = all.reduce((a, h) => a + (h.refused?.length || 0), 0);
   return (
     <div className="card">
       <CardHead title={tr("Agent handoffs")}
         sub={tr("Every task the coordinator gave a specialist, and what it returned: {n} handoffs, {r} planned calls refused.", { n: fmt(all.length), r: fmt(refused) })}>
         <div className="controls">
-          <Select size="sm" label={tr("Event")} width={170} value={ui.handEvent || ""} onChange={(v) => set({ handEvent: v })}
+          <Select size="sm" label={tr("Event")} width={170} value={ui.handEvent || ""} onChange={(v) => set({ handEvent: v, handPage: 0 })}
             options={[["", tr("All events")], ...d.traces.map((t) => [t.event_id, t.event_id])]} />
         </div>
       </CardHead>
       <div className="scroll-x"><table>
         <thead><tr><th>{tr("Event")}</th><th>{tr("From → to")}</th><th>{tr("Task")}</th><th>{tr("Returned")}</th></tr></thead>
         <tbody>
-          {rows.map((h, k) => (
+          {pg.shown.map((h, k) => (
             <tr key={k}>
               <td><b>{h.event_id}</b></td>
               <td style={{ whiteSpace: "nowrap" }}>{d.agentName(h.from)} → {d.agentName(h.to)}</td>
@@ -109,6 +113,7 @@ function Handoffs() {
           {!rows.length && <tr><td colSpan={4} className="empty">{tr("No handoffs yet.")}</td></tr>}
         </tbody>
       </table></div>
+      <Pager pg={pg} />
     </div>
   );
 }
@@ -116,12 +121,13 @@ function Handoffs() {
 function History() {
   const d = useData();
   const log = d.reports?.log || [];
+  const pg = usePage(log, null, { id: "hist", initial: 25, sizes: TABLE_SIZES });
   return (
     <div className="card">
       <CardHead title={tr("Test run history")} sub={tr("One line per test set per run, newest first.")} />
       <div className="scroll-x"><table>
         <thead><tr><th>{tr("When")}</th><th>{tr("Test set")}</th><th className="num">{tr("Passed")}</th><th>{tr("By category")}</th></tr></thead>
-        <tbody>{log.map((e, k) => (
+        <tbody>{pg.shown.map((e, k) => (
           <tr key={k}>
             <td className="mono"><Time value={e.time} /></td><td>{d.suiteById(e.suite)?.title || e.suite}</td>
             <td className="num"><b>{e.passed}/{e.total}</b></td>
@@ -129,6 +135,7 @@ function History() {
           </tr>
         ))}</tbody>
       </table></div>
+      <Pager pg={pg} />
     </div>
   );
 }

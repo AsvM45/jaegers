@@ -22,6 +22,7 @@ Listens on http://127.0.0.1:8080
     GET /api/ontology.mmd      the ontology as a Mermaid diagram (tower/ontology.mmd)
     GET /api/agents            the coordinator and the three specialist agents (role, tools, rules)
     GET /api/promise           customer promise impact: moved builds against each customer's promised date
+    GET /api/network_map       plants, suppliers and dealers with their locations, for the Overview map
     GET /api/test_reports      expected vs actual outcome for every test case, per reader
     GET /api/revision          a token that changes when the run or the saved results change
     GET /api/events/chat       the event-add transcript
@@ -83,8 +84,13 @@ LOG = os.path.join(RUN_DIR, "action_log.jsonl")
 OUTBOX = os.path.join(RUN_DIR, "outbox.jsonl")
 if os.path.isfile(os.path.join(RUN_DIR, "events.json")):
     EVENTS = os.path.join(RUN_DIR, "events.json")
-HOST = "127.0.0.1"
-PORT = 8080
+# On this laptop: 127.0.0.1:8080. Deployed (Hugging Face Spaces, Render): TOWER_HOST=0.0.0.0 and the
+# host's PORT. TOWER_PUBLIC=1 accepts actions from the public address (the password guards them instead),
+# and TOWER_PASSWORD, when set, asks every visitor for it (any user name).
+HOST = os.environ.get("TOWER_HOST", "127.0.0.1")
+PORT = int(os.environ.get("PORT", "8080"))
+PUBLIC = os.environ.get("TOWER_PUBLIC", "") == "1"
+PASSWORD = os.environ.get("TOWER_PASSWORD", "")
 
 # The three citation chains WorldGraph builds. Counts come from the tables.
 RELATIONSHIPS = [
@@ -244,8 +250,37 @@ def channels_payload():
 # Read-only JSON API over the run output. dashboard.html fetches these endpoints and renders the event
 # feed, graph paths, actions and audit trail.
 class Handler(BaseHTTPRequestHandler):
+    def _allowed(self) -> bool:
+        """With TOWER_PASSWORD set, every request needs it (HTTP Basic, any user name). The health
+        check stays open so the host can tell the server is up. Sends the 401 itself."""
+        if not PASSWORD or urllib.parse.urlsplit(self.path).path == "/healthz":
+            return True
+        import base64
+        import hmac
+
+        header = self.headers.get("Authorization") or ""
+        if header.startswith("Basic "):
+            try:
+                given = base64.b64decode(header[6:]).decode("utf-8", "replace").split(":", 1)[-1]
+            except ValueError:
+                given = ""
+            if hmac.compare_digest(given.encode(), PASSWORD.encode()):
+                return True
+        body = b"Password required"
+        self.send_response(401)
+        self.send_header("WWW-Authenticate", 'Basic realm="Control Tower", charset="UTF-8"')
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+        return False
+
     def do_GET(self):
         """Route a GET. Missing run files return [] (the tower has not run yet), not an error."""
+        if not self._allowed():
+            return
+        if urllib.parse.urlsplit(self.path).path == "/healthz":
+            return self._json({"ok": True})
         # Ignore any query string, and treat "/api/log/" the same as "/api/log".
         split = urllib.parse.urlsplit(self.path)
         path = split.path
@@ -282,6 +317,10 @@ class Handler(BaseHTTPRequestHandler):
 
                 base = read_jsonl(LOG) if os.path.isfile(LOG) else []
                 return self._json(base + event_desk.saved_log())
+            if path == "/api/network_map":
+                from tower.ui import geo
+
+                return self._json(geo.payload())
             if path == "/api/promise":
                 from tower.ui import event_desk, promise
 
@@ -364,12 +403,18 @@ class Handler(BaseHTTPRequestHandler):
         self._json({"error": "not found"}, 404)
 
     def _local(self) -> bool:
-        """True when the browser asked this process by name. Blocks a DNS-rebinding page."""
+        """True when the browser asked this process by name. Blocks a DNS-rebinding page.
+        Deployed (TOWER_PUBLIC=1) the public address is the name, so actions come from anywhere and
+        the password guards them."""
+        if PUBLIC:
+            return True
         host = (self.headers.get("Host") or "").split(":")[0]
         return host in ("127.0.0.1", "localhost")
 
     def do_POST(self):
         """POST starts a test grade, an event run, or one chat event. Same-host only."""
+        if not self._allowed():
+            return
         if not self._local():
             return self._json({"error": "forbidden"}, 403)
         path = urllib.parse.urlsplit(self.path).path.rstrip("/") or "/"
@@ -451,6 +496,8 @@ class Handler(BaseHTTPRequestHandler):
         DNS-rebinding pages, and browsers will not send a cross-site DELETE without a CORS
         preflight, which this server never answers.
         """
+        if not self._allowed():
+            return
         if not self._local():
             return self._json({"error": "forbidden"}, 403)
         parts = [urllib.parse.unquote(p) for p in urllib.parse.urlsplit(self.path).path.strip("/").split("/")]
@@ -569,15 +616,16 @@ def main():
     """
     import argparse
 
-    ap = argparse.ArgumentParser(description="Serve the control tower dashboard on 127.0.0.1.")
-    ap.add_argument("--port", type=int, default=PORT, help="port (default 8080)")
+    ap = argparse.ArgumentParser(description="Serve the control tower dashboard (127.0.0.1 unless TOWER_HOST says otherwise).")
+    ap.add_argument("--port", type=int, default=PORT, help="port (default 8080, or $PORT)")
+    ap.add_argument("--host", default=HOST, help="address to listen on (default 127.0.0.1, or $TOWER_HOST)")
     cli = ap.parse_args()
     try:
-        server = TowerServer((HOST, cli.port), Handler)
+        server = TowerServer((cli.host, cli.port), Handler)
     except OSError as exc:
-        print(f"could not bind {HOST}:{cli.port}: {exc}", file=sys.stderr, flush=True)
+        print(f"could not bind {cli.host}:{cli.port}: {exc}", file=sys.stderr, flush=True)
         raise SystemExit(1) from exc
-    print(f"http://{HOST}:{server.server_port}", flush=True)
+    print(f"http://{cli.host}:{server.server_port}" + ("  (password required)" if PASSWORD else ""), flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

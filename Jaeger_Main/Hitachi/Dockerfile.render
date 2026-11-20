@@ -1,0 +1,18 @@
+# Wacky Wheels Control Tower for Render's free tier (512 MB RAM): dashboard + tower, no AI model.
+# Without the model the tower reads every message with its rule reader (72/100 on the blind set,
+# against 92/100 with the model). Set OLLAMA_URL to an Ollama server you run elsewhere to use the model.
+
+FROM node:20-bookworm-slim AS web
+WORKDIR /web
+COPY tower/ui/web/package.json tower/ui/web/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY tower/ui/web/ ./
+RUN npm run build
+
+FROM python:3.11-slim-bookworm
+ENV PYTHONUNBUFFERED=1 TOWER_HOST=0.0.0.0 TOWER_PUBLIC=1 RUN_OLLAMA=0
+WORKDIR /app
+COPY . .
+COPY --from=web /dist ./tower/ui/dist
+RUN chmod +x deploy/start.sh
+CMD ["deploy/start.sh"]

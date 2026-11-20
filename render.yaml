@@ -1,0 +1,14 @@
+# Render Blueprint: the control tower on Render's free tier, without the AI model (the rule reader reads
+# every message). Render > New > Blueprint > pick this repository. Steps: Jaeger_Main/Hitachi/deploy/README.md.
+services:
+  - type: web
+    name: wacky-wheels-control-tower
+    runtime: docker
+    plan: free
+    # Paths from the top of the repository.
+    dockerfilePath: ./Jaeger_Main/Hitachi/Dockerfile.render
+    dockerContext: ./Jaeger_Main/Hitachi
+    healthCheckPath: /healthz
+    envVars:
+      - key: TOWER_PASSWORD
+        sync: false

@@ -268,6 +268,8 @@ def build() -> dict:
                 "updated": time.strftime("%Y-%m-%d %H:%M", time.localtime(os.path.getmtime(res_path))),
                 "passed": sum(i["verdict"] == "PASS" for i in items),
                 "total": len(items),
+                # Average seconds per event in that run (the time to read, trace and act on each one).
+                "avg_seconds": round(sum(r.get("seconds", 0) for r in results.values()) / max(1, len(results)), 1),
                 "scores": {k: sum(i["score"][k] for i in items) for k in ("kinds_ok", "fields_ok", "output_ok")}
                           | {"total": len(items)},
                 "by_category": _by_category(items),

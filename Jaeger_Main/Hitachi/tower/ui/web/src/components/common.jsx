@@ -16,7 +16,8 @@ const STATUS = {
   acted: ["pass", "ok", "Acted"], esc: ["esc", "alert", "Escalated"], none: ["none", "minus", "No action"],
 };
 export function Status({ kind }) {
-  const [cls, ic, word] = STATUS[kind];
+  // Unknown words (an older run's labels) show as "no action" instead of breaking the page.
+  const [cls, ic, word] = STATUS[kind] || STATUS[{ escalated: "esc", "no action": "none" }[kind]] || STATUS.none || Object.values(STATUS)[0];
   return <span className={`status ${cls}`}><Icon name={ic} />{tr(word)}</span>;
 }
 

@@ -8,6 +8,8 @@ import { Page } from "./Page.jsx";
 import { useFilteredTraces } from "./Overview.jsx";
 import { EventResults } from "./EventResults.jsx";
 import { Pager, usePage } from "../components/Pager.jsx";
+import { RunTimeline } from "../components/LiveRun.jsx";
+import { useEventRun } from "../lib/run.jsx";
 import { EventEscalations, escalationOf } from "./EventEscalations.jsx";
 import { exportEvents } from "../lib/exportEvents.js";
 import { tr, trx } from "../lib/i18n.js";
@@ -187,6 +189,7 @@ export default function Events() {
       : s.evVisit === visit ? {} : { evView: "results", resultOpen: false, evVisit: visit }));
   }, [set, visit]);
   const view = ["feed", "escalated"].includes(ui.evView) ? ui.evView : "results";
+  const run = useEventRun();
   const nEscalated = d.traces.filter((t) => escalationOf(d, t)).length;
   // What the export covers: the events the search and filters show, and a note saying which ones.
   const scope = [f.outcome !== "all" && `outcome ${({ acted: "acted", esc: "escalated", none: "no action" })[f.outcome]}`,
@@ -216,6 +219,7 @@ export default function Events() {
   );
   return (
     <Page title={tr("Event center")} subtitle={subtitle}>
+      <RunTimeline job={run.job} />
       {tabs}
       {!d.traces.length ? <div className="card empty">{d.loadedAt ? trx("No events yet. Go to {add} to send one, or to run the 15 given events.", { add: <a className="link" href="#/add">{tr("Add events")}</a> }) : "Loading…"}</div> : view === "results" ? <EventResults list={list} /> : view === "escalated" ? <EventEscalations list={list} /> : (
         <div className="ev-layout">
