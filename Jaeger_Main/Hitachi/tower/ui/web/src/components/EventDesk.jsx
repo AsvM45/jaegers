@@ -266,7 +266,7 @@ export function EventChat() {
 }
 
 export function EventRun() {
-  const { reload } = useData();
+  const { reload, demoSize } = useData();
   const { toast } = useUi();
   const [job, setJob] = useState(null);
   const [stopping, setStopping] = useState(false);
@@ -329,7 +329,8 @@ export function EventRun() {
     : shown.events.length
       ? (shown.error === "Stopped" ? tr("Stopped after {done} of {total} events.", { done: shown.done, total: shown.total })
         : shown.error ? tr("Stopped. {error}.", { error: shown.error }) : tr("Finished. {done} events.", { done: shown.done }))
-      : tr("Walks the 15 given events, then any event from the chat, and shows each one as it finishes. The saved run of the 15 stays as it is.");
+      : demoSize ? tr("Walks the {n} demo events and shows each one as it finishes.", { n: demoSize })
+        : tr("Walks the 15 given events, then any event from the chat, and shows each one as it finishes. The saved run of the 15 stays as it is.");
 
   return (
     <div className="card desk-card">

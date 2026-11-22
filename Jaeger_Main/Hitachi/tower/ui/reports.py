@@ -16,6 +16,10 @@ Two scores per case:
                simulator and checks them against the handbook: free slots, transfers, loaner
                priority, one notice per dealer, no failed calls.
 Built on request and cached until any input file changes.
+
+Online (TOWER_WORKSPACES=1) each visitor's runs live in their workspace (root=<workspace>/tests), and
+only the given suite exists there, limited to the demo's events (TOWER_DEMO_EVENTS). The blind sets
+and the laptop's saved runs are never shown online.
 """
 
 from __future__ import annotations
@@ -42,16 +46,25 @@ SUITES = [
      "cases": "blind100_cases.json", "runs": "blind100"},
 ]
 
-_cache: dict = {"key": None, "data": None}
+ONLINE = os.environ.get("TOWER_WORKSPACES", "") == "1"
+DEMO = {e.strip() for e in os.environ.get("TOWER_DEMO_EVENTS", "").split(",") if e.strip()}
+if ONLINE:
+    _given = dict(SUITES[0])
+    if DEMO:
+        _given["subtitle"] = (f"The {len(DEMO)} demo events, one of each kind, graded against the docx test "
+                              "cases TC1–TC6")
+    SUITES = [_given]
+
+_cache: dict = {}
 _lock = threading.Lock()
 
 
-def _inputs() -> list[str]:
+def _inputs(root: str = RUNS) -> list[str]:
     """Every file the report depends on, for cache invalidation."""
     paths = []
     for suite in SUITES:
         paths.append(os.path.join(TESTS, suite["cases"]))
-        folder = os.path.join(RUNS, suite["runs"])
+        folder = os.path.join(root, suite["runs"])
         if os.path.isdir(folder):
             for name in sorted(os.listdir(folder)):
                 for f in ("results.json", "action_log.jsonl"):
@@ -65,7 +78,7 @@ MODEL_RUNS = os.path.join(RUNS, "model")
 
 
 def _model_files() -> list[str]:
-    if not os.path.isdir(MODEL_RUNS):
+    if ONLINE or not os.path.isdir(MODEL_RUNS):
         return []
     return [os.path.join(MODEL_RUNS, d, f) for d in sorted(os.listdir(MODEL_RUNS))
             for f in ("summary.json", "results.json") if os.path.isfile(os.path.join(MODEL_RUNS, d, f))]
@@ -74,6 +87,8 @@ def _model_files() -> list[str]:
 def model_eval() -> list[dict]:
     """tests/run_model.py results: each model on its own, scored against the expected graphs."""
     out = []
+    if ONLINE:
+        return out
     for d in sorted(os.listdir(MODEL_RUNS)) if os.path.isdir(MODEL_RUNS) else []:
         s_path, r_path = os.path.join(MODEL_RUNS, d, "summary.json"), os.path.join(MODEL_RUNS, d, "results.json")
         if not os.path.isfile(s_path):
@@ -89,13 +104,17 @@ def model_eval() -> list[dict]:
     return out
 
 
-def _key() -> tuple:
-    return tuple((p, os.path.getmtime(p)) for p in _inputs() + _model_files() + [LOG] if os.path.exists(p))
+def _log(root: str = RUNS) -> str:
+    return os.path.join(root, "test_log.jsonl")
 
 
-def revision() -> str:
+def _key(root: str = RUNS) -> tuple:
+    return tuple((p, os.path.getmtime(p)) for p in _inputs(root) + _model_files() + [_log(root)] if os.path.exists(p))
+
+
+def revision(root: str = RUNS) -> str:
     """Token for the dashboard. Changes when a result file, case file, or the test log changes."""
-    return str(_key())
+    return str(_key(root))
 
 
 def _load_cases(name: str) -> list[dict]:
@@ -104,7 +123,10 @@ def _load_cases(name: str) -> list[dict]:
         return []
     with open(path, encoding="utf-8") as handle:
         data = json.load(handle)
-    return data["cases"] if isinstance(data, dict) else data
+    cases = data["cases"] if isinstance(data, dict) else data
+    if ONLINE and DEMO:
+        cases = [c for c in cases if c.get("id") in DEMO]
+    return cases
 
 
 def _label(folder_name: str) -> str:
@@ -198,7 +220,7 @@ def score_case(expected: dict, actual: dict) -> dict:
             "mismatches": mismatches}
 
 
-def build() -> dict:
+def build(root: str = RUNS) -> dict:
     if TESTS not in sys.path:
         sys.path.insert(0, TESTS)
     import run_cases as rc  # the independent grader
@@ -210,7 +232,7 @@ def build() -> dict:
     suites = []
     for suite in SUITES:
         cases = _load_cases(suite["cases"])
-        folder = os.path.join(RUNS, suite["runs"])
+        folder = os.path.join(root, suite["runs"])
         readers = []
         for name in sorted(os.listdir(folder)) if os.path.isdir(folder) else []:
             res_path = os.path.join(folder, name, "results.json")
@@ -278,7 +300,7 @@ def build() -> dict:
             })
         readers.sort(key=lambda r: r["updated"], reverse=True)
         suites.append({k: suite[k] for k in ("id", "title", "subtitle")} | {"readers": readers})
-    return {"suites": suites, "system_prompt": _system_prompt(), "model_eval": model_eval(), "log": run_log(suites)}
+    return {"suites": suites, "system_prompt": _system_prompt(), "model_eval": model_eval(), "log": run_log(suites, root)}
 
 
 def _by_category(items: list[dict]) -> dict:
@@ -290,21 +312,23 @@ def _by_category(items: list[dict]) -> dict:
     return out
 
 
-LOG = os.path.join(RUNS, "test_log.jsonl")
+LOG = _log()
 
 
-def run_log(suites: list[dict]) -> list[dict]:
+def run_log(suites: list[dict], root: str = RUNS) -> list[dict]:
     """Every test run, newest first, from runs/test_log.jsonl. Runs from before the log existed
     appear once each, dated by their results file."""
     rows = []
-    if os.path.isfile(LOG):
-        with open(LOG, encoding="utf-8") as handle:
+    known = {s["id"] for s in suites}
+    if os.path.isfile(_log(root)):
+        with open(_log(root), encoding="utf-8") as handle:
             for line in handle:
                 if line.strip():
                     try:
                         rows.append(json.loads(line))
                     except json.JSONDecodeError:
                         continue
+    rows = [r for r in rows if r.get("suite") in known] if ONLINE else rows
     logged = {(r["suite"], r["reader"]) for r in rows}
     for s in suites:
         for r in s["readers"]:
@@ -327,7 +351,7 @@ def _system_prompt() -> str | None:
     return getattr(llm_reader, "_SYSTEM", None)
 
 
-def delete(suite_id: str, reader_id: str) -> bool:
+def delete(suite_id: str, reader_id: str, root: str = RUNS) -> bool:
     """Delete one report: the runs/<suite>/<reader>/ folder (results, traces, action log).
 
     Both names must match an existing suite and an existing folder inside it, so a crafted
@@ -336,7 +360,7 @@ def delete(suite_id: str, reader_id: str) -> bool:
     suite = next((s for s in SUITES if s["id"] == suite_id), None)
     if suite is None:
         return False
-    parent = os.path.realpath(os.path.join(RUNS, suite["runs"]))
+    parent = os.path.realpath(os.path.join(root, suite["runs"]))
     if not os.path.isdir(parent) or reader_id not in os.listdir(parent):
         return False
     target = os.path.realpath(os.path.join(parent, reader_id))
@@ -344,29 +368,35 @@ def delete(suite_id: str, reader_id: str) -> bool:
         return False
     shutil.rmtree(target)
     with _lock:
-        _cache["key"] = None
+        _cache.pop(root, None)
     return True
 
 
-def payload() -> dict:
+def payload(root: str = RUNS) -> dict:
     """Cached build; rebuilt when a cases file, results.json or action log changes."""
-    key = _key()
+    key = _key(root)
     with _lock:
-        if _cache["key"] != key:
-            data = build()
-            _cache["data"] = data
-            _cache["key"] = key
-            try:
-                write_summary(data=data)
-            except OSError:
-                pass
-        return _cache["data"]
+        cached = _cache.get(root)
+        if cached is None or cached[0] != key:
+            data = build(root)
+            # One entry per workspace online; the sweeper deletes workspaces, so drop stale ones too.
+            if len(_cache) > 64:
+                _cache.clear()
+            _cache[root] = (key, data)
+            if os.path.isdir(root):
+                try:
+                    write_summary(root=root, data=data)
+                except OSError:
+                    pass
+            return data
+        return cached[1]
 
 
-def write_summary(path: str = os.path.join(RUNS, "TEST_SUMMARY.md"), data: dict | None = None) -> str:
+def write_summary(path: str | None = None, data: dict | None = None, root: str = RUNS) -> str:
     """Write runs/TEST_SUMMARY.md from the current results, so it never goes stale."""
+    path = path or os.path.join(root, "TEST_SUMMARY.md")
     if data is None:
-        data = payload()
+        data = payload(root)
     lines = ["# Control tower — test summary", "",
              f"Written {time.strftime('%Y-%m-%d %H:%M')} from the saved results by `tower/ui/reports.py`. "
              "Each test's expected output is its answer key traced through the company graph (`tests/run_cases.py`, "

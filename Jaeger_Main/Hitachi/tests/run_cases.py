@@ -24,7 +24,9 @@ from tower.agents.coordinator import handle_event  # noqa: E402
 from tower.graph import WorldGraph  # noqa: E402
 
 DATA = os.path.join(HITACHI, "Data", "hack_the_highway_package", "data")
-OUT = os.path.join(HITACHI, "runs", "tests")
+# Where runs are saved. The online dashboard points this at one visitor's workspace (TOWER_RUNS_DIR).
+RUNS = os.environ.get("TOWER_RUNS_DIR") or os.path.join(HITACHI, "runs")
+OUT = os.path.join(RUNS, "tests")
 WRITE_TOOLS = {"mes.reschedule", "mes.transfer", "dealer.notify", "dealer.stop_sale",
                "crm.assign_loaner", "crm.notify_customer", "quality.hold_lot"}
 SUPPLY_TOOLS = {"mes.reschedule", "mes.transfer", "dealer.notify", "crm.assign_loaner"}
@@ -395,7 +397,8 @@ def log_run(folder, reader, results):
     entry = {"time": time.strftime("%Y-%m-%d %H:%M:%S"), "suite": SUITE_OF_FOLDER.get(folder, folder),
              "folder": folder, "reader": reader, "passed": sum(r["verdict"] == "PASS" for r in results),
              "total": len(results), "by_category": dict(by_cat)}
-    with open(os.path.join(HITACHI, "runs", "test_log.jsonl"), "a", encoding="utf-8") as handle:
+    os.makedirs(RUNS, exist_ok=True)
+    with open(os.path.join(RUNS, "test_log.jsonl"), "a", encoding="utf-8") as handle:
         handle.write(json.dumps(entry) + "\n")
 
 

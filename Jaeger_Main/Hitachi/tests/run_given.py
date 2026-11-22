@@ -28,7 +28,9 @@ sys.path.insert(0, HITACHI)
 import run_cases as rc  # noqa: E402
 from tower.graph import WorldGraph  # noqa: E402
 
-OUT = os.path.join(HITACHI, "runs", "given")
+OUT = os.path.join(rc.RUNS, "given")
+# TOWER_TEST_IDS=E-01,E-02,... grades only those events (the online demo's short set).
+ONLY = {e.strip() for e in os.environ.get("TOWER_TEST_IDS", "").split(",") if e.strip()}
 REAL = {"supplier_delay", "plant_outage", "quality_hold"}
 
 # What each docx test case is about, and the graph-path evidence it requires.
@@ -46,6 +48,8 @@ def load_cases():
     events = {e["event_id"]: e for e in json.load(open(os.path.join(rc.DATA, "events.json")))}
     data = json.load(open(os.path.join(HERE, "given_cases.json")))
     cases = data["cases"] if isinstance(data, dict) else data
+    if ONLY:
+        cases = [c for c in cases if c["id"] in ONLY]
     for case in cases:
         case["text"] = events[case["id"]]["text"]
         case["source"] = events[case["id"]]["source"]
@@ -129,7 +133,7 @@ def _fields(inc: dict) -> str:
 def write_report(all_results, cases, traces_by_reader, rows_by_reader):
     names = list(all_results)
     lines = [
-        "# Given test cases — the 15 given events",
+        f"# Given test cases — the {len(cases)} given events",
         "",
         "Each event is graded twice:",
         "",

@@ -221,7 +221,9 @@ export default function Events() {
     <Page title={tr("Event center")} subtitle={subtitle}>
       <RunTimeline job={run.job} />
       {tabs}
-      {!d.traces.length ? <div className="card empty">{d.loadedAt ? trx("No events yet. Go to {add} to send one, or to run the 15 given events.", { add: <a className="link" href="#/add">{tr("Add events")}</a> }) : "Loading…"}</div> : view === "results" ? <EventResults list={list} /> : view === "escalated" ? <EventEscalations list={list} /> : (
+      {!d.traces.length ? <div className="card empty">{d.loadedAt ? (d.demoSize
+        ? trx("No events yet. Go to {add} to send one, or to run the {n} demo events.", { add: <a className="link" href="#/add">{tr("Add events")}</a>, n: d.demoSize })
+        : trx("No events yet. Go to {add} to send one, or to run the 15 given events.", { add: <a className="link" href="#/add">{tr("Add events")}</a> })) : "Loading…"}</div> : view === "results" ? <EventResults list={list} /> : view === "escalated" ? <EventEscalations list={list} /> : (
         <div className="ev-layout">
           <div className="ev-side">
           <div className="ev-filters panel">

@@ -14,16 +14,17 @@ const FLOW = () => [
   { icon: "alert", t: tr("Escalate"), p: tr("Rumors and anything that can't be confirmed go to a human. Nothing is changed for them.") },
 ];
 
-// Built when the page renders, so it is in the language chosen in Settings.
-const TOUR = () => [
+// Built when the page renders, so it is in the language chosen in Settings. demo: online, the number of
+// demo events (the short set the online version uses); 0 on a laptop.
+const TOUR = (demo) => [
   { id: "overview", icon: "home", t: tr("Overview"), p: tr("The state of the run at a glance."),
     points: [tr("Headline counts: events, tool calls, escalations, test pass rate"), tr("Agent team and what each agent may do"), tr("Tool calls per event; click a bar to open that event")] },
   { id: "events", icon: "feed", t: tr("Event center"), p: tr("Every message and exactly what the tower did about it."),
     points: [tr("Every event, filterable by outcome and incident type"), tr("How it was read and the graph path it traced"), tr("Every tool call and the audit trail")] },
   { id: "add", icon: "plus", t: tr("Add events"), p: tr("Give the tower a new message, or run the whole feed."),
-    points: [tr("Type, paste, attach a file, or dictate by voice (Safari or Chrome)"), tr("The tower reads it, acts or escalates, and adds it to the feed"), tr("Run events walks the 15 given events and the chat's events")] },
+    points: [tr("Type, paste, attach a file, or dictate by voice (Safari or Chrome)"), tr("The tower reads it, acts or escalates, and adds it to the feed"), demo ? tr("Run events walks the {n} demo events", { n: demo }) : tr("Run events walks the 15 given events and the chat's events")] },
   { id: "tests", icon: "check", t: tr("Tests"), p: tr("How well the tower predicts, scored against answer keys."),
-    points: [tr("Run tests and watch each of the 15 given events pass or fail as it finishes"), tr("Pass rate by kind of message"), tr("Open one event: input, expected output, actual output")] },
+    points: [demo ? tr("Run tests and watch each of the {n} demo events pass or fail as it finishes", { n: demo }) : tr("Run tests and watch each of the 15 given events pass or fail as it finishes"), tr("Pass rate by kind of message"), tr("Open one event: input, expected output, actual output")] },
   { id: "ontology", icon: "graph", t: tr("Knowledge graph"), p: tr("The company's records and how they connect."),
     points: [tr("Network, schema, or one event's traced records"), tr("Drag, click to focus, scroll to zoom"), tr("Edge types and the traversals agents use")] },
   { id: "logs", icon: "doc", t: tr("Logs"), p: tr("The raw record behind every page."),
@@ -42,20 +43,22 @@ const TERMS = () => [
 ];
 
 // Built when the page renders, so it is in the language chosen in Settings.
-const USE = () => [
-  { icon: "plus", t: tr("Give it events"), p: tr("On Add Events, type or paste a message, attach a file, or dictate it. Run Events plays the 15 given events in as if they were arriving live.") },
+const USE = (demo) => [
+  { icon: "plus", t: tr("Give it events"), p: demo ? tr("On Add Events, type or paste a message, attach a file, or dictate it. Run Events plays the {n} demo events in as if they were arriving live.", { n: demo })
+    : tr("On Add Events, type or paste a message, attach a file, or dictate it. Run Events plays the 15 given events in as if they were arriving live.") },
   { icon: "feed", t: tr("See what it did"), p: tr("The Event Center opens on Results: what the tower did with each event. Switch to Feed for how each message was read and every action taken.") },
   { icon: "doc", t: tr("Export the history"), p: tr("From the Event Center, download the events shown as a readable log, a spreadsheet, or a full data file.") },
-  { icon: "check", t: tr("Check the scores"), p: tr("Tests compares the tower's actions with answer keys, case by case, for the given events and the blind set.") },
+  { icon: "check", t: tr("Check the scores"), p: demo ? tr("Tests compares the tower's actions with answer keys, case by case, for the demo events.")
+    : tr("Tests compares the tower's actions with answer keys, case by case, for the given events and the blind set.") },
   { icon: "graph", t: tr("Explore the records"), p: tr("The Knowledge Graph shows the company's records and the paths the agents follow from a problem to the people it affects.") },
   { icon: "wrench", t: tr("Make it yours"), p: tr("Settings sets the theme, language, number format, time zone and voice input.") },
 ];
 
 // Built when the page renders, so it is in the language chosen in Settings.
-const SOURCES = () => [
+const SOURCES = (demo) => [
   [tr("Overview, Event center"), tr("The events in the feed and every action the tower took")],
   [tr("Tests"), tr("Saved test runs, scored against answer keys")],
-  [tr("Answer keys"), tr("Written by hand for the 15 given events; built from the company records for the blind set")],
+  [tr("Answer keys"), demo ? tr("Written by hand for each demo event") : tr("Written by hand for the 15 given events; built from the company records for the blind set")],
   [tr("Knowledge graph"), tr("The company records: plants, parts, suppliers, orders, dealers, vehicles and owners")],
   [tr("Logs"), tr("Every tool call, notification and agent handoff, and the test history")],
   [tr("Notifications"), tr("The messages sent to dealers and owners for each event")],
@@ -82,7 +85,7 @@ export default function Guide() {
       <div className="card" style={{ marginTop: 20 }}>
         <CardHead title={titleCase(tr("The pages"))} sub={tr("Click a card to open the page.")} />
         <div className="tour">
-          {TOUR().map((p) => (
+          {TOUR(d.demoSize).map((p) => (
             <a key={p.id} href={`#/${p.id}`} className="panel tour-card">
               <div className="flow-head"><span className="badge-ico"><Icon name={p.icon} /></span><b>{titleCase(p.t)}</b></div>
               <p>{p.p}</p>
@@ -106,7 +109,7 @@ export default function Guide() {
         <div className="card">
           <CardHead title={titleCase(tr("Using the dashboard"))} sub={tr("Everything happens in the app; there is nothing to install or type.")} />
           <ol className="guse">
-            {USE().map((x) => (
+            {USE(d.demoSize).map((x) => (
               <li key={x.t}><span className="badge-ico"><Icon name={x.icon} /></span><div><b>{titleCase(x.t)}</b><p>{x.p}</p></div></li>
             ))}
           </ol>
@@ -118,7 +121,7 @@ export default function Guide() {
           </dl>
           <div className="section-title">{tr("Where each page's data lives")}</div>
           <dl className="gloss compact">
-            {SOURCES().map(([p, s]) => <div key={p}><dt><b>{titleCase(p)}</b></dt><dd>{s}</dd></div>)}
+            {SOURCES(d.demoSize).map(([p, s]) => <div key={p}><dt><b>{titleCase(p)}</b></dt><dd>{s}</dd></div>)}
           </dl>
         </div>
       </div>

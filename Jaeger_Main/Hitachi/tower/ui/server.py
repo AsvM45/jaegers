@@ -51,6 +51,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import socket
 import sys
 import threading
@@ -74,8 +75,6 @@ STATIC_TYPES = {
     ".css": "text/css; charset=utf-8", ".json": "application/json", ".svg": "image/svg+xml",
     ".png": "image/png", ".ico": "image/x-icon", ".woff2": "font/woff2", ".md": "text/markdown; charset=utf-8",
 }
-# Test-suite run folders the knowledge graph may read traces from (suite id -> runs/ subfolder).
-SUITE_RUNS = {"given": "given", "blind": "blind", "blind100": "blind100"}
 EVENTS = os.path.join(HITACHI, "Data", "hack_the_highway_package", "data", "events.json")
 # TOWER_RUN_DIR=runs/live shows the live channel feed instead of the batch run.
 RUN_DIR = os.path.join(HITACHI, os.environ.get("TOWER_RUN_DIR", os.path.join("runs", "run1")))
@@ -178,7 +177,7 @@ def ontology_export():
     return build()
 
 
-def knowledge_payload(query):
+def knowledge_payload(query, desk):
     """Orb-graph data for ?view=network|schema|event. An event reads the tower run's traces, or a
     test report's with run=<suite>/<reader>."""
     from tower.ui import knowledge
@@ -188,19 +187,20 @@ def knowledge_payload(query):
         return knowledge.schema(ontology_export())
     if view == "event":
         event_id = (query.get("event") or [""])[0]
-        traces = TRACES
+        traces = desk.feed_traces
         run = (query.get("run") or [""])[0]
         if run:
+            from tower.ui import reports
+
             suite, _, reader = run.partition("/")
-            parent = os.path.join(HITACHI, "runs", SUITE_RUNS.get(suite, ""))
-            if suite not in SUITE_RUNS or not os.path.isdir(parent) or reader not in os.listdir(parent):
+            known = {s["id"]: s["runs"] for s in reports.SUITES}
+            parent = os.path.join(desk.tests_dir, known.get(suite, ""))
+            if suite not in known or not os.path.isdir(parent) or reader not in os.listdir(parent):
                 raise NotFound(f"no test run {run}")
             traces = os.path.join(parent, reader, "traces.json")
         if run:
             return knowledge.event(traces, event_id)
-        from tower.ui import event_desk
-
-        return knowledge.event(traces, event_id, event_desk.saved_traces())
+        return knowledge.event(traces, event_id, desk.saved_traces())
     return knowledge.network()
 
 
@@ -220,14 +220,12 @@ def logs_payload(name: str | None):
             for f in files]
 
 
-def revision_payload():
+def revision_payload(desk):
     """Changes when the run files or any saved test result change. Stat calls only, no report build."""
     from tower.ui import reports
 
-    from tower.ui import event_desk
-
-    stamps = [reports.revision()]
-    for path in (TRACES, LOG, OUTBOX, EVENTS, ONTOLOGY_JSON, *event_desk.stamp_paths()):
+    stamps = [reports.revision(desk.tests_dir)]
+    for path in (desk.feed_traces, desk.feed_log, desk.feed_outbox, EVENTS, ONTOLOGY_JSON, *desk.stamp_paths()):
         if os.path.isfile(path):
             st = os.stat(path)
             stamps.append(f"{os.path.basename(path)}:{st.st_mtime_ns}:{st.st_size}")
@@ -249,7 +247,42 @@ def channels_payload():
 
 # Read-only JSON API over the run output. dashboard.html fetches these endpoints and renders the event
 # feed, graph paths, actions and audit trail.
+WS_COOKIE = "tower_ws"
+_WS_ID = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
+
+
 class Handler(BaseHTTPRequestHandler):
+    _new_ws: str | None = None
+
+    def _desk(self, write: bool = False):
+        """This visitor's event desk. Online (TOWER_WORKSPACES=1) each browser has its own workspace,
+        named by a random id in a cookie the server sets on the first visit; on a laptop, the one desk.
+        A first visit (no cookie yet) reads the shared demo data; the workspace is made on disk the
+        first time the visitor's browser comes back with the cookie, or changes something."""
+        from tower.ui import event_desk
+
+        if not event_desk.WORKSPACES:
+            return event_desk.DEFAULT
+        wid = None
+        for part in (self.headers.get("Cookie") or "").split(";"):
+            name, _, value = part.strip().partition("=")
+            if name == WS_COOKIE and _WS_ID.match(value):
+                wid = value
+        if wid is None:
+            import secrets
+
+            wid = self._new_ws or secrets.token_urlsafe(18)
+            self._new_ws = wid
+            if not write:
+                return event_desk.BLANK
+        return event_desk.get(wid)
+
+    def end_headers(self):
+        if self._new_ws:
+            secure = "; Secure" if PUBLIC else ""
+            self.send_header("Set-Cookie", f"{WS_COOKIE}={self._new_ws}; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax{secure}")
+        super().end_headers()
+
     def _allowed(self) -> bool:
         """With TOWER_PASSWORD set, every request needs it (HTTP Basic, any user name). The health
         check stays open so the host can tell the server is up. Sends the 401 itself."""
@@ -287,7 +320,13 @@ class Handler(BaseHTTPRequestHandler):
         query = urllib.parse.parse_qs(split.query)
         if path != "/":
             path = path.rstrip("/") or "/"
+        desk = self._desk()
         try:
+            if path == "/api/mode":
+                from tower.ui import event_desk
+
+                # Online, each visitor has a workspace of their own: events and test runs.
+                return self._json({"workspaces": event_desk.WORKSPACES, "demo": sorted(event_desk.DEMO_EVENTS)})
             if path == "/":
                 built = os.path.join(DIST, "index.html")
                 return self._file(built if os.path.isfile(built) else DASHBOARD, "text/html; charset=utf-8")
@@ -300,42 +339,46 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/events":
                 from tower.ui import event_desk
 
-                official = read_json(EVENTS)
-                extra = event_desk.saved_events()
+                official = [e for e in read_json(EVENTS) if not isinstance(e, dict) or event_desk.shown(e.get("event_id", ""))]
+                extra = desk.saved_events()
                 have = {e.get("event_id") for e in official if isinstance(e, dict)}
                 return self._json(official + [e for e in extra if e.get("event_id") not in have])
             if path == "/api/ontology":
                 return self._json(ontology_payload())
             if path == "/api/traces":
-                from tower.ui import event_desk
-
-                base = read_json(TRACES) if os.path.isfile(TRACES) else []
+                base = read_json(desk.feed_traces) if os.path.isfile(desk.feed_traces) else []
                 have = {t.get("event_id") for t in base if isinstance(t, dict)}
-                return self._json(base + [t for t in event_desk.saved_traces() if t.get("event_id") not in have])
+                return self._json(base + [t for t in desk.saved_traces() if t.get("event_id") not in have])
             if path == "/api/log":
-                from tower.ui import event_desk
-
-                base = read_jsonl(LOG) if os.path.isfile(LOG) else []
-                return self._json(base + event_desk.saved_log())
+                base = read_jsonl(desk.feed_log) if os.path.isfile(desk.feed_log) else []
+                return self._json(base + desk.saved_log())
             if path == "/api/network_map":
                 from tower.ui import geo
 
                 return self._json(geo.payload())
             if path == "/api/promise":
-                from tower.ui import event_desk, promise
+                from tower.ui import promise
 
-                base = read_jsonl(LOG) if os.path.isfile(LOG) else []
-                return self._json(promise.payload(base + event_desk.saved_log()))
+                base = read_jsonl(desk.feed_log) if os.path.isfile(desk.feed_log) else []
+                return self._json(promise.payload(base + desk.saved_log()))
             if path == "/api/outbox":
-                return self._json(read_jsonl(OUTBOX) if os.path.isfile(OUTBOX) else [])
+                return self._json(read_jsonl(desk.feed_outbox) if os.path.isfile(desk.feed_outbox) else [])
             if path == "/api/channels":
                 return self._json(channels_payload())
             if path == "/api/ontology_export":
                 return self._json(ontology_export())
             if split.path.startswith("/runs/") and split.path.endswith(".md"):
-                return self._static(os.path.join(HITACHI, "runs"), urllib.parse.unquote(split.path[len("/runs/"):]))
+                return self._static(desk.tests_dir, urllib.parse.unquote(split.path[len("/runs/"):]))
             if path == "/api/logs":
-                return self._json(logs_payload((query.get("name") or [None])[0]))
+                from tower.ui import event_desk
+
+                # The saved start.py outputs are this laptop's; online there are none.
+                name = (query.get("name") or [None])[0]
+                if event_desk.WORKSPACES:
+                    if name:
+                        raise NotFound(name)
+                    return self._json([])
+                return self._json(logs_payload(name))
             if path == "/api/domains":
                 from tower.domains import payload as domain_payload
 
@@ -345,11 +388,13 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/reset":
                 from tower.ui import reset
 
-                return self._json(reset.status())
+                return self._json(reset.status(desk))
             if path == "/api/summary.pdf":
                 from tower.ui import summary_pdf
 
-                body = summary_pdf.build()
+                from tower.ui import reports
+
+                body = summary_pdf.build(reports.payload(desk.tests_dir))
                 self.send_response(200)
                 self.send_header("Content-Type", "application/pdf")
                 self.send_header("Content-Disposition", f'attachment; filename="{summary_pdf.filename()}"')
@@ -367,27 +412,23 @@ class Handler(BaseHTTPRequestHandler):
 
                 return self._json(roster())
             if path == "/api/knowledge_graph":
-                return self._json(knowledge_payload(query))
+                return self._json(knowledge_payload(query, desk))
             if path == "/api/test_reports":
                 from tower.ui import reports
 
-                return self._json(reports.payload())
+                return self._json(reports.payload(desk.tests_dir))
             if path == "/api/revision":
-                return self._json(revision_payload())
+                return self._json(revision_payload(desk))
             if path == "/api/events/chat":
-                from tower.ui import event_desk
-
-                return self._json({"messages": event_desk.messages()})
+                return self._json({"messages": desk.messages()})
             if path == "/api/events/run":
-                from tower.ui import event_desk
-
-                return self._json(event_desk.status())
+                return self._json(desk.status())
             if path == "/api/events/run/stream":
                 return self._stream_events()
             if path == "/api/run":
                 from tower.ui import runner
 
-                return self._json(runner.status())
+                return self._json(runner.status(desk.tests_dir))
             if path == "/api/run/stream":
                 return self._stream_run()
         except NotFound as exc:
@@ -426,10 +467,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._transcribe()
         from tower.ui import event_desk, runner
 
+        desk = self._desk(write=True)
         if path == "/api/run/stop":
-            return self._json(runner.stop())
+            return self._json(runner.stop(desk.tests_dir))
         if path == "/api/events/run/stop":
-            return self._json(event_desk.stop())
+            return self._json(desk.stop())
         try:
             length = int(self.headers.get("Content-Length") or 0)
         except ValueError:
@@ -446,23 +488,24 @@ class Handler(BaseHTTPRequestHandler):
         if path in ("/api/reset", "/api/reset/undo"):
             from tower.ui import reset
 
+            kind = str(body.get("kind") or "")
             try:
                 if path == "/api/reset":
-                    return self._json(reset.reset(str(body.get("kind") or ""), str(body.get("confirm") or "")))
-                return self._json(reset.undo(str(body.get("kind") or "")))
+                    return self._json(reset.reset(kind, str(body.get("confirm") or ""), desk))
+                return self._json(reset.undo(kind, desk))
             except ValueError as exc:
                 return self._json({"error": str(exc)}, 400)
             except OSError as exc:
                 return self._json({"error": "could not move the files", "detail": str(exc)}, 500)
         if path == "/api/events/chat":
-            return self._add_event(body)
+            return self._add_event(body, desk)
         if path == "/api/events/run":
-            result = event_desk.start()
+            result = desk.start()
             if result.get("error"):
                 return self._json(result, 409)
             return self._json(result)
         try:
-            result = runner.start(body.get("reader") or "rules", body.get("suites"))
+            result = runner.start(body.get("reader") or "rules", body.get("suites"), desk.tests_dir)
         except ValueError as exc:
             return self._json({"error": str(exc)}, 400)
         except OSError as exc:
@@ -500,25 +543,26 @@ class Handler(BaseHTTPRequestHandler):
             return
         if not self._local():
             return self._json({"error": "forbidden"}, 403)
+        from tower.ui import event_desk
+
+        desk = self._desk(write=True)
         parts = [urllib.parse.unquote(p) for p in urllib.parse.urlsplit(self.path).path.strip("/").split("/")]
         if len(parts) != 4 or parts[:2] != ["api", "test_reports"]:
             return self._json({"error": "not found"}, 404)
         from tower.ui import reports
 
         try:
-            removed = reports.delete(parts[2], parts[3])
+            removed = reports.delete(parts[2], parts[3], desk.tests_dir)
         except OSError as exc:
             return self._json({"error": "delete failed", "detail": str(exc)}, 500)
         if not removed:
             return self._json({"error": "no such report"}, 404)
         return self._json({"deleted": f"{parts[2]}/{parts[3]}"})
 
-    def _add_event(self, body: dict):
+    def _add_event(self, body: dict, desk):
         """Read one chat message and keep it as an event. The 15 given events are not rewritten."""
-        from tower.ui import event_desk
-
         try:
-            saved = event_desk.add_message(body.get("text"))
+            saved = desk.add_message(body.get("text"))
         except ValueError as exc:
             return self._json({"error": str(exc)}, 400)
         except OSError as exc:
@@ -552,15 +596,14 @@ class Handler(BaseHTTPRequestHandler):
             self.close_connection = True
 
     def _stream_events(self):
-        from tower.ui import event_desk
-
-        return self._stream(event_desk.follow)
+        return self._stream(self._desk().follow)
 
     def _stream_run(self):
         """Server-sent events for the live grade. One event per case, plus a snapshot on connect."""
         from tower.ui import runner
 
-        return self._stream(runner.follow)
+        root = self._desk().tests_dir
+        return self._stream(lambda: runner.follow(root))
 
     def _static(self, root, rel):
         """Serve a file under root; anything that resolves outside it is a 404."""
@@ -635,7 +678,7 @@ def main():
             from tower.ui import event_desk, runner
 
             runner.stop()
-            event_desk.stop()
+            event_desk.stop_all()
         except Exception:  # noqa: BLE001 - shutting down anyway
             pass
         server.server_close()

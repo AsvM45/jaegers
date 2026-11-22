@@ -85,6 +85,7 @@ export function ResetButton({ kind, disabled }) {
   const undo = () => call("/api/reset/undo", { kind }, tr("Reset undone. The data is back."));
   const ready = typed.trim() === WORD;
 
+  // Online the test results are shared by every visitor, so they cannot be cleared from the page.
   return (
     <>
       {state?.undo && !state.has_data && (

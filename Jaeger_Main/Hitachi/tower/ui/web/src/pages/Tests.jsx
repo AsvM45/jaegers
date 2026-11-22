@@ -241,7 +241,7 @@ function TestSet({ sid, rid, cid }) {
           <div className="controls">
             <a className="btn" href="#/tests">{tr("← All tests")}</a>
             {reader.report_md && <a className="btn" href={`/${reader.report_md}`} download><Icon name="doc" />{tr("Download report")}</a>}
-            {confirm ? <>
+            {d.online ? null : confirm ? <>
               <button className="btn danger solid" onClick={del}><Icon name="trash" />{tr("Delete for good")}</button>
               <button className="btn" onClick={() => set({ confirmDelete: null })}>{tr("Cancel")}</button>
             </> : <button className="btn danger" onClick={() => set({ confirmDelete: `${sid}/${rid}` })}><Icon name="trash" />{tr("Delete run")}</button>}

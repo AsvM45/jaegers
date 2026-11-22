@@ -5,7 +5,7 @@ import { setClock, setNumberLocale } from "./constants.js";
 import { LANGUAGES, msg, setLanguage, systemLanguage } from "./i18n.js";
 
 export const DEFAULTS = {
-  theme: "system",        // system (Default: follows this computer) | dark | light
+  theme: "dark",          // dark (the default) | light
   textSize: "default",    // small | default | large | xlarge
   motion: "full",         // full | reduce
   language: "auto",       // auto (this computer's, when the dashboard has it) or a code in LANGUAGES
@@ -27,6 +27,8 @@ function load() {
       const code = out.locale.split("-")[0];
       if (LANGUAGES.some(([c]) => c === code)) { out.language = code; out.locale = "auto"; }
     }
+    // The theme used to offer "follow this computer"; it is now dark or light, dark by default.
+    if (out.theme !== "light") out.theme = "dark";
     return out;
   } catch {
     return { ...DEFAULTS };

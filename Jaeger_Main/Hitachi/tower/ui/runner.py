@@ -3,6 +3,10 @@
 The Tests page posts here, then reads /api/run (and the event stream) to draw the run while
 the grader is still going. One run at a time. The commands are the same ones start.py uses;
 the request can only pick a known suite and rules, llm, or both.
+
+Online (TOWER_WORKSPACES=1) a grade belongs to the visitor who started it: it writes into their
+workspace (root), only they see it, it reads with the AI model alone, and it grades only the demo's
+events. One grade runs at a time; another visitor who asks meanwhile is told to try again shortly.
 """
 
 from __future__ import annotations
@@ -41,6 +45,10 @@ _ok: bool | None = None
 _error: str | None = None
 _tail: list[str] = []
 _ollama = {"at": 0.0, "ok": False, "why": "not checked"}
+ONLINE = os.environ.get("TOWER_WORKSPACES", "") == "1"
+RUNS = os.path.join(HITACHI, "runs")
+_root = RUNS          # where the current (or last) grade writes; online, its visitor's workspace
+BUSY = "Someone else is running the tests right now. Try again in a minute."
 
 
 def ollama_info() -> tuple[bool, str]:
@@ -72,11 +80,7 @@ def _specs():
 def _case_count(spec) -> int:
     from tower.ui import reports
 
-    path = os.path.join(reports.TESTS, spec["cases"])
-    with open(path, encoding="utf-8") as handle:
-        data = json.load(handle)
-    cases = data["cases"] if isinstance(data, dict) and "cases" in data else data
-    return len(cases)
+    return len(reports._load_cases(spec["cases"]))  # online, only the demo's events
 
 
 def _command(spec, reader: str) -> list[str]:
@@ -122,18 +126,38 @@ def _snapshot() -> dict:
     }
 
 
-def forget() -> None:
+def _mine(root: str | None) -> bool:
+    """Caller holds _lock. Whether this visitor (root) owns the current grade. Always on a laptop."""
+    return not ONLINE or (root or RUNS) == _root
+
+
+def _blank_snapshot() -> dict:
+    """Caller holds _lock. What a visitor sees while someone else's grade is the one in memory."""
+    return {"seq": _seq, "running": False, "reader": None, "model": _model, "ollama": _ollama["ok"],
+            "why": _ollama["why"], "passed": 0, "failed": 0, "total": 0, "ok": None, "error": None,
+            "tail": [], "suites": []}
+
+
+def forget(root: str | None = None) -> None:
     """Reset tests: drop the last grade so the page stops showing cases whose files are gone."""
     global _running, _reader, _suites, _passed, _failed, _total, _ok, _error, _tail
     with _lock:
+        if not _mine(root):
+            return
         _running, _reader, _suites, _passed, _failed, _total, _ok, _error, _tail = False, None, [], 0, 0, 0, None, None, []
         _emit({"type": "reset"})
 
 
-def status() -> dict:
+def status(root: str | None = None) -> dict:
     ollama_info()
     with _lock:
-        return _snapshot()
+        return _snapshot() if _mine(root) else _blank_snapshot()
+
+
+def busy_root() -> str | None:
+    """The workspace a grade is writing into right now, or None."""
+    with _lock:
+        return _root if _running else None
 
 
 def _emit(event: dict) -> None:
@@ -155,9 +179,11 @@ def _note(text: str) -> None:
     _emit({"type": "log", "text": text})
 
 
-def start(reader: str, suite_ids: list[str] | None) -> dict:
+def start(reader: str, suite_ids: list[str] | None, root: str | None = None) -> dict:
     """Begin a grade. ValueError is a bad request. error=already running is a 409."""
-    global _running, _cancel, _reader, _model, _suites, _passed, _failed, _total, _ok, _error, _tail
+    global _running, _cancel, _reader, _model, _suites, _passed, _failed, _total, _ok, _error, _tail, _root
+    if ONLINE:
+        reader, suite_ids = "llm", ["given"]   # online: the AI model alone, on the demo's events
     if reader not in READERS:
         raise ValueError("reader must be rules, llm, or both")
     specs = _specs()
@@ -178,7 +204,8 @@ def start(reader: str, suite_ids: list[str] | None) -> dict:
         planned.append(_blank_suite(specs[sid], _case_count(specs[sid]) * passes))
     with _lock:
         if _running:
-            return {"error": "A run is already going"}
+            return {"error": "A run is already going" if _mine(root) else BUSY, "busy": not _mine(root)}
+        _root = root or RUNS
         _running = True
         _cancel = False
         _reader = reader
@@ -196,10 +223,12 @@ def start(reader: str, suite_ids: list[str] | None) -> dict:
     return {"started": True, "reader": reader, "suites": chosen, "total": total}
 
 
-def stop() -> dict:
+def stop(root: str | None = None) -> dict:
     """End the grade that is going. Safe to call when nothing is running."""
     global _cancel
     with _lock:
+        if not _mine(root):
+            return _blank_snapshot()
         _cancel = True
         proc = _proc
     if proc is not None and proc.poll() is None:
@@ -212,13 +241,14 @@ def stop() -> dict:
         return _snapshot()
 
 
-def follow():
-    """Yield ('state', snapshot) once, then ('update', event) for each later change, and pings."""
+def follow(root: str | None = None):
+    """Yield ('state', snapshot) once, then ('update', event) for each later change, and pings.
+    Online, changes to another visitor's grade are not sent (a ping instead)."""
     ok, why = ollama_info()
     with _lock:
         _ollama["ok"], _ollama["why"] = ok, why
         seq = _seq
-        snap = _snapshot()
+        snap = _snapshot() if _mine(root) else _blank_snapshot()
     yield "state", snap
     while True:
         with _lock:
@@ -227,6 +257,8 @@ def follow():
             fresh = [(n, ev) for n, ev in _deltas if n > seq]
             if fresh:
                 seq = fresh[-1][0]
+            if not _mine(root):
+                fresh = []
         if not fresh:
             yield "ping", {"seq": seq}
             continue
@@ -271,7 +303,7 @@ def _finish(ok: bool, error: str | None) -> None:
     try:
         from tower.ui import reports
 
-        reports.write_summary()
+        reports.write_summary(root=_root)
     except Exception as exc:  # noqa: BLE001 - the grade is already on disk; the page still reloads it
         with _lock:
             _note(f"Could not write the summary: {exc}")
@@ -289,6 +321,11 @@ def _run_suite(reader: str, spec) -> int:
     env = os.environ.copy()
     env["PYTHONUNBUFFERED"] = "1"
     env["PYTHONIOENCODING"] = "utf-8"
+    if ONLINE:
+        from tower.ui import reports
+
+        env["TOWER_RUNS_DIR"] = _root
+        env["TOWER_TEST_IDS"] = ",".join(sorted(reports.DEMO))
     with _lock:
         if _cancel:
             _set_suite(spec["id"], status="stopped")

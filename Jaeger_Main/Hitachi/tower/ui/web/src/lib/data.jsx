@@ -14,7 +14,7 @@ export async function getJSON(url, fallback) {
   }
 }
 
-const EMPTY = { events: [], traces: [], log: [], outbox: [], onto: null, reports: null, agents: [], promise: null, loadedAt: null, failed: false };
+const EMPTY = { events: [], traces: [], log: [], outbox: [], onto: null, reports: null, agents: [], promise: null, online: false, demoIds: [], demoSize: 0, loadedAt: null, failed: false };
 
 // Newest saved run of each suite. A later run of one small set must not replace the score for the rest.
 export function newestBySuite(reports) {
@@ -108,12 +108,17 @@ export function DataProvider({ children }) {
     const core = (url, fallback) => fetch(url, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .catch(() => { failed = true; return fallback; });
-    const [events, traces, log, onto, reports, outbox, agents, promise] = await Promise.all([
+    const [events, traces, log, onto, reports, outbox, agents, promise, mode] = await Promise.all([
       getJSON("/api/events", []), core("/api/traces", []), getJSON("/api/log", []),
       getJSON("/api/ontology_export", null), core("/api/test_reports", null), getJSON("/api/outbox", []),
-      getJSON("/api/agents", []), getJSON("/api/promise", null),
+      getJSON("/api/agents", []), getJSON("/api/promise", null), getJSON("/api/mode", null),
     ]);
-    lastRaw = { events, traces, log, onto, reports, outbox, agents, promise, loadedAt: Date.now(), failed };
+    // online: the shared online version, where each visitor has their own events and the tests are read-only.
+    const online = !!mode?.workspaces;
+    // demoIds: the given events Run the demo reads online (a short set); empty means all of them.
+    const demoIds = Array.isArray(mode?.demo) ? mode.demo : [];
+    const demoSize = demoIds.length;
+    lastRaw = { events, traces, log, onto, reports, outbox, agents, promise, online, demoIds, demoSize, loadedAt: Date.now(), failed };
     setRaw(lastRaw);
     setBusy(false);
     return { events: traces.length, calls: log.length };

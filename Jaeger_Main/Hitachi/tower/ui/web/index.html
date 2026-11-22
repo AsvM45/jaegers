@@ -10,8 +10,7 @@
     (function () {
       var s = {};
       try { s = JSON.parse(localStorage.getItem("tower.settings.v1") || "{}") || {}; } catch (e) { s = {}; }
-      var dark = !window.matchMedia || window.matchMedia("(prefers-color-scheme: dark)").matches;
-      var theme = s.theme === "light" ? "light" : s.theme === "system" ? (dark ? "dark" : "light") : "dark";
+      var theme = s.theme === "light" ? "light" : "dark";
       var root = document.documentElement;
       root.dataset.theme = theme;
       root.dataset.size = s.textSize || "default";

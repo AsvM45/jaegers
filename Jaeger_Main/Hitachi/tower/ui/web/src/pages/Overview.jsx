@@ -116,13 +116,17 @@ function PromiseCard({ p }) {
 }
 
 // The first thing a visitor sees: what this is, how well it works (from the saved test runs), and a
-// button that plays the 15 given events through the real tower, live.
+// button that plays the given events through the real tower, live. Online the numbers come only from
+// the visitor's own test run of the demo events ("—" until they run one).
 function Hero({ run }) {
   const d = useData();
   const { toast } = useUi();
   const job = run.job;
   const reader = (sid, label) => d.suiteById(sid)?.readers.find((r) => r.label === label);
   const blind = reader("blind100", tr("AI model")), rules = reader("blind100", tr("Rule reader")), given = reader("given", tr("AI model"));
+  // Online the demo has a short set of the given events: count only their test results.
+  const demoCases = d.demoSize && given?.cases ? given.cases.filter((c) => d.demoIds.includes(c.id)) : null;
+  const tested = demoCases ? { passed: demoCases.filter((c) => c.verdict === "PASS").length, total: demoCases.length } : given;
   const pct = (r) => (r && r.total ? Math.round((r.passed / r.total) * 100) : null);
   const now = job?.current ? String(job.current) : "";
   const runDemo = async () => { const err = await run.start(); if (err) toast(err); };
@@ -142,23 +146,28 @@ function Hero({ run }) {
             {job?.running ? <><span className="spin-dot" aria-hidden="true" />{tr("Running the demo")}</> : <><Icon name="play" />{tr("Run the demo")}</>}
           </button>
           <a className="btn" href="#/events">{tr("Open the Event Center")}</a>
-          <span className="note">{tr("Plays the 15 given events through the tower, live.")}</span>
+          <span className="note">{d.demoSize ? tr("Plays {n} of the given events through the tower, live, one of each kind.", { n: fmt(d.demoSize) }) : tr("Plays the 15 given events through the tower, live.")}</span>
         </div>
         {job?.running && <div className="run-meter hero2-meter" aria-hidden="true"><span style={{ width: `${job.total ? (job.done / job.total) * 100 : 0}%` }} /></div>}
       </div>
       <div className="hero2-metrics">
-        <div className="metric">
+        {!d.online && <div className="metric">
           <div className="metric-v">{pct(blind) != null ? <><CountUp value={pct(blind)} />%</> : "—"}</div>
           <div className="metric-k">{tr("accuracy on {n} unseen messages", { n: fmt(blind?.total || 100) })}</div>
           {pct(rules) != null && <div className="metric-s">{tr("vs {n}% rule-based", { n: pct(rules) })}</div>}
+        </div>}
+        <div className="metric">
+          <div className="metric-v">{tested ? <><CountUp value={tested.passed} />/{tested.total}</> : "—"}</div>
+          <div className="metric-k">{d.demoSize ? tr("demo events passed their tests") : tr("required test events passed")}</div>
         </div>
         <div className="metric">
-          <div className="metric-v">{given ? <><CountUp value={given.passed} />/{given.total}</> : "—"}</div>
-          <div className="metric-k">{tr("required test events passed")}</div>
-        </div>
-        <div className="metric">
-          <div className="metric-v">{blind?.avg_seconds ? `${blind.avg_seconds} s` : "—"}</div>
-          <div className="metric-k">{tr("per event, on a local 1.7B model")}</div>
+          {d.online ? <>
+            <div className="metric-v">{given?.avg_seconds ? `${given.avg_seconds} s` : "—"}</div>
+            <div className="metric-k">{tr("per event, in your test run")}</div>
+          </> : <>
+            <div className="metric-v">{blind?.avg_seconds ? `${blind.avg_seconds} s` : "—"}</div>
+            <div className="metric-k">{tr("per event, on a local 1.7B model")}</div>
+          </>}
         </div>
       </div>
     </section>

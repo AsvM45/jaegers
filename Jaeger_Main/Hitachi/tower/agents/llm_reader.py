@@ -185,7 +185,8 @@ class LLMUnavailable(RuntimeError):
 class LLMReader:
     """Thin client for one structured extraction per message section."""
 
-    def __init__(self, model: str = MODEL, url: str = OLLAMA_URL, timeout: float = 60.0):
+    def __init__(self, model: str = MODEL, url: str = OLLAMA_URL,
+                 timeout: float = float(os.environ.get("TOWER_LLM_TIMEOUT", "60"))):
         self.model = model
         self.url = url.rstrip("/")
         self.timeout = timeout

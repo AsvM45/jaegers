@@ -100,7 +100,7 @@ export default function Settings() {
           <CardHead title={tr("Appearance")} />
           <Row label={tr("Theme")}>
             <Toggle value={settings.theme} onChange={(v) => update({ theme: v })}
-              options={[["system", tr("Default")], ["dark", tr("Dark")], ["light", tr("Light")]]} />
+              options={[["dark", tr("Dark")], ["light", tr("Light")]]} />
           </Row>
           <Row label={tr("Text size")}>
             <Toggle value={settings.textSize} onChange={(v) => update({ textSize: v })} options={[["small", tr("Small")], ["default", tr("Default")], ["large", tr("Large")], ["xlarge", tr("Extra large")]]} />

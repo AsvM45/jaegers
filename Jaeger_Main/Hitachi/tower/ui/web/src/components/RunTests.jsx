@@ -48,22 +48,24 @@ function folderFor(label) {
   return label === "rules" ? "rules" : `llm_${(label || "").replace(":", "_")}`;
 }
 
-function blurb(job, mode) {
+function blurb(job, mode, demo) {
   if (job?.running) {
     const seen = job.passed + job.failed;
-    const who = job.reader === "rules" ? tr("rule reader") : tr("{model} + rule check", { model: job.model });
+    const who = demo ? tr("AI model") : job.reader === "rules" ? tr("rule reader") : tr("{model} + rule check", { model: job.model });
     return tr("Running with the {who}. {seen} of {total} cases finished.", { who: who, seen: seen, total: job.total });
   }
   if (job?.suites?.length) {
     if (job.ok) return tr("Finished. {passed} passed{failed}", { passed: job.passed, failed: job.failed ? }), ${job.failed} failed` : ""}.`;
     return job.error ? tr("Stopped. {error}.", { error: job.error }) : tr("Finished with {failed} failed.", { failed: job.failed });
   }
+  if (demo) return tr("Grades the {n} demo events with the AI model. Each case shows up as soon as it finishes.", { n: demo });
   if (mode === "both") return "Grades the 15 given events with the model, then checks every reading against the rules. Each case shows up when it finishes.";
   return "Grades the 15 given events with the rule reader. Each case shows up as soon as it finishes. This does not re-run the event feed.";
 }
 
 export function RunTests() {
-  const { reload } = useData();
+  // Online (demoSize > 0) the grade is the visitor's own: the AI model alone, on the demo's events.
+  const { reload, demoSize } = useData();
   const { toast } = useUi();
   const [job, setJob] = useState(null);
   const [mode, setMode] = useState("rules");
@@ -112,13 +114,13 @@ export function RunTests() {
   }, [seen]);
 
   const start = async () => {
-    const body = mode === "both" ? { reader: "both", suites: ["given"] } : { reader: "rules" };
+    const body = demoSize ? { reader: "llm", suites: ["given"] } : mode === "both" ? { reader: "both", suites: ["given"] } : { reader: "rules" };
     try {
       const res = await fetch("/api/run", {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) toast(data.error || "Could not start the run");
+      if (!res.ok) toast(data.busy ? tr("Someone else is running the tests right now. Try again in a minute.") : data.error || "Could not start the run");
     } catch {
       toast(tr("Could not start the run"));
     }
@@ -144,14 +146,14 @@ export function RunTests() {
 
   return (
     <div className="card run-card">
-      <CardHead title={tr("Run tests")} sub={blurb(job, mode)}>
+      <CardHead title={tr("Run tests")} sub={blurb(job, mode, demoSize)}>
         <div className="controls">
-          <div className="toggle" role="group" aria-label={tr("What to run")}>
+          {!demoSize && <div className="toggle" role="group" aria-label={tr("What to run")}>
             <button type="button" className={mode === "rules" ? "on" : ""} disabled={running} onClick={() => setMode("rules")}>{tr("Rules")}</button>
             <button type="button" className={mode === "both" ? "on" : ""} disabled={running || !job?.ollama}
               title={job && !job.ollama ? job.why : "Grade the 15 given events with the model and the rule check"}
               onClick={() => setMode("both")}>{tr("Model + rules")}</button>
-          </div>
+          </div>}
           <button type="button" className="btn primary" disabled={running} onClick={start}>
             <Icon name="play" />{running ? tr("Running") : tr("Run tests")}
           </button>
@@ -189,7 +191,7 @@ export function RunTests() {
                 <div key={c.key} className={`run-case ${c.verdict === "PASS" ? "pass" : "fail"}${i === last ? " latest" : ""}`}>
                   <span className="mark">{c.verdict === "PASS" ? tr("PASS") : tr("FAIL")}</span>
                   {open ? <a href={href}>{c.id}</a> : <b>{c.id}</b>}
-                  <span className="who">{c.reader}</span>
+                  <span className="who">{demoSize ? tr("AI model") : c.reader}</span>
                   <span className="cat">{c.category}</span>
                   <span className="set">{c.suite.title}</span>
                 </div>
