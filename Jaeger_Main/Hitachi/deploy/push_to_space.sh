@@ -25,6 +25,9 @@ git clone "$SPACE" "$WORK/space"
 # (Spaces refuse binary files in a plain git push: screenshots, the challenge .docx).
 # The Space starts fresh and shows only the demo's given tests: of runs/ only the ontology export goes,
 # and the blind test sets, their tools, the saved runs and the design notes stay on this computer.
+# Start from an empty folder (keeping only the Space's git history), so a file left out here is also
+# removed from the Space if an earlier push sent it.
+find "$WORK/space" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
 rsync -a --delete --exclude ".git" \
   --include "runs/" --include "runs/ontology/***" --exclude "runs/*" \
   --include "deploy/" --include "deploy/space/***" --exclude "deploy/*" \
