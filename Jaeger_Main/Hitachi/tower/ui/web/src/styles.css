@@ -981,6 +981,14 @@ a.tour-card:hover { border-color: var(--accent); background: rgba(0, 117, 255, 0
 .orb-stack { position: relative; height: clamp(380px, calc(100vh - 260px), 820px); }   /* grows and shrinks with the window */
 .orb-stack > .orb-wrap { position: absolute; inset: 0; height: auto; }
 .orb-wrap.orb-hidden { visibility: hidden; pointer-events: none; }
+/* The empty Event view: the graph's faint floor grid seen at an angle, fading at its edges. Plain CSS. */
+.orb-floor { position: absolute; inset: 0; perspective: 900px; overflow: hidden; pointer-events: none; }
+.orb-floor i { position: absolute; left: 50%; top: 62%; width: 1600px; height: 1600px; margin: -800px 0 0 -800px; transform: rotateX(60deg);
+  background-image: linear-gradient(rgba(42, 51, 88, 0.75) 1px, transparent 1px), linear-gradient(90deg, rgba(42, 51, 88, 0.75) 1px, transparent 1px);
+  background-size: 57px 57px; background-position: center;
+  -webkit-mask-image: radial-gradient(closest-side, #000 55%, transparent); mask-image: radial-gradient(closest-side, #000 55%, transparent); }
+.orb-empty-note { position: absolute; left: 16px; top: 16px; padding: 10px 14px; border-radius: 12px; font-size: 13px;
+  color: #c7d2ff; background: rgba(12, 18, 40, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); }
 
 /* Event Center paging: show 5, 25, 50 or all, with previous / next. */
 .pager { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }

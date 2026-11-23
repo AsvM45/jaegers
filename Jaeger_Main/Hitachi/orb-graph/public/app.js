@@ -68,8 +68,7 @@ document.body.prepend(renderer.domElement);
 // The plain floor (#floor, drawn by CSS) stands in for the 3D scene when it has nothing to draw:
 // an empty graph never needs 3D, so it gives its drawing context back at once (see build).
 // Browsers also keep only so many 3D views at once (Safari counts every graph in every tab of a
-// site) and take the context from an older one. Then the floor shows with a quiet way to reload, and
-// the graph reloads by itself when the browser hands a context back.
+// site) and take the context from an older one. Then the floor shows with a Reload button.
 const gl = renderer.getContext();
 let flat = false;   // showing the CSS floor: the frame loop does nothing
 function showFloor() {
@@ -83,8 +82,10 @@ function contextLost() {
   note.hidden = false;
   note.querySelector('button').onclick = () => location.reload();
 }
-renderer.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); contextLost(); });
-renderer.domElement.addEventListener('webglcontextrestored', () => { if (!document.hidden && !$('lost').hidden) location.reload(); });
+// Never reload by itself: a reloaded graph takes a context back from another graph, which would then
+// reload too, round and round. No preventDefault either, so the browser does not hand the context
+// back on its own. Only the Reload button (one click, one reload) starts the graph again.
+renderer.domElement.addEventListener('webglcontextlost', () => contextLost());
 if (gl.isContextLost()) contextLost();
 
 const scene = new THREE.Scene();
