@@ -66,18 +66,6 @@
   @keyframes orb-spin { to { transform:rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { #boot i { animation:none; border-top-color:rgba(255,255,255,.1); border-color:#2b8cff; } .panel, #hint, #boot { transition:none; } }
   #err { position:fixed; inset:0; display:none; place-items:center; color:#ff8a8a; text-align:center; padding:24px; }
-  /* The plain floor: the empty graph, and the stand-in when the browser takes the 3D view away. The same
-     faint grid as the 3D floor, seen from above at an angle, fading out at its edges. */
-  #floor { position:fixed; inset:0; display:none; perspective:900px; overflow:hidden; pointer-events:none; }
-  #floor i { position:absolute; left:50%; top:62%; width:1600px; height:1600px; margin:-800px 0 0 -800px; transform:rotateX(60deg);
-    background-image:linear-gradient(rgba(42,51,88,.75) 1px, transparent 1px), linear-gradient(90deg, rgba(42,51,88,.75) 1px, transparent 1px);
-    background-size:57px 57px; background-position:center;
-    -webkit-mask-image:radial-gradient(closest-side, #000 55%, transparent); mask-image:radial-gradient(closest-side, #000 55%, transparent); }
-  body.floor #floor { display:block; }
-  body.floor canvas, body.floor #mode, body.floor #zoom, body.floor #hint { visibility:hidden; }
-  #lost { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); font-size:13px; color:#c7d2ff; }
-  #lost[hidden] { display:none; }
-  #lost button { margin-left:8px; padding:4px 12px; border-radius:8px; border:1px solid rgba(255,255,255,.2); background:transparent; color:#fff; font:inherit; cursor:pointer; }
   body.embed #hint { display:none; }
   body.embed .panel { padding:10px 12px; }
   body.embed #title h1 { font-size:15px; }
@@ -118,8 +106,6 @@
   <div id="legend" class="panel" aria-label="Node types"></div>
   <div id="info" class="panel" aria-live="polite"></div>
   <div id="hint">Drag an orb to move it. Click to focus its links. Drag empty space to orbit. Scroll or use the buttons to zoom.</div>
-  <div id="floor" aria-hidden="true"><i></i></div>
-  <div id="lost" class="panel" hidden>The browser paused this graph: too many 3D views are open. <button type="button">Reload</button></div>
   <div id="err"></div>
   <script>
     // If the graph cannot start at all (no WebGL, a script error before its own error handling), say

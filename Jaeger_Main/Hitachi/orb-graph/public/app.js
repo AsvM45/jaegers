@@ -65,29 +65,6 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.setSize(innerWidth, innerHeight);
 document.body.prepend(renderer.domElement);
 
-// The plain floor (#floor, drawn by CSS) stands in for the 3D scene when it has nothing to draw:
-// an empty graph never needs 3D, so it gives its drawing context back at once (see build).
-// Browsers also keep only so many 3D views at once (Safari counts every graph in every tab of a
-// site) and take the context from an older one. Then the floor shows with a Reload button.
-const gl = renderer.getContext();
-let flat = false;   // showing the CSS floor: the frame loop does nothing
-function showFloor() {
-  flat = true;
-  document.body.classList.add('floor');
-}
-function contextLost() {
-  if (flat) return;
-  showFloor();
-  const note = $('lost');
-  note.hidden = false;
-  note.querySelector('button').onclick = () => location.reload();
-}
-// Never reload by itself: a reloaded graph takes a context back from another graph, which would then
-// reload too, round and round. No preventDefault either, so the browser does not hand the context
-// back on its own. Only the Reload button (one click, one reload) starts the graph again.
-renderer.domElement.addEventListener('webglcontextlost', () => contextLost());
-if (gl.isContextLost()) contextLost();
-
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(BG);
 document.documentElement.style.setProperty('--bg', BG);
@@ -286,12 +263,15 @@ let linkLines, linkPos, linkCol;
 const orbMeshes = [];
 
 try {
+  // No data for the graph (nothing traced yet, or the request found nothing): draw it empty.
+  const EMPTY = { nodes: [], links: [] };
   let data;
   if (DATA_URL) {
-    const res = await fetch(DATA_URL, { cache: 'no-store' });
-    if (!res.ok) throw new Error(DATA_URL + ' returned ' + res.status);
-    data = await res.json();
+    const res = await fetch(DATA_URL, { cache: 'no-store' }).catch(() => null);
+    data = res?.ok ? await res.json().catch(() => EMPTY) : EMPTY;
   } else data = USE_FAKE_DATA ? makeFakeData() : await (await fetch('/api/graph')).json();
+  if (!Array.isArray(data?.nodes)) data = { ...data, nodes: [] };
+  if (!Array.isArray(data.links)) data.links = [];
   if (data.colors) Object.assign(PALETTE, data.colors);
   if (data.title) document.querySelector('#title h1').textContent = data.title;
   if (data.kicker) $('kicker').textContent = data.kicker;
@@ -314,12 +294,8 @@ function build({ nodes: ns, links: ls }) {
   links.forEach((l) => { l.s.deg++; l.t.deg++; l.s.nbrs.add(l.t); l.t.nbrs.add(l.s); });
 
   // No records yet (an event view before any event is traced): show only empty space.
-  // No records: the plain CSS floor, and the 3D context goes straight back to the browser.
   document.body.classList.toggle('empty', !nodes.length);
-  if (!nodes.length) {
-    showFloor();
-    gl.getExtension('WEBGL_lose_context')?.loseContext();
-  }
+  if (!nodes.length) camera.position.set(0, 210, 300);   // look down on the empty floor so it reads as 3D space
   for (const n of nodes) {
     n.color = colorFor(n.type);
     n.r = 3.4 + Math.sqrt(n.deg) * 1.6;
@@ -552,8 +528,6 @@ let active = true;
 function frame() {
   requestAnimationFrame(frame);
   if (!active || document.hidden) return;
-  if (flat) return;
-  if (gl.isContextLost()) { contextLost(); return; }
   const f = dragging || hovered || selected, now = performance.now();
   if (alpha > 0.002) simulate();
   if (mode === '2d') for (const n of nodes) if (!n.fixed) { tmp.subVectors(n.pos, planeP); n.pos.addScaledVector(planeN, -tmp.dot(planeN) * 0.12); }   // glide onto the sheet

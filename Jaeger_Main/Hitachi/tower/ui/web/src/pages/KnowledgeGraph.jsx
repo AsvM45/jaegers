@@ -105,18 +105,6 @@ const OrbFrame = memo(function OrbFrame({ src, view, shown = true, onReady }) {
   );
 });
 
-// The Event view before any event has records to show: just the empty floor, drawn here. No graph page,
-// no 3D and no data request until there is something to draw.
-function EmptyFloor({ shown, onReady }) {
-  useEffect(() => { onReady?.(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  return (
-    <div className={`orb-wrap orb-empty${shown ? "" : " orb-hidden"}`} aria-hidden={!shown}>
-      <div className="orb-floor" aria-hidden="true"><i /></div>
-      <div className="orb-empty-note">{tr("Waiting for events.")}</div>
-    </div>
-  );
-}
-
 export default function KnowledgeGraph() {
   const d = useData();
   const { ui, set } = useUi();
@@ -164,10 +152,6 @@ export default function KnowledgeGraph() {
           {VIEWS.filter((v) => v === orb.view || warm || opened.current.has(v)).map((v) => {
             opened.current.add(v);
             const o = v === orb.view ? orb : v === "event" ? { view: "event", event: ui.orb.event || "all", run: ui.orb.run } : { view: v };
-            // Nothing traced yet for this choice (and not a test report's run): the empty floor.
-            const nothing = v === "event" && !o.run
-              && !withPaths.some((t) => !o.event || o.event === "all" || t.event_id === o.event);
-            if (nothing) return <EmptyFloor key={v} shown={v === orb.view} onReady={v === orb.view ? warmUp : undefined} />;
             return <OrbFrame key={v} src={v === orb.view ? src : orbSrc(o, rev)} view={`${v}:${o.event || ""}:${o.run || ""}`}
               shown={v === orb.view} onReady={v === orb.view ? warmUp : undefined} />;
           })}

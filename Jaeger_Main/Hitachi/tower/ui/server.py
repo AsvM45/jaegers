@@ -197,8 +197,9 @@ def knowledge_payload(query, desk):
             suite, _, reader = run.partition("/")
             known = {s["id"]: s["runs"] for s in reports.SUITES}
             parent = os.path.join(desk.tests_dir, known.get(suite, ""))
+            # A test run that is not there (reset, or never run): an empty graph, not an error.
             if suite not in known or not os.path.isdir(parent) or reader not in os.listdir(parent):
-                raise NotFound(f"no test run {run}")
+                return knowledge.event("", event_id)
             traces = os.path.join(parent, reader, "traces.json")
         if run:
             return knowledge.event(traces, event_id)
