@@ -24,6 +24,8 @@ Listens on http://127.0.0.1:8080
     GET /api/promise           customer promise impact: moved builds against each customer's promised date
     GET /api/network_map       plants, suppliers and dealers with their locations, for the Overview map
     GET /api/test_reports      expected vs actual outcome for every test case, per reader
+    GET /api/records           the company tables visitors can read (tower/ui/records.py)
+    GET /api/records/<table>?q=&offset=&limit=   one page of a table, searched
     GET /api/revision          a token that changes when the run or the saved results change
     GET /api/events/chat       the event-add transcript
     POST /api/events/chat      read one chat message and add it to the feed
@@ -279,8 +281,12 @@ class Handler(BaseHTTPRequestHandler):
 
     def end_headers(self):
         if self._new_ws:
-            secure = "; Secure" if PUBLIC else ""
-            self.send_header("Set-Cookie", f"{WS_COOKIE}={self._new_ws}; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax{secure}")
+            # Online, Hugging Face shows the app in a frame on huggingface.co, another site: a Lax cookie
+            # is never sent there, so each action would start a new, empty workspace. SameSite=None
+            # lets the frame keep it; Partitioned keeps it working where third-party cookies are blocked
+            # (it is kept for this site-in-that-site only). The cookie only names a sandbox workspace.
+            same_site = "None; Secure; Partitioned" if PUBLIC else "Lax"
+            self.send_header("Set-Cookie", f"{WS_COOKIE}={self._new_ws}; Path=/; Max-Age=2592000; HttpOnly; SameSite={same_site}")
         super().end_headers()
 
     def _allowed(self) -> bool:
@@ -411,6 +417,21 @@ class Handler(BaseHTTPRequestHandler):
                 from tower.agents.roster import roster
 
                 return self._json(roster())
+            if path == "/api/records" or path.startswith("/api/records/"):
+                from tower.ui import records
+
+                if path == "/api/records":
+                    return self._json(records.tables())
+                def num(name, default):
+                    try:
+                        return int((query.get(name) or [default])[0])
+                    except ValueError:
+                        return default
+                try:
+                    return self._json(records.page(urllib.parse.unquote(path[len("/api/records/"):]),
+                                                   (query.get("q") or [""])[0], num("offset", 0), num("limit", 25)))
+                except KeyError as exc:
+                    raise NotFound(f"no table {exc}") from exc
             if path == "/api/knowledge_graph":
                 return self._json(knowledge_payload(query, desk))
             if path == "/api/test_reports":

@@ -10,10 +10,11 @@ import AddEvents from "./pages/AddEvents.jsx";
 import Tests from "./pages/Tests.jsx";
 import KnowledgeGraph from "./pages/KnowledgeGraph.jsx";
 import Logs from "./pages/Logs.jsx";
+import Records from "./pages/Records.jsx";
 import Guide from "./pages/Guide.jsx";
 import Settings from "./pages/Settings.jsx";
 
-const VIEWS = { overview: Overview, events: Events, add: AddEvents, tests: Tests, ontology: KnowledgeGraph, logs: Logs, guide: Guide, settings: Settings };
+const VIEWS = { overview: Overview, events: Events, add: AddEvents, tests: Tests, ontology: KnowledgeGraph, records: Records, logs: Logs, guide: Guide, settings: Settings };
 
 // The page the window last showed, kept outside React so a redraw does not reset it.
 const shown = { key: null };

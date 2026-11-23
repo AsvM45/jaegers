@@ -1,5 +1,6 @@
 // Voice input: record the microphone in the page, show a live waveform, then transcribe the
 // recording on this machine (POST /api/voice/transcribe, whisper.cpp). No audio leaves the laptop.
+// Online (no whisper.cpp on the server), the server sends the recording to an online speech service.
 //
 // Asking for the microphone (getUserMedia) is what makes Safari, Chrome and the desktop app show
 // their permission prompt. If access was refused before, the browser will not ask again by itself,

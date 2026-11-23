@@ -11,6 +11,10 @@ the laptop. Whisper is told the company's plant, supplier and part names, so it 
 way the tables do.
 
 Overrides: TOWER_WHISPER_CLI (the binary), TOWER_WHISPER_DIR (where models live).
+
+Online (the Hugging Face Space has no whisper.cpp), when GROQ_API_KEY is set, recordings go to Groq's
+speech-to-text (Whisper large v3 turbo) instead. A computer with whisper.cpp set up always uses it.
+GROQ_STT_MODEL overrides the model.
 """
 
 from __future__ import annotations
@@ -51,8 +55,25 @@ def _model(lang: str) -> str | None:
     return None
 
 
+GROQ_KEY = os.environ.get("GROQ_API_KEY", "").strip()
+GROQ_STT_URL = os.environ.get("GROQ_STT_URL", "https://api.groq.com/openai/v1/audio/transcriptions")
+GROQ_STT_MODEL = os.environ.get("GROQ_STT_MODEL", "whisper-large-v3-turbo")
+
+
+def _local_ready(lang: str) -> bool:
+    return bool(cli() and _model(lang))
+
+
+def _online(lang: str) -> bool:
+    """Use the online speech service: no whisper.cpp here, and a Groq key is set."""
+    return bool(GROQ_KEY) and not _local_ready(lang)
+
+
 def status(lang: str = "en") -> dict:
     """What the dashboard needs to show the microphone button, or say how to set it up."""
+    if _online(lang):
+        return {"ready": True, "problem": "", "fix": "", "engine": "online", "model": "online",
+                "online": True, "languages": LANGUAGES}
     binary, model = cli(), _model(lang)
     problem, fix = "", ""
     if not binary:
@@ -137,6 +158,8 @@ def transcribe(wav: bytes, lang: str = "en", gate: bool = True) -> str:
     ready = status(lang)
     if not ready["ready"]:
         raise RuntimeError(ready["problem"])
+    if ready.get("online"):
+        return _transcribe_online(wav, lang)
     with _lock, tempfile.TemporaryDirectory() as tmp:
         audio, out = os.path.join(tmp, "audio.wav"), os.path.join(tmp, "text")
         with open(audio, "wb") as handle:
@@ -151,6 +174,36 @@ def transcribe(wav: bytes, lang: str = "en", gate: bool = True) -> str:
             raise RuntimeError(f"whisper-cli failed: {(done.stderr or done.stdout).strip()[-300:]}")
         with open(out + ".txt", encoding="utf-8") as handle:
             text = handle.read()
+    return re.sub(r"\s+", " ", _NOISE.sub(" ", text)).strip()
+
+
+def _transcribe_online(wav: bytes, lang: str) -> str:
+    """Groq speech-to-text: one multipart POST with the WAV, the language and the company's names."""
+    import json
+    import secrets
+    import urllib.error
+
+    boundary = "tower" + secrets.token_hex(12)
+    fields = {"model": GROQ_STT_MODEL, "language": lang, "response_format": "json", "temperature": "0"}
+    if lang == "en":
+        fields["prompt"] = _vocabulary()
+    body = b""
+    for name, value in fields.items():
+        body += (f"--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n").encode("utf-8")
+    body += (f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"audio.wav\"\r\n"
+             "Content-Type: audio/wav\r\n\r\n").encode("utf-8") + wav + f"\r\n--{boundary}--\r\n".encode("utf-8")
+    req = urllib.request.Request(GROQ_STT_URL, data=body, headers={
+        "Authorization": f"Bearer {GROQ_KEY}", "Content-Type": f"multipart/form-data; boundary={boundary}",
+        "User-Agent": "control-tower"})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as response:
+            text = json.loads(response.read().decode("utf-8")).get("text", "")
+    except urllib.error.HTTPError as exc:
+        if exc.code == 429:
+            raise RuntimeError("Voice input is busy right now. Try again in a minute.") from exc
+        raise RuntimeError(f"the speech service answered {exc.code}") from exc
+    except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        raise RuntimeError("the speech service could not be reached") from exc
     return re.sub(r"\s+", " ", _NOISE.sub(" ", text)).strip()
 
 

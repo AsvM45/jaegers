@@ -128,14 +128,15 @@ export default function Settings() {
         </div>
 
         <div className="card">
-          <CardHead title={tr("Voice")} sub={tr("Recorded in the page and turned into text on this computer. No audio leaves the laptop.")} />
+          <CardHead title={tr("Voice")} sub={voice?.online ? tr("Recorded in the page and sent to an online speech service, which turns it into text.")
+            : tr("Recorded in the page and turned into text on this computer. No audio leaves the laptop.")} />
           <Row label={tr("Microphone")}><Microphone /></Row>
-          <Row label={tr("Listen for")} hint={settings.voiceLang !== "en" ? tr("Other languages use the multilingual model.") : tr("English uses the English-only model, which is more accurate.")}>
+          <Row label={tr("Listen for")} hint={voice?.online ? tr("One speech model covers every language.") : settings.voiceLang !== "en" ? tr("Other languages use the multilingual model.") : tr("English uses the English-only model, which is more accurate.")}>
             <Select label={tr("Voice language")} value={settings.voiceLang} onChange={(v) => update({ voiceLang: v })} options={languages} />
           </Row>
           <Row label={tr("Speech engine")}>
             {voice?.ready
-              ? <span className="set-pill good"><Icon name="ok" />{tr("Ready · {model}", { model: /\.en\b/.test(voice.model || "") ? tr("English model") : tr("Multilingual model") })}</span>
+              ? <span className="set-pill good"><Icon name="ok" />{tr("Ready · {model}", { model: voice.online ? tr("Online speech service") : /\.en\b/.test(voice.model || "") ? tr("English model") : tr("Multilingual model") })}</span>
               : <span className="set-pill bad"><Icon name="alert" />{voice?.problem || "The dashboard server did not answer."}</span>}
           </Row>
         </div>

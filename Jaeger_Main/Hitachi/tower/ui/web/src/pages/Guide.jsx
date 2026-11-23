@@ -27,6 +27,8 @@ const TOUR = (demo) => [
     points: [demo ? tr("Run tests and watch each of the {n} demo events pass or fail as it finishes", { n: demo }) : tr("Run tests and watch each of the 15 given events pass or fail as it finishes"), tr("Pass rate by kind of message"), tr("Open one event: input, expected output, actual output")] },
   { id: "ontology", icon: "graph", t: tr("Knowledge graph"), p: tr("The company's records and how they connect."),
     points: [tr("Network, schema, or one event's traced records"), tr("Drag, click to focus, scroll to zoom"), tr("Edge types and the traversals agents use")] },
+  { id: "records", icon: "table", t: tr("Company records"), p: tr("The company's tables, to write your own test messages."),
+    points: [tr("Suppliers, shipments and lots for delays and quality holds"), tr("Plants, dealers, orders, vehicles and customers"), tr("Search any table and page through the large ones")] },
   { id: "logs", icon: "doc", t: tr("Logs"), p: tr("The raw record behind every page."),
     points: [tr("Every tool call, filterable by event or failure"), tr("Every notification and agent handoff, across all events"), tr("History of every test run")] },
 ];

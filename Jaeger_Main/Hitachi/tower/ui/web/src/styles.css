@@ -1034,6 +1034,10 @@ a.tour-card:hover { border-color: var(--accent); background: rgba(0, 117, 255, 0
 @keyframes route-draw { to { stroke-dashoffset: 0; } }
 .map-dealer { fill: rgba(var(--hi), 0.5); } .map-dealer.on { fill: var(--accent-2); }
 .map-supplier { fill: var(--s4); opacity: 0.55; } .map-supplier.on { opacity: 1; }
+/* Suppliers and dealers are small: a larger invisible circle takes the click or tap. */
+.map-pick { cursor: pointer; outline: none; } .map-hit { fill: transparent; }
+.map-pick:focus-visible .map-hit { stroke: var(--accent-2); stroke-width: 1px; }
+.map-label-picked { fill: var(--text); pointer-events: none; }
 .map-plant-ring { fill: none; stroke-width: 1.5; opacity: 0.55; }
 .map-plant { stroke: rgba(var(--ink), 0.9); stroke-width: 1.5; }
 .map-pulse { fill: none; stroke-width: 2; transform-box: fill-box; transform-origin: center; animation: plant-pulse 1.4s ease-out 2; }
@@ -1095,3 +1099,13 @@ a.tour-card:hover { border-color: var(--accent); background: rgba(0, 117, 255, 0
 .map-zoom button:hover:not(:disabled) { background: rgba(var(--hi), 0.08); color: var(--text); }
 .map-zoom button:disabled { opacity: 0.35; cursor: default; }
 .map-zoom button:focus-visible { outline: 2px solid var(--accent); }
+
+/* Company records: one button per table (they wrap on a narrow screen), and the table's search box. */
+.rec-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.rec-tabs button { border: 1px solid var(--line); background: rgba(var(--ink), 0.65); color: var(--text-2); padding: 7px 12px;
+  border-radius: 10px; cursor: pointer; font-size: calc(12.5px * var(--fs)); font-weight: 600; }
+.rec-tabs button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.rec-tabs button .ev-n { margin-left: 6px; }
+.rec-search { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line);
+  background: rgba(var(--ink), 0.65); color: var(--muted); }
+.rec-search input { border: 0; background: none; outline: none; color: var(--text); font: inherit; width: 200px; max-width: 46vw; }

@@ -44,6 +44,8 @@ export function ImpactMap({ focusId }) {
   // Zoom and pan: buttons, pinch or Cmd/Ctrl + scroll toward the cursor, drag to move, double-click to zoom in.
   // A plain scroll still scrolls the page.
   const [view, setView] = useState(FIT);
+  // A clicked (or tapped) supplier or dealer keeps its name on the map until another click.
+  const [picked, setPicked] = useState(null);
   const svgRef = useRef(null), drag = useRef(null);
   const toMap = (clientX, clientY) => {
     const svg = svgRef.current;
@@ -68,15 +70,20 @@ export function ImpactMap({ focusId }) {
   }, [places]); // eslint-disable-line react-hooks/exhaustive-deps
   const onDown = (e) => {
     if (view.k === 1 || e.button !== 0) return;
-    drag.current = { x: e.clientX, y: e.clientY, v: view, per: VB.w / svgRef.current.clientWidth };
+    drag.current = { x: e.clientX, y: e.clientY, v: view, per: VB.w / svgRef.current.clientWidth, moved: false };
     svgRef.current.setPointerCapture(e.pointerId);
   };
   const onMove = (e) => {
     const g = drag.current;
     if (!g) return;
+    if (Math.abs(e.clientX - g.x) + Math.abs(e.clientY - g.y) > 4) g.moved = true;
     setView(clampView({ k: g.v.k, tx: g.v.tx + (e.clientX - g.x) * g.per, ty: g.v.ty + (e.clientY - g.y) * g.per }));
   };
-  const onUp = () => { drag.current = null; };
+  // A drag that moved the map is not a click: it keeps the picked name.
+  const dragged = useRef(false);
+  const onUp = () => { dragged.current = !!drag.current?.moved; drag.current = null; };
+  const pick = (id) => (e) => { e.stopPropagation(); if (!dragged.current) setPicked((cur) => (cur === id ? null : id)); };
+  const pickKey = (id) => (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPicked((cur) => (cur === id ? null : id)); } };
 
   const at = useMemo(() => {
     const out = {};
@@ -130,6 +137,7 @@ export function ImpactMap({ focusId }) {
   const lit = new Set(routeList.flatMap((r) => [r.a, r.b]));
   const kinds = (focus?.incidents || []).map((i) => KIND_LABEL[i.kind]).filter(Boolean);
   const s = 1 / view.k;   // markers and labels keep their size on screen at any zoom
+  const nameOf = (p) => (p.kind === "suppliers" ? `${p.name} · ${tr("supplier")} · ${p.city}` : `${p.name} · ${p.city}`);
 
   return (
     <div className="map-wrap">
@@ -141,18 +149,27 @@ export function ImpactMap({ focusId }) {
       <svg ref={svgRef} viewBox={`${VB.x} ${VB.y} ${VB.w} ${VB.h}`} className={`impact-map${view.k > 1 ? " zoomed" : ""}`} role="img"
         aria-label={tr("Map of the company's plants, suppliers and dealers")}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+        onClick={() => { if (!dragged.current) setPicked(null); dragged.current = false; }}
         onDoubleClick={(e) => zoomAt(1.8, toMap(e.clientX, e.clientY))}>
         <g transform={`translate(${view.tx} ${view.ty}) scale(${view.k})`}>
         <path d={STATES} className="map-land" />
         <path d={BORDERS} className="map-borders" />
         <path d={OUTLINE} className="map-outline" />
         {pts.filter((p) => p.kind === "dealers").map((p) => (
-          <circle key={p.id} cx={p.x} cy={p.y} r={(lit.has(p.id) ? 3.6 : 2.4) * s} className={`map-dealer${lit.has(p.id) ? " on" : ""}`}
-            {...tipProps(`${p.name} · ${p.city}`)} />
+          <g key={p.id} className="map-pick" role="button" tabIndex={0} aria-label={nameOf(p)} aria-pressed={picked === p.id}
+            onClick={pick(p.id)} onKeyDown={pickKey(p.id)} {...tipProps(nameOf(p))}>
+            <circle cx={p.x} cy={p.y} r={9 * s} className="map-hit" />
+            <circle cx={p.x} cy={p.y} r={(lit.has(p.id) || picked === p.id ? 3.6 : 2.4) * s}
+              className={`map-dealer${lit.has(p.id) || picked === p.id ? " on" : ""}`} />
+          </g>
         ))}
         {pts.filter((p) => p.kind === "suppliers").map((p) => (
-          <rect key={p.id} x={p.x - 3.2 * s} y={p.y - 3.2 * s} width={6.4 * s} height={6.4 * s} transform={`rotate(45 ${p.x} ${p.y})`}
-            className={`map-supplier${lit.has(p.id) ? " on" : ""}`} {...tipProps(`${p.name} · ${tr("supplier")} · ${p.city}`)} />
+          <g key={p.id} className="map-pick" role="button" tabIndex={0} aria-label={nameOf(p)} aria-pressed={picked === p.id}
+            onClick={pick(p.id)} onKeyDown={pickKey(p.id)} {...tipProps(nameOf(p))}>
+            <circle cx={p.x} cy={p.y} r={9 * s} className="map-hit" />
+            <rect x={p.x - 3.2 * s} y={p.y - 3.2 * s} width={6.4 * s} height={6.4 * s} transform={`rotate(45 ${p.x} ${p.y})`}
+              className={`map-supplier${lit.has(p.id) || picked === p.id ? " on" : ""}`} />
+          </g>
         ))}
         {pts.filter((p) => p.kind === "plants").map((p) => {
           const st = status[p.id] || "running";
@@ -167,6 +184,14 @@ export function ImpactMap({ focusId }) {
             </g>
           );
         })}
+        {picked && at[picked] && (() => {
+          // The picked name, on top of everything; near the right edge it goes on the left of the marker.
+          const p = at[picked], left = p.x > VB.x + VB.w * 0.72;
+          return (
+            <text x={left ? p.x - 10 * s : p.x + 10 * s} y={p.y + 4 * s} textAnchor={left ? "end" : "start"}
+              className="map-label map-label-picked" style={{ fontSize: 12 * s, strokeWidth: 3 * s }}>{nameOf(p)}</text>
+          );
+        })()}
         </g>
       </svg>
       <div className="map-foot">

@@ -8,7 +8,7 @@ import { tr } from "../lib/i18n.js";
 const NAV = [
   ["overview", "home", "Overview"], ["events", "feed", "Event center"], ["add", "plus", "Add events"],
   ["tests", "check", "Tests"],
-  ["ontology", "graph", "Knowledge graph"], ["logs", "doc", "Logs"],
+  ["ontology", "graph", "Knowledge graph"], ["records", "table", "Company records"], ["logs", "doc", "Logs"],
 ];
 
 export function Sidebar({ page }) {

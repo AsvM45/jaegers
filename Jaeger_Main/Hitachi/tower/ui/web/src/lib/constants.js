@@ -36,7 +36,7 @@ export const CAT_COLOR = {
 export const CAT_NAME = translated({ ...KIND_LABEL, compound: "Compound" });
 
 export const PAGES = translated({
-  overview: "Overview", events: "Event center", add: "Add events", tests: "Tests", ontology: "Knowledge graph", logs: "Logs", guide: "Guide", settings: "Settings",
+  overview: "Overview", events: "Event center", add: "Add events", tests: "Tests", ontology: "Knowledge graph", records: "Company records", logs: "Logs", guide: "Guide", settings: "Settings",
 });
 
 export const AGENT_ICON = { coordinator: "cpu", supply_chain: "wrench", quality: "shield", dealer_customer: "mail" };
